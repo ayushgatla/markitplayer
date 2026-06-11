@@ -17,6 +17,15 @@ export const ReviewPlayer = ({ videoUrl }) => {
   const [currentUser] = useState('Client A'); // Mock user
 
   const isYouTube = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
+  const isDrive = videoUrl.includes('drive.google.com');
+
+  let processedUrl = videoUrl;
+  if (isDrive) {
+    const match = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|uc\?.*id=)([-\w]+)/);
+    if (match && match[1]) {
+      processedUrl = `http://localhost:3001/api/video/${match[1]}`;
+    }
+  }
 
   const videoOptions = {
     autoplay: false,
@@ -25,7 +34,7 @@ export const ReviewPlayer = ({ videoUrl }) => {
     fluid: true,
     techOrder: isYouTube ? ['youtube'] : ['html5'],
     sources: [{
-      src: videoUrl,
+      src: processedUrl,
       type: isYouTube ? 'video/youtube' : 'video/mp4'
     }]
   };

@@ -10,7 +10,7 @@ function App() {
     <div className="min-h-screen bg-zinc-950 flex flex-col font-sans">
       <ProjectHeader title="Project Aurora - Final Cut" />
       <main className="flex-1 flex overflow-hidden">
-        <ReviewPlayer videoUrl={"https://drive.google.com/uc?export=download&id=1h8xJ00g0autBpPdqbU6aqJMu4hPn_ahT"} />
+        <ReviewPlayer videoUrl={"https://drive.google.com/file/d/11RaVrjeVWKL2XR5iCDpl0_9N_Cg7Ju2C/view?usp=drivesdk"} />
       </main>
     </div>
   );
