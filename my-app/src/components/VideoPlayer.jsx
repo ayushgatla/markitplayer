@@ -69,7 +69,7 @@ export const VideoPlayer = forwardRef(({ options, onReady, onTimeUpdate }, ref) 
   }, []);
 
   return (
-    <div data-vjs-player className="w-full h-full relative">
+    <div data-vjs-player className="absolute inset-0 w-full h-full">
       <div ref={videoRef} className="w-full h-full" />
     </div>
   );

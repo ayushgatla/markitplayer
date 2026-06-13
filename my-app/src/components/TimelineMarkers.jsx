@@ -7,7 +7,7 @@ export const TimelineMarkers = ({ duration, comments, onMarkerClick }) => {
   if (!duration || duration === 0) return null;
 
   return (
-    <div className="absolute bottom-[40px] left-0 right-0 h-4 w-full px-2 z-10 pointer-events-none">
+    <div className="absolute bottom-[35px] left-0 right-0 h-4 w-full px-4 z-50 pointer-events-none">
       <div className="relative w-full h-full">
         {comments.map((comment) => {
           const leftPercent = (comment.timestamp / duration) * 100;

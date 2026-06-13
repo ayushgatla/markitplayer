@@ -6,4 +6,8 @@
   body {
     @apply bg-zinc-950 text-zinc-50 antialiased;
   }
+
+  .video-js .vjs-tech {
+    object-fit: contain !important;
+  }
 }

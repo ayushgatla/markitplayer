@@ -31,7 +31,7 @@ export const ReviewPlayer = ({ videoUrl }) => {
     autoplay: false,
     controls: true,
     responsive: true,
-    fluid: true,
+    fill: true,
     techOrder: isYouTube ? ['youtube'] : ['html5'],
     sources: [{
       src: processedUrl,
@@ -76,7 +76,7 @@ export const ReviewPlayer = ({ videoUrl }) => {
   return (
     <div className="flex w-full h-[calc(100vh-4rem)] bg-zinc-950">
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
-        <div className="w-full max-w-5xl rounded-xl overflow-hidden shadow-2xl shadow-indigo-500/10 border border-zinc-800 bg-black relative">
+        <div className="w-full max-w-5xl aspect-video rounded-xl overflow-hidden shadow-2xl shadow-indigo-500/10 border border-zinc-800 bg-black relative">
           <VideoPlayer 
             ref={playerRef}
             options={videoOptions} 
