@@ -40,7 +40,15 @@ export const ReviewPlayer = ({ videoUrl }) => {
   };
 
   const handlePlayerReady = (player) => {
+    if (player.duration()) {
+      setDuration(player.duration());
+    }
+    
     player.on('loadedmetadata', () => {
+      setDuration(player.duration());
+    });
+
+    player.on('durationchange', () => {
       setDuration(player.duration());
     });
   };
