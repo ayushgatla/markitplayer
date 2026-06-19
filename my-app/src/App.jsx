@@ -1,19 +1,39 @@
 import React from 'react';
-import ProjectHeader from './components/ProjectHeader';
-import ReviewPlayer from './components/ReviewPlayer';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Room from './pages/Room';
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 function App() {
-  // Using a well-known public sample video for demonstration
-  const sampleVideoUrl = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+  const { user, loading } = useAuth();
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col font-sans">
-      <ProjectHeader title="Project Aurora - Final Cut" />
-      <main className="flex-1 flex overflow-hidden">
-        <ReviewPlayer videoUrl={"https://drive.google.com/file/d/1fRY86tjekvOS6IwRs0PKLnf02XogRHn6/view?usp=drivesdk"} />
-      </main>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/room/:roomId" element={<ProtectedRoute><Room /></ProtectedRoute>} />
+      </Routes>
+    </Router>
   );
 }
 
-export default App;
+const AppWrapper = () => (
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
+
+export default AppWrapper;
+

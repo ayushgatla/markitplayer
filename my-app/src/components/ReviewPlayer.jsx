@@ -1,20 +1,51 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import VideoPlayer from './VideoPlayer';
 import TimelineMarkers from './TimelineMarkers';
 import CommentSidebar from './CommentSidebar';
+import { supabase } from '../supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 
-// Simple mock data for now
-const MOCK_COMMENTS = [
-  { id: '1', timestamp: 12.5, comment_text: 'The color grading looks a bit cool here, can we warm it up?', author: 'Client A', created_at: new Date(Date.now() - 10000).toISOString() },
-  { id: '2', timestamp: 45.0, comment_text: 'Great transition!', author: 'Editor B', created_at: new Date(Date.now() - 5000).toISOString() }
-];
-
-export const ReviewPlayer = ({ videoUrl }) => {
+export const ReviewPlayer = ({ videoUrl, roomId }) => {
   const playerRef = useRef(null);
+  const { user } = useAuth();
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [comments, setComments] = useState(MOCK_COMMENTS);
-  const [currentUser] = useState('Client A'); // Mock user
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(true);
+
+  // Fetch comments from Supabase
+  useEffect(() => {
+    async function fetchComments() {
+      if (!roomId) return;
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('room_id', roomId)
+        .order('timestamp', { ascending: true });
+
+      if (!error && data) {
+        setComments(data);
+      }
+      setLoadingComments(false);
+    }
+    fetchComments();
+
+    // Set up real-time subscription for comments
+    const subscription = supabase
+      .channel(`room_${roomId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments', filter: `room_id=eq.${roomId}` }, (payload) => {
+        setComments((current) => {
+          // Check if we already have it to prevent duplicates from our own insert
+          if (current.some(c => c.id === payload.new.id)) return current;
+          return [...current, payload.new].sort((a, b) => a.timestamp - b.timestamp);
+        });
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [roomId]);
 
   const isYouTube = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
   const isDrive = videoUrl.includes('drive.google.com');
@@ -57,21 +88,40 @@ export const ReviewPlayer = ({ videoUrl }) => {
     setCurrentTime(time);
   };
 
-  const handleAddComment = (text) => {
+  const handleAddComment = async (text) => {
     // Pause video automatically when adding a comment
     if (playerRef.current) {
       playerRef.current.pause();
     }
     
     const newComment = {
-      id: Math.random().toString(36).substring(7),
+      room_id: roomId,
+      user_id: user.id,
+      author_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous',
       timestamp: currentTime,
-      comment_text: text,
-      author: currentUser,
-      created_at: new Date().toISOString()
+      comment_text: text
     };
     
-    setComments([...comments, newComment]);
+    // Optimistic UI update
+    const tempId = Math.random().toString();
+    setComments(prev => [...prev, { ...newComment, id: tempId, created_at: new Date().toISOString() }]);
+
+    // Insert into Supabase
+    const { data, error } = await supabase
+      .from('comments')
+      .insert([newComment])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error saving comment:", error);
+      // Revert optimistic update if error
+      setComments(prev => prev.filter(c => c.id !== tempId));
+      alert(`Failed to save comment: ${error.message}`);
+    } else if (data) {
+      // Replace optimistic comment with real one from DB
+      setComments(prev => prev.map(c => c.id === tempId ? data : c));
+    }
   };
 
   const handleCommentClick = (comment) => {
@@ -91,11 +141,13 @@ export const ReviewPlayer = ({ videoUrl }) => {
             onReady={handlePlayerReady}
             onTimeUpdate={handleTimeUpdate}
           />
-          <TimelineMarkers 
-            duration={duration} 
-            comments={comments} 
-            onMarkerClick={handleCommentClick} 
-          />
+          {!loadingComments && (
+            <TimelineMarkers 
+              duration={duration} 
+              comments={comments} 
+              onMarkerClick={handleCommentClick} 
+            />
+          )}
         </div>
       </div>
       <CommentSidebar 

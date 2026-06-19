@@ -38,7 +38,7 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
               onClick={() => onCommentClick(comment)}
             >
               <div className="flex justify-between items-start mb-1">
-                <span className="font-semibold text-sm text-zinc-200">{comment.author}</span>
+                <span className="font-semibold text-sm text-zinc-200">{comment.author_name || comment.author}</span>
                 <span className="text-xs bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded flex items-center gap-1 group-hover:bg-indigo-500/20 group-hover:text-indigo-300 transition-colors">
                   <Play size={10} />
                   {formatTime(comment.timestamp)}
