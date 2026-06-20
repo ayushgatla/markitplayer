@@ -97,6 +97,12 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
   };
 
   const handlePlayerReady = (player) => {
+    // Explicitly force volume to 100% and unmuted.
+    // YouTube iframes often inherit the user's global YouTube volume/mute preferences,
+    // which causes the video to silently start muted even if our UI thinks it's unmuted.
+    player.volume(1);
+    player.muted(false);
+
     if (player.duration()) {
       setDuration(player.duration());
     }

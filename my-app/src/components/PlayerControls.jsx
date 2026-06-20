@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Subtitles, Volume2, VolumeX, Maximize } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, SkipBack, SkipForward, Subtitles, Volume2, VolumeX, Maximize, Plus, Minus } from 'lucide-react';
 import LiquidGlass from 'liquid-glass-react';
 
 export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMouseInside, onToggleFullscreen }) => {
@@ -9,6 +9,8 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [hoveredComment, setHoveredComment] = useState(null);
+  const [speed, setSpeed] = useState(1);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const setupEvents = () => {
@@ -22,12 +24,14 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
           setVolume(player.volume());
           setIsMuted(player.muted());
         });
+        player.on('ratechange', () => setSpeed(player.playbackRate()));
 
         setIsPlaying(!player.paused());
         setCurrentTime(player.currentTime());
         setDuration(player.duration() || 0);
         setVolume(player.volume());
         setIsMuted(player.muted());
+        setSpeed(player.playbackRate() || 1);
         return true;
       }
       return false;
@@ -78,14 +82,60 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
 
   const toggleSubtitles = () => {
     const player = playerRef.current?.getRawPlayer?.();
+    if (!player) return;
+
+    let hasSubtitles = false;
+    const tracks = player.textTracks();
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      if (track.kind === 'subtitles' || track.kind === 'captions') {
+        hasSubtitles = true;
+        track.mode = track.mode === 'showing' ? 'hidden' : 'showing';
+      }
+    }
+
+    if (!hasSubtitles && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleSubtitleUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const player = playerRef.current?.getRawPlayer?.();
     if (player) {
+      const url = URL.createObjectURL(file);
+      
+      // Clean up previous tracks to prevent duplicates
       const tracks = player.textTracks();
-      for (let i = 0; i < tracks.length; i++) {
-        const track = tracks[i];
-        if (track.kind === 'subtitles' || track.kind === 'captions') {
-          track.mode = track.mode === 'showing' ? 'hidden' : 'showing';
+      for (let i = tracks.length - 1; i >= 0; i--) {
+        if (tracks[i].kind === 'subtitles' || tracks[i].kind === 'captions') {
+          player.removeRemoteTextTrack(tracks[i]);
         }
       }
+
+      const trackEl = player.addRemoteTextTrack({
+        src: url,
+        kind: 'subtitles',
+        srclang: 'en',
+        label: file.name,
+        default: true
+      }, false);
+
+      // Force track to showing mode, video.js requires this specifically for dynamically added blobs
+      trackEl.track.mode = 'showing';
+    }
+  };
+
+  const changeSpeed = (delta) => {
+    const player = playerRef.current?.getRawPlayer?.();
+    if (player) {
+      let newSpeed = speed + delta;
+      if (newSpeed < 0.25) newSpeed = 0.25;
+      if (newSpeed > 3.0) newSpeed = 3.0;
+      player.playbackRate(newSpeed);
+      setSpeed(newSpeed);
     }
   };
 
@@ -216,9 +266,30 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
             </button>
           </div>
 
-          {/* Right: Subtitles & Fullscreen */}
+          {/* Right: Speed, Subtitles & Fullscreen */}
           <div className="flex items-center justify-end gap-5 w-1/3">
-            <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Subtitles">
+            {/* Speed Controller */}
+            <div className="flex items-center bg-white/10 rounded-full px-2 py-1.5 border border-white/10 shadow-lg">
+              <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 transition-colors p-1" title="Decrease Speed">
+                <Minus size={14} />
+              </button>
+              <span className="text-white/90 text-xs font-mono font-medium w-9 text-center tracking-tight">
+                {speed.toFixed(2)}x
+              </span>
+              <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 transition-colors p-1" title="Increase Speed">
+                <Plus size={14} />
+              </button>
+            </div>
+
+            {/* Hidden file input for subtitles */}
+            <input 
+              type="file" 
+              accept=".vtt" 
+              ref={fileInputRef} 
+              className="hidden" 
+              onChange={handleSubtitleUpload}
+            />
+            <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Add/Toggle Subtitles">
               <Subtitles size={20} />
             </button>
             <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Fullscreen">
