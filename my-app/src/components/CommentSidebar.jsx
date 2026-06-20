@@ -19,7 +19,7 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
   };
 
   return (
-    <div className="w-80 h-full bg-zinc-900 border-l border-zinc-800 flex flex-col">
+    <div className="w-full lg:w-96 flex-shrink-0 min-h-[50vh] lg:min-h-0 lg:h-full bg-zinc-900 border-t lg:border-t-0 lg:border-l border-zinc-800 flex flex-col">
       <div className="p-4 border-b border-zinc-800 flex items-center gap-2 text-zinc-100 font-medium">
         <MessageSquare size={18} className="text-indigo-400" />
         Comments

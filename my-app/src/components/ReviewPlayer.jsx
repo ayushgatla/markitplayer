@@ -184,8 +184,8 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
   const isControlsActive = isFullscreen ? !isIdle : isMouseInside;
 
   return (
-    <div className="flex w-full h-[calc(100vh-4rem)] bg-zinc-950">
-      <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
+    <div className="flex flex-col lg:flex-row w-full h-[calc(100vh-4rem)] bg-zinc-950 overflow-y-auto lg:overflow-hidden">
+      <div className="w-full lg:flex-1 flex flex-col items-center justify-center p-2 sm:p-4 lg:p-6 relative min-h-[40vh] lg:min-h-0">
         <div 
           ref={wrapperRef}
           className={`relative bg-black shadow-2xl overflow-hidden shadow-indigo-500/10 ${

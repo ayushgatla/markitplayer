@@ -163,7 +163,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
   const showControls = isMouseInside || !isPlaying;
 
   return (
-    <div className={`absolute bottom-6 left-0 right-0 mx-auto z-50 transition-all duration-500 ease-in-out ${showControls ? 'w-[calc(100%-3rem)]' : 'w-[60%] max-w-2xl'}`}>
+    <div className={`absolute bottom-2 sm:bottom-6 left-0 right-0 mx-auto z-50 transition-all duration-500 ease-in-out ${showControls ? 'w-[calc(100%-1rem)] sm:w-[calc(100%-3rem)]' : 'w-[90%] sm:w-[60%] max-w-2xl'}`}>
       {/* Hovered Comment Tooltip - Placed outside LiquidGlass to prevent clipping */}
       {hoveredComment && duration > 0 && (
         <div 
@@ -186,7 +186,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
         <div className="absolute inset-0 w-full h-full rounded-[24px] bg-black/40 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-500 ease-in-out" />
 
         {/* Content Wrapper */}
-        <div className={`w-full flex flex-col relative z-10 px-6 transition-all duration-500 ease-in-out ${showControls ? 'gap-3 py-4' : 'gap-0 py-3'}`}>
+        <div className={`w-full flex flex-col relative z-10 px-3 sm:px-6 transition-all duration-500 ease-in-out ${showControls ? 'gap-2 sm:gap-3 py-3 sm:py-4' : 'gap-0 py-2 sm:py-3'}`}>
           {/* Progress Bar & Timeline Markers (Always visible) */}
           <div className="w-full relative h-4 flex items-center group pointer-events-auto">
           {/* Base Track */}
@@ -232,12 +232,12 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
         <div className={`flex items-center justify-between pointer-events-auto w-full drop-shadow-md px-2 transition-all duration-500 ease-in-out overflow-hidden ${showControls ? 'opacity-100 max-h-16 pt-2' : 'opacity-0 max-h-0 pt-0'}`}>
         
           {/* Left: Time & Volume */}
-          <div className="flex items-center gap-6 w-1/3">
-            <div className="text-white/90 text-sm font-medium font-mono tracking-wide whitespace-nowrap">
-              {formatTime(currentTime)} <span className="text-white/50 mx-1">/</span> {formatTime(duration)}
+          <div className="flex items-center gap-1 sm:gap-6 flex-1 min-w-0">
+            <div className="text-white/90 text-xs sm:text-sm font-medium font-mono tracking-wide whitespace-nowrap">
+              {formatTime(currentTime)} <span className="text-white/50 mx-0.5 sm:mx-1">/</span> {formatTime(duration)}
             </div>
             {/* Volume */}
-            <div className="flex items-center gap-3 group">
+            <div className="hidden sm:flex items-center gap-3 group">
               <button onClick={toggleMute} className="text-white hover:text-indigo-400 transition-colors p-1">
                 {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
               </button>
@@ -254,30 +254,30 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
           </div>
 
           {/* Center: Playback Controls */}
-          <div className="flex items-center justify-center gap-6 w-1/3">
+          <div className="flex items-center justify-center gap-1 sm:gap-6 flex-shrink-0">
             <button onClick={() => skip(-5)} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1">
-              <SkipBack size={24} />
+              <SkipBack size={20} className="sm:w-6 sm:h-6" />
             </button>
-            <button onClick={togglePlay} className="text-white hover:text-indigo-400 transition-all bg-white/10 hover:bg-white/20 p-3 rounded-full border border-white/10 shadow-lg hover:shadow-indigo-500/20 hover:scale-105">
-              {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
+            <button onClick={togglePlay} className="text-white hover:text-indigo-400 transition-all bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full border border-white/10 shadow-lg hover:shadow-indigo-500/20 hover:scale-105">
+              {isPlaying ? <Pause size={20} className="sm:w-6 sm:h-6" /> : <Play size={20} className="ml-0.5 sm:ml-1 sm:w-6 sm:h-6" />}
             </button>
             <button onClick={() => skip(5)} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1">
-              <SkipForward size={24} />
+              <SkipForward size={20} className="sm:w-6 sm:h-6" />
             </button>
           </div>
 
           {/* Right: Speed, Subtitles & Fullscreen */}
-          <div className="flex items-center justify-end gap-5 w-1/3">
+          <div className="flex items-center justify-end gap-1 sm:gap-5 flex-1 min-w-0">
             {/* Speed Controller */}
-            <div className="flex items-center bg-white/10 rounded-full px-2 py-1.5 border border-white/10 shadow-lg">
-              <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 transition-colors p-1" title="Decrease Speed">
-                <Minus size={14} />
+            <div className="flex items-center bg-white/10 rounded-full px-1 sm:px-2 py-1 sm:py-1.5 border border-white/10 shadow-lg">
+              <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 transition-colors p-0.5 sm:p-1" title="Decrease Speed">
+                <Minus size={14} className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
-              <span className="text-white/90 text-xs font-mono font-medium w-9 text-center tracking-tight">
-                {speed.toFixed(2)}x
+              <span className="text-white/90 text-[10px] sm:text-xs font-mono font-medium w-6 sm:w-9 text-center tracking-tight">
+                {speed}x
               </span>
-              <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 transition-colors p-1" title="Increase Speed">
-                <Plus size={14} />
+              <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 transition-colors p-0.5 sm:p-1" title="Increase Speed">
+                <Plus size={14} className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             </div>
 
