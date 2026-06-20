@@ -14,6 +14,8 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(true);
   const [isMouseInside, setIsMouseInside] = useState(false);
+  const [isIdle, setIsIdle] = useState(false);
+  const idleTimeoutRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const wrapperRef = useRef(null);
 
@@ -165,6 +167,16 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
     }
   };
 
+  const handleMouseMove = () => {
+    setIsIdle(false);
+    if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
+    idleTimeoutRef.current = setTimeout(() => {
+      setIsIdle(true);
+    }, 2500);
+  };
+
+  const isControlsActive = isFullscreen ? !isIdle : isMouseInside;
+
   return (
     <div className="flex w-full h-[calc(100vh-4rem)] bg-zinc-950">
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
@@ -177,6 +189,7 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
           }`}
           onMouseEnter={() => setIsMouseInside(true)}
           onMouseLeave={() => setIsMouseInside(false)}
+          onMouseMove={handleMouseMove}
           onDoubleClick={handleToggleFullscreen}
         >
           <VideoPlayer 
@@ -189,7 +202,7 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
             playerRef={playerRef} 
             comments={comments}
             onMarkerClick={handleCommentClick}
-            isMouseInside={isMouseInside}
+            isMouseInside={isControlsActive}
             onToggleFullscreen={handleToggleFullscreen}
           />
         </div>
