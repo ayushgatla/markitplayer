@@ -90,7 +90,7 @@ export default function Room() {
         title={roomData?.title || 'Loading Session...'} 
         onRename={handleRenameRoom}
       />
-      <main className="flex-1 flex overflow-hidden">
+      <main className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
         {roomData?.video_url ? (
           <ReviewPlayer videoUrl={roomData.video_url} roomId={roomId} />
         ) : (

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Subtitles, Volume2, VolumeX, Maximize, Plus, Minus } from 'lucide-react';
 import LiquidGlass from 'liquid-glass-react';
 
-export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMouseInside, onToggleFullscreen }) => {
+export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMouseInside, onToggleFullscreen, isFullscreen }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -163,7 +163,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
   const showControls = isMouseInside || !isPlaying;
 
   return (
-    <div className={`w-full transition-all duration-500 ease-in-out mx-auto ${showControls ? 'lg:w-[calc(100%-3rem)]' : 'lg:w-[60%] lg:max-w-2xl'}`}>
+    <div className={`w-full transition-all duration-500 ease-in-out mx-auto ${showControls ? (isFullscreen ? 'w-[calc(100%-1rem)] lg:w-[calc(100%-3rem)]' : 'lg:w-[calc(100%-3rem)]') : (isFullscreen ? 'w-[60%] max-w-2xl' : 'lg:w-[60%] lg:max-w-2xl')}`}>
       {/* Hovered Comment Tooltip */}
       {hoveredComment && duration > 0 && (
         <div 
@@ -186,7 +186,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
         <div className="absolute inset-0 w-full h-full rounded-[20px] lg:rounded-[24px] bg-white/5 lg:bg-black/40 backdrop-blur-xl lg:backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-500 ease-in-out" />
 
         {/* Content Wrapper */}
-        <div className={`w-full flex flex-col relative z-10 px-4 lg:px-6 transition-all duration-500 ease-in-out ${showControls ? 'gap-4 lg:gap-3 py-4 lg:py-4' : 'gap-4 lg:gap-0 py-4 lg:py-3'}`}>
+        <div className={`w-full flex flex-col relative z-10 px-4 lg:px-6 transition-all duration-500 ease-in-out ${showControls ? (isFullscreen ? 'gap-2 py-2' : 'gap-4 lg:gap-3 py-4 lg:py-4') : (isFullscreen ? 'gap-2 py-2' : 'gap-4 lg:gap-0 py-4 lg:py-3')}`}>
           {/* Progress Bar & Timeline Markers (Always visible) */}
           <div className="w-full relative h-4 flex items-center group pointer-events-auto">
             {/* Base Track */}
@@ -229,19 +229,23 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
           </div>
 
           {/* Controls Row */}
-          <div className={`flex flex-col lg:flex-row items-center justify-between pointer-events-auto w-full drop-shadow-md transition-all duration-500 ease-in-out lg:overflow-hidden gap-4 lg:gap-0 ${showControls ? 'opacity-100 lg:max-h-16 pt-2 pb-2 lg:pb-0' : 'opacity-100 lg:opacity-0 lg:max-h-0 pt-2 lg:pt-0 pb-2 lg:pb-0'}`}>
+          <div className={`flex items-center justify-between pointer-events-auto w-full drop-shadow-md transition-all duration-500 ease-in-out overflow-hidden ${
+            isFullscreen 
+              ? `flex-row gap-0 ${showControls ? 'opacity-100 max-h-16 py-1' : 'opacity-0 max-h-0 py-0'}`
+              : `flex-col lg:flex-row gap-4 lg:gap-0 ${showControls ? 'opacity-100 lg:max-h-16 pt-2 pb-2 lg:py-1' : 'opacity-100 lg:opacity-0 lg:max-h-0 pt-2 lg:pt-0 pb-2 lg:pb-0'}`
+          }`}>
             
             {/* MOBILE: Top Row | DESKTOP: Left Side */}
-            <div className="flex items-center justify-between w-full lg:w-[30%]">
+            <div className={`flex items-center justify-between ${isFullscreen ? 'w-[30%] lg:w-[30%]' : 'w-full lg:w-[30%]'}`}>
               
               {/* Left: Time & Volume */}
-              <div className="flex items-center justify-start gap-3">
+              <div className="flex items-center justify-start gap-2 lg:gap-3">
                 <div className="text-white/90 text-xs lg:text-sm font-medium font-mono tracking-wide whitespace-nowrap">
                   {formatTime(currentTime)} <span className="text-white/50 mx-1">/</span> {formatTime(duration)}
                 </div>
                 <div className="flex items-center gap-1 lg:gap-3 group">
                   <button onClick={toggleMute} className="text-white hover:text-indigo-400 transition-colors p-1" title="Mute/Unmute">
-                    {isMuted || volume === 0 ? <VolumeX size={16} className="lg:w-[18px] lg:h-[18px]" /> : <Volume2 size={16} className="lg:w-[18px] lg:h-[18px]" />}
+                    {isMuted || volume === 0 ? <VolumeX size={16} className="w-4 h-4 lg:w-[18px] lg:h-[18px]" /> : <Volume2 size={16} className="w-4 h-4 lg:w-[18px] lg:h-[18px]" />}
                   </button>
                   <input
                     type="range"
@@ -265,7 +269,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
               />
 
               {/* MOBILE ONLY: Speed, CC, Fullscreen */}
-              <div className="flex lg:hidden items-center justify-end gap-3">
+              <div className={`${isFullscreen ? 'hidden' : 'flex lg:hidden'} items-center justify-end gap-3`}>
                 <div className="flex items-center bg-white/10 rounded-full px-2 py-1 border border-white/10">
                   <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 p-0.5"><Minus size={12} /></button>
                   <span className="text-white/90 text-[10px] font-mono font-medium w-6 text-center">{speed}x</span>
@@ -277,27 +281,27 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
             </div>
 
             {/* Center: Playback Controls */}
-            <div className="flex items-center justify-center gap-6 w-full lg:w-[40%] flex-shrink-0">
+            <div className={`flex items-center justify-center gap-4 lg:gap-6 flex-shrink-0 ${isFullscreen ? 'w-[40%] lg:w-[40%]' : 'w-full lg:w-[40%]'}`}>
               <button onClick={() => skip(-5)} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1">
-                <SkipBack size={20} className="lg:w-6 lg:h-6" />
+                <SkipBack size={20} className="w-4 h-4 lg:w-6 lg:h-6" />
               </button>
-              <button onClick={togglePlay} className="text-white hover:text-indigo-400 transition-all bg-white/10 hover:bg-white/20 p-3 lg:p-3 rounded-full border border-white/10 shadow-lg hover:shadow-indigo-500/20 hover:scale-105">
-                {isPlaying ? <Pause size={20} className="lg:w-6 lg:h-6" /> : <Play size={20} className="ml-1 lg:w-6 lg:h-6" />}
+              <button onClick={togglePlay} className={`text-white hover:text-indigo-400 transition-all bg-white/10 hover:bg-white/20 rounded-full border border-white/10 shadow-lg hover:shadow-indigo-500/20 hover:scale-105 ${isFullscreen ? 'p-2 lg:p-3' : 'p-3 lg:p-3'}`}>
+                {isPlaying ? <Pause size={20} className="w-4 h-4 lg:w-6 lg:h-6" /> : <Play size={20} className="ml-1 w-4 h-4 lg:w-6 lg:h-6" />}
               </button>
               <button onClick={() => skip(5)} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1">
-                <SkipForward size={20} className="lg:w-6 lg:h-6" />
+                <SkipForward size={20} className="w-4 h-4 lg:w-6 lg:h-6" />
               </button>
             </div>
 
             {/* DESKTOP ONLY: Speed, CC, Fullscreen */}
-            <div className="hidden lg:flex items-center justify-end gap-5 w-[30%]">
-              <div className="flex items-center bg-white/10 rounded-full px-2 py-1.5 border border-white/10 shadow-lg">
-                <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 p-1"><Minus size={14} /></button>
-                <span className="text-white/90 text-xs font-mono font-medium w-9 text-center">{speed}x</span>
-                <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 p-1"><Plus size={14} /></button>
+            <div className={`${isFullscreen ? 'flex' : 'hidden lg:flex'} items-center justify-end gap-2 lg:gap-5 w-[30%]`}>
+              <div className="hidden sm:flex items-center bg-white/10 rounded-full px-2 py-1 lg:py-1.5 border border-white/10 shadow-lg">
+                <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 p-1"><Minus size={14} className="w-3 h-3 lg:w-3.5 lg:h-3.5" /></button>
+                <span className="text-white/90 text-[10px] lg:text-xs font-mono font-medium w-6 lg:w-9 text-center">{speed}x</span>
+                <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 p-1"><Plus size={14} className="w-3 h-3 lg:w-3.5 lg:h-3.5" /></button>
               </div>
-              <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1"><Subtitles size={20} /></button>
-              <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1"><Maximize size={20} /></button>
+              <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1"><Subtitles size={20} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
+              <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1"><Maximize size={20} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
             </div>
 
           </div>

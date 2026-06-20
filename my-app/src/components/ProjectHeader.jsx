@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Film, MoreHorizontal, Share2, Edit2 } from 'lucide-react';
+import { Film, Share2, Edit2 } from 'lucide-react';
 
 export const ProjectHeader = ({ title, onRename }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -34,7 +34,7 @@ export const ProjectHeader = ({ title, onRename }) => {
   };
 
   return (
-    <header className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-6 text-zinc-100">
+    <header className="h-14 sm:h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-3 sm:px-6 text-zinc-100">
       <div className="flex items-center gap-3 flex-1">
         <div className="w-8 h-8 rounded bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
           <Film size={18} />
@@ -64,13 +64,10 @@ export const ProjectHeader = ({ title, onRename }) => {
         <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full ml-2 shrink-0">V2.1</span>
       </div>
       
-      <div className="flex items-center gap-4">
-        <button className="flex items-center gap-2 text-sm text-zinc-300 hover:text-white transition-colors bg-zinc-800/50 hover:bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-700/50">
-          <Share2 size={16} />
-          Share
-        </button>
-        <button className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
-          <MoreHorizontal size={20} />
+      <div className="flex items-center gap-2 sm:gap-4">
+        <button className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-300 hover:text-white transition-colors bg-zinc-800/50 hover:bg-zinc-800 px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700/50">
+          <Share2 className="w-4 h-4 sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">Share</span>
         </button>
       </div>
     </header>

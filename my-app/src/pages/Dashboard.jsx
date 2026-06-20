@@ -81,33 +81,35 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans p-8">
       <div className="max-w-6xl mx-auto">
-        <header className="flex justify-between items-start mb-12">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 md:mb-12">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-zinc-400 mt-1">Manage your video review sessions</p>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-sm sm:text-base text-zinc-400 mt-1">Manage your video review sessions</p>
           </div>
           
-          <div className="flex flex-col items-end gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full md:w-auto">
             {/* Profile Section */}
-            <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-xl">
-              {user?.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="Profile" className="w-8 h-8 rounded-full border border-zinc-700" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                  <UserIcon className="w-4 h-4" />
+            <div className="flex items-center justify-between sm:justify-start gap-3 bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-xl flex-1 sm:flex-none">
+              <div className="flex items-center gap-3">
+                {user?.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt="Profile" className="w-8 h-8 rounded-full border border-zinc-700" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                    <UserIcon className="w-4 h-4" />
+                  </div>
+                )}
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-white truncate max-w-[120px] sm:max-w-[150px]">
+                    {user?.user_metadata?.full_name || 'User Profile'}
+                  </span>
+                  <span className="text-xs text-zinc-400 truncate max-w-[120px] sm:max-w-[150px]">
+                    {user?.email}
+                  </span>
                 </div>
-              )}
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-white">
-                  {user?.user_metadata?.full_name || 'User Profile'}
-                </span>
-                <span className="text-xs text-zinc-400">
-                  {user?.email}
-                </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
               <button 
                 onClick={handleLogout}
                 className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2 text-sm"

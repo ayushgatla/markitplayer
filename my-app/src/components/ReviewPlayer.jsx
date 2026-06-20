@@ -165,11 +165,19 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
 
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      wrapperRef.current?.requestFullscreen().catch(err => {
+      wrapperRef.current?.requestFullscreen().then(() => {
+        if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
+          window.screen.orientation.lock('landscape').catch((e) => console.log('Orientation lock failed:', e));
+        }
+      }).catch(err => {
         console.error(`Error attempting to enable fullscreen: ${err.message}`);
       });
     } else {
-      document.exitFullscreen();
+      document.exitFullscreen().then(() => {
+        if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
+          window.screen.orientation.unlock();
+        }
+      }).catch(err => console.error(err));
     }
   };
 
@@ -184,13 +192,13 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
 
   return (
     <div 
-      className="flex flex-col lg:flex-row w-full h-[calc(100vh-4rem)] bg-zinc-950 overflow-y-auto lg:overflow-hidden bg-cover bg-center bg-fixed"
+      className="flex flex-col lg:flex-row w-full min-h-full lg:h-[calc(100vh-3.5rem)] sm:lg:h-[calc(100vh-4rem)] bg-zinc-950 lg:overflow-hidden bg-cover bg-center bg-fixed"
       style={{ backgroundImage: 'url(/sky.jpg)' }}
     >
-      <div className="w-full lg:flex-1 flex flex-col items-center justify-center p-4 lg:p-6 relative min-h-[40vh] lg:min-h-0">
+      <div className="w-full lg:flex-1 flex flex-col items-center justify-start lg:justify-center p-4 lg:p-6 relative min-h-[40vh] lg:min-h-0 gap-6 lg:gap-0">
         <div 
           ref={wrapperRef}
-          className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-4 lg:gap-0 ${
+          className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-6 lg:gap-0 ${
             isFullscreen 
               ? 'w-screen h-screen bg-black z-50' 
               : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
@@ -209,13 +217,18 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
             />
           </div>
           
-          <div className="w-full lg:absolute lg:bottom-6 left-0 right-0 z-50 flex justify-center px-2 lg:px-0 pb-6 lg:pb-0">
+          <div className={`w-full z-50 flex justify-center ${
+            isFullscreen 
+              ? 'absolute bottom-6 left-0 right-0 px-4' 
+              : 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-0 pb-6 lg:pb-0'
+          }`}>
             <PlayerControls 
               playerRef={playerRef} 
               comments={comments}
               onMarkerClick={handleCommentClick}
               isMouseInside={isControlsActive}
               onToggleFullscreen={handleToggleFullscreen}
+              isFullscreen={isFullscreen}
             />
           </div>
         </div>
