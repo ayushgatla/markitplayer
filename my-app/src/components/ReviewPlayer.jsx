@@ -68,7 +68,9 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
   if (isDrive) {
     const match = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|uc\?.*id=)([-\w]+)/);
     if (match && match[1]) {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const baseUrl = import.meta.env.PROD 
+        ? 'https://markitplayer-production.up.railway.app' 
+        : 'http://localhost:3001';
       processedUrl = `${baseUrl}/api/video/${match[1]}`;
     }
   }
