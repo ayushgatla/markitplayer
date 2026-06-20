@@ -208,7 +208,7 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
           onMouseMove={handleMouseMove}
           onDoubleClick={handleToggleFullscreen}
         >
-          <div className="w-full aspect-video relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none">
+          <div className="w-full aspect-video relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto">
             <VideoPlayer 
               ref={playerRef}
               options={videoOptions} 

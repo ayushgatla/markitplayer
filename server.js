@@ -35,12 +35,22 @@ app.get('/api/video/:id', async (req, res) => {
         html += chunk;
       }
 
+      let confirmToken = 't';
+      const confirmMatch = html.match(/confirm=([0-9A-Za-z_-]+)/i) || html.match(/name="confirm"\s+value="([^"]+)"/i);
+      if (confirmMatch) {
+        confirmToken = confirmMatch[1];
+      }
+
       const uuidMatch = html.match(/name="uuid"\s+value="([^"]+)"/i);
-      const confirmMatch = html.match(/name="confirm"\s+value="([^"]+)"/i) || [null, 't'];
       
-      driveUrl = `https://drive.usercontent.google.com/download?id=${videoId}&export=download&confirm=${confirmMatch[1]}`;
-      if (uuidMatch && uuidMatch[1]) {
-         driveUrl += `&uuid=${uuidMatch[1]}`;
+      const directUrlMatch = html.match(/(https:\/\/[^"']*export=download[^"']*)/i);
+      if (directUrlMatch) {
+        driveUrl = directUrlMatch[1].replace(/&amp;/g, '&');
+      } else {
+        driveUrl = `https://drive.google.com/uc?export=download&id=${videoId}&confirm=${confirmToken}`;
+        if (uuidMatch && uuidMatch[1]) {
+           driveUrl += `&uuid=${uuidMatch[1]}`;
+        }
       }
       
       // Make the second request bypassing the warning
