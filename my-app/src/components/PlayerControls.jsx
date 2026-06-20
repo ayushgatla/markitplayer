@@ -163,7 +163,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
   const showControls = isMouseInside || !isPlaying;
 
   return (
-    <div className={`relative sm:absolute bottom-auto sm:bottom-6 left-0 right-0 mx-auto z-50 w-full transition-all duration-500 ease-in-out ${showControls ? 'sm:w-[calc(100%-3rem)]' : 'sm:w-[60%] sm:max-w-2xl'}`}>
+    <div className={`relative sm:absolute bottom-auto sm:bottom-6 left-0 right-0 mx-auto z-50 transition-all duration-500 ease-in-out mt-3 mb-2 sm:mt-0 sm:mb-0 ${showControls ? 'w-[95%] sm:w-[calc(100%-3rem)]' : 'w-[95%] sm:w-[60%] sm:max-w-2xl'}`}>
       {/* Hovered Comment Tooltip */}
       {hoveredComment && duration > 0 && (
         <div 
@@ -181,10 +181,9 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
       )}
 
       {/* Control Bar Container */}
-      <div className="relative w-full sm:rounded-[24px]">
-        {/* Backgrounds */}
-        <div className="hidden sm:block absolute inset-0 w-full h-full rounded-[24px] bg-black/40 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-500 ease-in-out" />
-        <div className="sm:hidden absolute inset-0 w-full h-full bg-zinc-950 border-t border-zinc-900" />
+      <div className="relative w-full rounded-[20px] sm:rounded-[24px]">
+        {/* Glass Background for Both Mobile and Desktop */}
+        <div className="absolute inset-0 w-full h-full rounded-[20px] sm:rounded-[24px] bg-white/5 sm:bg-black/40 backdrop-blur-xl sm:backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-500 ease-in-out" />
 
         {/* Content Wrapper */}
         <div className={`w-full flex flex-col relative z-10 px-4 sm:px-6 transition-all duration-500 ease-in-out ${showControls ? 'gap-4 sm:gap-3 py-4 sm:py-4' : 'gap-4 sm:gap-0 py-4 sm:py-3'}`}>
@@ -230,7 +229,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
           </div>
 
           {/* Controls Row */}
-          <div className={`flex flex-col sm:flex-row items-center justify-between pointer-events-auto w-full drop-shadow-md transition-all duration-500 ease-in-out overflow-hidden gap-4 sm:gap-0 ${showControls ? 'opacity-100 max-h-[300px] sm:max-h-16 pt-2 pb-2 sm:pb-0' : 'opacity-100 sm:opacity-0 max-h-[300px] sm:max-h-0 pt-2 sm:pt-0 pb-2 sm:pb-0'}`}>
+          <div className={`flex flex-col sm:flex-row items-center justify-between pointer-events-auto w-full drop-shadow-md transition-all duration-500 ease-in-out sm:overflow-hidden gap-4 sm:gap-0 ${showControls ? 'opacity-100 sm:max-h-16 pt-2 pb-2 sm:pb-0' : 'opacity-100 sm:opacity-0 sm:max-h-0 pt-2 sm:pt-0 pb-2 sm:pb-0'}`}>
             
             {/* MOBILE: Top Row | DESKTOP: Left Side */}
             <div className="flex items-center justify-between w-full sm:w-[30%]">

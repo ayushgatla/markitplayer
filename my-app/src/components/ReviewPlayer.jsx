@@ -188,7 +188,7 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
       <div className="w-full lg:flex-1 flex flex-col items-center justify-center p-2 sm:p-4 lg:p-6 relative min-h-[40vh] lg:min-h-0">
         <div 
           ref={wrapperRef}
-          className={`relative bg-zinc-950 sm:bg-black shadow-2xl overflow-hidden shadow-indigo-500/10 flex flex-col ${
+          className={`relative bg-zinc-950 sm:bg-black shadow-2xl sm:overflow-hidden shadow-indigo-500/10 flex flex-col ${
             isFullscreen 
               ? 'w-screen h-screen' 
               : 'w-full max-w-5xl sm:aspect-video rounded-xl sm:border border-zinc-800'
