@@ -184,21 +184,24 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
   const isControlsActive = isFullscreen ? !isIdle : true;
 
   return (
-    <div className="flex flex-col lg:flex-row w-full h-[calc(100vh-4rem)] bg-zinc-950 overflow-y-auto lg:overflow-hidden">
-      <div className="w-full lg:flex-1 flex flex-col items-center justify-center p-2 sm:p-4 lg:p-6 relative min-h-[40vh] lg:min-h-0">
+    <div 
+      className="flex flex-col lg:flex-row w-full h-[calc(100vh-4rem)] bg-zinc-950 overflow-y-auto lg:overflow-hidden bg-cover bg-center bg-fixed"
+      style={{ backgroundImage: 'url(/sky.jpg)' }}
+    >
+      <div className="w-full lg:flex-1 flex flex-col items-center justify-center p-4 lg:p-6 relative min-h-[40vh] lg:min-h-0">
         <div 
           ref={wrapperRef}
-          className={`relative bg-zinc-950 sm:bg-black shadow-2xl sm:overflow-hidden shadow-indigo-500/10 flex flex-col ${
+          className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-4 lg:gap-0 ${
             isFullscreen 
-              ? 'w-screen h-screen' 
-              : 'w-full max-w-5xl sm:aspect-video rounded-xl sm:border border-zinc-800'
+              ? 'w-screen h-screen bg-black z-50' 
+              : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
           }`}
           onMouseEnter={() => setIsMouseInside(true)}
           onMouseLeave={() => setIsMouseInside(false)}
           onMouseMove={handleMouseMove}
           onDoubleClick={handleToggleFullscreen}
         >
-          <div className="w-full aspect-video relative flex-shrink-0 bg-black">
+          <div className="w-full aspect-video relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none">
             <VideoPlayer 
               ref={playerRef}
               options={videoOptions} 
@@ -207,21 +210,25 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
             />
           </div>
           
-          <PlayerControls 
-            playerRef={playerRef} 
-            comments={comments}
-            onMarkerClick={handleCommentClick}
-            isMouseInside={isControlsActive}
-            onToggleFullscreen={handleToggleFullscreen}
-          />
+          <div className="w-full lg:absolute lg:bottom-6 left-0 right-0 z-50 flex justify-center px-2 lg:px-0 pb-6 lg:pb-0">
+            <PlayerControls 
+              playerRef={playerRef} 
+              comments={comments}
+              onMarkerClick={handleCommentClick}
+              isMouseInside={isControlsActive}
+              onToggleFullscreen={handleToggleFullscreen}
+            />
+          </div>
         </div>
       </div>
-      <CommentSidebar 
-        comments={comments} 
-        currentTime={currentTime} 
-        onAddComment={handleAddComment}
-        onCommentClick={handleCommentClick}
-      />
+      <div className="w-full lg:w-96 flex-shrink-0 lg:border-l border-white/10 bg-black/40 backdrop-blur-xl">
+        <CommentSidebar 
+          comments={comments} 
+          currentTime={currentTime} 
+          onAddComment={handleAddComment}
+          onCommentClick={handleCommentClick}
+        />
+      </div>
     </div>
   );
 };
