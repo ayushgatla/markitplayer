@@ -13,6 +13,17 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
   const [duration, setDuration] = useState(0);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(true);
+  const [isMouseInside, setIsMouseInside] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   // Fetch comments from Supabase
   useEffect(() => {
@@ -77,6 +88,9 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
       iv_load_policy: 3,
       disablekb: 1,
       fs: 0
+    },
+    userActions: {
+      doubleClick: false
     }
   };
 
@@ -141,10 +155,30 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
     }
   };
 
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      wrapperRef.current?.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
   return (
     <div className="flex w-full h-[calc(100vh-4rem)] bg-zinc-950">
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
-        <div className="w-full max-w-5xl aspect-video rounded-xl overflow-hidden shadow-2xl shadow-indigo-500/10 border border-zinc-800 bg-black relative">
+        <div 
+          ref={wrapperRef}
+          className={`relative bg-black shadow-2xl overflow-hidden shadow-indigo-500/10 ${
+            isFullscreen 
+              ? 'w-screen h-screen' 
+              : 'w-full max-w-5xl aspect-video rounded-xl border border-zinc-800'
+          }`}
+          onMouseEnter={() => setIsMouseInside(true)}
+          onMouseLeave={() => setIsMouseInside(false)}
+          onDoubleClick={handleToggleFullscreen}
+        >
           <VideoPlayer 
             ref={playerRef}
             options={videoOptions} 
@@ -155,6 +189,8 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
             playerRef={playerRef} 
             comments={comments}
             onMarkerClick={handleCommentClick}
+            isMouseInside={isMouseInside}
+            onToggleFullscreen={handleToggleFullscreen}
           />
         </div>
       </div>

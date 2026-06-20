@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Subtitles, Volume2, VolumeX, Maximize } from 'lucide-react';
 import LiquidGlass from 'liquid-glass-react';
 
-export const PlayerControls = ({ playerRef, comments = [], onMarkerClick }) => {
+export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMouseInside, onToggleFullscreen }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [hoveredComment, setHoveredComment] = useState(null);
-  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const setupEvents = () => {
@@ -23,8 +22,6 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick }) => {
           setVolume(player.volume());
           setIsMuted(player.muted());
         });
-        player.on('useractive', () => setIsVisible(true));
-        player.on('userinactive', () => setIsVisible(false));
 
         setIsPlaying(!player.paused());
         setCurrentTime(player.currentTime());
@@ -68,10 +65,14 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick }) => {
   };
 
   const toggleFullscreen = () => {
-    const player = playerRef.current?.getRawPlayer?.();
-    if (player) {
-      if (player.isFullscreen()) player.exitFullscreen();
-      else player.requestFullscreen();
+    if (onToggleFullscreen) {
+      onToggleFullscreen();
+    } else {
+      const player = playerRef.current?.getRawPlayer?.();
+      if (player) {
+        if (player.isFullscreen()) player.exitFullscreen();
+        else player.requestFullscreen();
+      }
     }
   };
 
@@ -109,7 +110,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick }) => {
     }
   };
 
-  const showControls = isVisible || !isPlaying;
+  const showControls = isMouseInside || !isPlaying;
 
   return (
     <div className={`absolute bottom-6 left-0 right-0 mx-auto z-50 transition-all duration-500 ease-in-out ${showControls ? 'w-[calc(100%-3rem)]' : 'w-[60%] max-w-2xl'}`}>
