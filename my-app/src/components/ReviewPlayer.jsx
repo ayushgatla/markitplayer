@@ -68,7 +68,7 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
   if (isDrive) {
     const match = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|uc\?.*id=)([-\w]+)/);
     if (match && match[1]) {
-      processedUrl = `http://localhost:3001/api/video/${match[1]}`;
+      processedUrl = `/api/video/${match[1]}`;
     }
   }
 
