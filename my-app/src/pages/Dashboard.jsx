@@ -61,14 +61,17 @@ export default function Dashboard() {
     e.stopPropagation();
     if (!window.confirm("Are you sure you want to delete this room? This action cannot be undone.")) return;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('rooms')
       .delete()
-      .eq('id', roomId);
+      .eq('id', roomId)
+      .select();
     
     if (error) {
       console.error('Error deleting room:', error);
       alert(`Failed to delete room: ${error.message}`);
+    } else if (!data || data.length === 0) {
+      alert("Failed to delete room: Permission denied. Please ensure you have a 'DELETE' policy for the 'rooms' table in Supabase.");
     } else {
       setRooms(rooms.filter(r => r.id !== roomId));
     }

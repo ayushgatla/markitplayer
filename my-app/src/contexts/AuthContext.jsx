@@ -22,6 +22,11 @@ export const AuthProvider = ({ children }) => {
       console.log("Auth state changed:", _event, session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // Clear the URL hash if it contains an access token to prevent accidental sharing
+      if (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery')) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
     });
 
     return () => subscription.unsubscribe();
