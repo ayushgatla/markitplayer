@@ -180,8 +180,7 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
       setIsIdle(true);
     }, 2500);
   };
-
-  const isControlsActive = isFullscreen ? !isIdle : true;
+  const isControlsActive = isFullscreen ? !isIdle : (isMouseInside && !isIdle);
 
   return (
     <div 
@@ -195,7 +194,7 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
             isFullscreen 
               ? 'w-screen h-screen bg-black z-50' 
               : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
-          }`}
+          } ${!isControlsActive && isMouseInside ? 'cursor-none' : ''}`}
           onMouseEnter={() => setIsMouseInside(true)}
           onMouseLeave={() => setIsMouseInside(false)}
           onMouseMove={handleMouseMove}
