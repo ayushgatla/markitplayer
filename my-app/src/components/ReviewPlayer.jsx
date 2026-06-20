@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import VideoPlayer from './VideoPlayer';
 import TimelineMarkers from './TimelineMarkers';
 import CommentSidebar from './CommentSidebar';
+import PlayerControls from './PlayerControls';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -60,14 +61,23 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
 
   const videoOptions = {
     autoplay: false,
-    controls: true,
+    controls: false,
     responsive: true,
     fill: true,
     techOrder: isYouTube ? ['youtube'] : ['html5'],
     sources: [{
       src: processedUrl,
       type: isYouTube ? 'video/youtube' : 'video/mp4'
-    }]
+    }],
+    youtube: {
+      ytControls: 0,
+      modestbranding: 1,
+      showinfo: 0,
+      rel: 0,
+      iv_load_policy: 3,
+      disablekb: 1,
+      fs: 0
+    }
   };
 
   const handlePlayerReady = (player) => {
@@ -141,13 +151,11 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
             onReady={handlePlayerReady}
             onTimeUpdate={handleTimeUpdate}
           />
-          {!loadingComments && (
-            <TimelineMarkers 
-              duration={duration} 
-              comments={comments} 
-              onMarkerClick={handleCommentClick} 
-            />
-          )}
+          <PlayerControls 
+            playerRef={playerRef} 
+            comments={comments}
+            onMarkerClick={handleCommentClick}
+          />
         </div>
       </div>
       <CommentSidebar 

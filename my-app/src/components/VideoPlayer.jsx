@@ -18,6 +18,11 @@ export const VideoPlayer = forwardRef(({ options, onReady, onTimeUpdate }, ref) 
         playerRef.current.pause();
       }
     },
+    play: () => {
+      if (playerRef.current) {
+        playerRef.current.play();
+      }
+    },
     getCurrentTime: () => {
       if (playerRef.current) {
         return playerRef.current.currentTime();
@@ -29,6 +34,9 @@ export const VideoPlayer = forwardRef(({ options, onReady, onTimeUpdate }, ref) 
         return playerRef.current.duration();
       }
       return 0;
+    },
+    getRawPlayer: () => {
+      return playerRef.current;
     }
   }));
 

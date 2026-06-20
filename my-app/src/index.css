@@ -10,4 +10,23 @@
   .video-js .vjs-tech {
     object-fit: contain !important;
   }
+
+  .liquid-button {
+    width: 100% !important;
+    display: flex !important;
+  }
+
+  .liquid-button .glass {
+    width: 100% !important;
+    justify-content: stretch !important;
+  }
+  
+  .liquid-button .glass > div {
+    width: 100% !important;
+  }
+
+  /* Hide default big play button since we have custom LiquidGlass controls */
+  .video-js .vjs-big-play-button {
+    display: none !important;
+  }
 }
