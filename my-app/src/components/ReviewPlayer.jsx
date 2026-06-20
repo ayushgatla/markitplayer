@@ -181,29 +181,32 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
     }, 2500);
   };
 
-  const isControlsActive = isFullscreen ? !isIdle : isMouseInside;
+  const isControlsActive = isFullscreen ? !isIdle : true;
 
   return (
     <div className="flex flex-col lg:flex-row w-full h-[calc(100vh-4rem)] bg-zinc-950 overflow-y-auto lg:overflow-hidden">
       <div className="w-full lg:flex-1 flex flex-col items-center justify-center p-2 sm:p-4 lg:p-6 relative min-h-[40vh] lg:min-h-0">
         <div 
           ref={wrapperRef}
-          className={`relative bg-black shadow-2xl overflow-hidden shadow-indigo-500/10 ${
+          className={`relative bg-zinc-950 sm:bg-black shadow-2xl overflow-hidden shadow-indigo-500/10 flex flex-col ${
             isFullscreen 
               ? 'w-screen h-screen' 
-              : 'w-full max-w-5xl aspect-video rounded-xl border border-zinc-800'
+              : 'w-full max-w-5xl sm:aspect-video rounded-xl sm:border border-zinc-800'
           }`}
           onMouseEnter={() => setIsMouseInside(true)}
           onMouseLeave={() => setIsMouseInside(false)}
           onMouseMove={handleMouseMove}
           onDoubleClick={handleToggleFullscreen}
         >
-          <VideoPlayer 
-            ref={playerRef}
-            options={videoOptions} 
-            onReady={handlePlayerReady}
-            onTimeUpdate={handleTimeUpdate}
-          />
+          <div className="w-full aspect-video relative flex-shrink-0 bg-black">
+            <VideoPlayer 
+              ref={playerRef}
+              options={videoOptions} 
+              onReady={handlePlayerReady}
+              onTimeUpdate={handleTimeUpdate}
+            />
+          </div>
+          
           <PlayerControls 
             playerRef={playerRef} 
             comments={comments}
