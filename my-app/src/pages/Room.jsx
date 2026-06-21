@@ -89,6 +89,7 @@ export default function Room() {
       <ProjectHeader 
         title={roomData?.title || 'Loading Session...'} 
         onRename={handleRenameRoom}
+        roomId={roomId}
       />
       <main className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
         {roomData?.video_url ? (

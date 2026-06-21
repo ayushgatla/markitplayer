@@ -8,7 +8,7 @@ const formatTime = (seconds) => {
   return `${m}:${s}`;
 };
 
-export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentClick }) => {
+export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentClick, currentUserIdentity }) => {
   const [newComment, setNewComment] = useState('');
 
   const handleSubmit = (e) => {
@@ -19,39 +19,57 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
   };
 
   return (
-    <div className="mt-4 w-full lg:w-96 flex-shrink-0 min-h-[50vh] lg:min-h-0 lg:h-full bg-transparent border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col">
+    <div className="mt-4 w-full flex-shrink-0 min-h-[50vh] lg:min-h-0 lg:h-full bg-transparent border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col">
       <div className="p-4 border-b border-white/10 flex items-center gap-2 text-zinc-100 font-medium">
         <MessageSquare size={18} className="text-indigo-400" />
         Comments
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
         {comments.length === 0 ? (
           <div className="text-zinc-400 text-sm text-center mt-10 bg-black/20 backdrop-blur-sm p-4 rounded-xl border border-white/5">
             No comments yet. Pause the video to add one!
           </div>
         ) : (
-          comments.sort((a, b) => a.timestamp - b.timestamp).map((comment) => (
-            <div
-              key={comment.id}
-              className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/10 hover:border-indigo-500/50 transition-colors group cursor-pointer shadow-lg"
-              onClick={() => onCommentClick(comment)}
-            >
-              <div className="flex justify-between items-start mb-1">
-                <span className="font-semibold text-sm text-zinc-100">{comment.author_name || comment.author}</span>
-                <span className="text-xs bg-white/10 text-zinc-300 px-1.5 py-0.5 rounded flex items-center gap-1 group-hover:bg-indigo-500/30 group-hover:text-white transition-colors">
-                  <Play size={10} />
-                  {formatTime(comment.timestamp)}
-                </span>
+          [...comments].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map((comment) => {
+            const isMine = currentUserIdentity?.isClient 
+              ? comment.author_name === currentUserIdentity.name 
+              : (comment.user_id ? comment.user_id === currentUserIdentity?.id : comment.author_name === currentUserIdentity?.name);
+            
+            return (
+              <div
+                key={comment.id}
+                className={`flex w-full ${isMine ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[85%] backdrop-blur-sm rounded-2xl p-3 border transition-colors group cursor-pointer shadow-lg ${
+                    isMine 
+                      ? 'bg-indigo-600/30 border-indigo-500/30 hover:border-indigo-400/50 rounded-br-sm' 
+                      : 'bg-black/40 border-white/10 hover:border-white/30 rounded-bl-sm'
+                  }`}
+                  onClick={() => onCommentClick(comment)}
+                >
+                  <div className={`flex items-start mb-1 gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+                    {!isMine && <span className="font-semibold text-xs text-zinc-100 opacity-80">{comment.author_name || comment.author}</span>}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 transition-colors ${
+                      isMine 
+                        ? 'bg-indigo-500/20 text-indigo-200 group-hover:bg-indigo-500/40' 
+                        : 'bg-white/10 text-zinc-300 group-hover:bg-white/20'
+                    }`}>
+                      <Play size={8} />
+                      {formatTime(comment.timestamp)}
+                    </span>
+                  </div>
+                  <p className={`text-sm leading-relaxed break-words ${isMine ? 'text-indigo-100 text-right' : 'text-zinc-300 text-left'}`}>
+                    {comment.comment_text}
+                  </p>
+                  <div className={`text-[9px] mt-1.5 opacity-60 ${isMine ? 'text-indigo-300 text-right' : 'text-zinc-500 text-left'}`}>
+                    {dayjs(comment.created_at).format('MMM D, h:mm A')}
+                  </div>
+                </div>
               </div>
-              <p className="text-sm text-zinc-300 leading-relaxed break-words">
-                {comment.comment_text}
-              </p>
-              <div className="text-[10px] text-zinc-500 mt-2">
-                {dayjs(comment.created_at).format('MMM D, h:mm A')}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Room from './pages/Room';
+import ClientRoom from './pages/ClientRoom';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -23,6 +24,7 @@ function App() {
         <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/room/:roomId/client" element={<ClientRoom />} />
         <Route path="/room/:roomId" element={<ProtectedRoute><Room /></ProtectedRoute>} />
       </Routes>
     </Router>

@@ -6,7 +6,7 @@ import PlayerControls from './PlayerControls';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
-export const ReviewPlayer = ({ videoUrl, roomId }) => {
+export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
   const playerRef = useRef(null);
   const { user } = useAuth();
   const [currentTime, setCurrentTime] = useState(0);
@@ -18,6 +18,37 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
   const idleTimeoutRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const wrapperRef = useRef(null);
+  
+  const [sidebarWidth, setSidebarWidth] = useState(384);
+  const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    const handleGlobalMouseMove = (e) => {
+      if (!isDraggingRef.current) return;
+      let newWidth = window.innerWidth - e.clientX;
+      if (newWidth < 280) newWidth = 280;
+      if (newWidth > 800) newWidth = 800;
+      setSidebarWidth(newWidth);
+    };
+    const handleGlobalMouseUp = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        document.body.style.cursor = '';
+      }
+    };
+    document.addEventListener('mousemove', handleGlobalMouseMove);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, []);
+
+  const handleSidebarMouseDown = (e) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+  };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -35,7 +66,7 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
         .from('comments')
         .select('*')
         .eq('room_id', roomId)
-        .order('timestamp', { ascending: true });
+        .order('created_at', { ascending: true });
 
       if (!error && data) {
         setComments(data);
@@ -51,7 +82,7 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
         setComments((current) => {
           // Check if we already have it to prevent duplicates from our own insert
           if (current.some(c => c.id === payload.new.id)) return current;
-          return [...current, payload.new].sort((a, b) => a.timestamp - b.timestamp);
+          return [...current, payload.new].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         });
       })
       .subscribe();
@@ -129,10 +160,29 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
       playerRef.current.pause();
     }
     
+    let authorName = 'Anonymous';
+    let userId = null;
+    
+    if (isClient) {
+      authorName = guestName || 'Client';
+      if (user?.id) {
+        userId = user.id;
+      } else {
+        userId = localStorage.getItem('client_user_id');
+        if (!userId) {
+          userId = crypto.randomUUID();
+          localStorage.setItem('client_user_id', userId);
+        }
+      }
+    } else if (user) {
+      authorName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous';
+      userId = user.id;
+    }
+
     const newComment = {
       room_id: roomId,
-      user_id: user.id,
-      author_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous',
+      user_id: userId,
+      author_name: authorName,
       timestamp: currentTime,
       comment_text: text
     };
@@ -236,12 +286,25 @@ export const ReviewPlayer = ({ videoUrl, roomId }) => {
           </div>
         </div>
       </div>
-      <div className="w-full lg:w-96 flex-shrink-0 lg:border-l border-white/10 bg-black/40 backdrop-blur-xl">
+      <div className="sidebar-container w-full flex-shrink-0 lg:border-l border-white/10 bg-black/40 backdrop-blur-xl relative">
+        <style>{`
+          @media (min-width: 1024px) {
+            .sidebar-container { width: ${sidebarWidth}px !important; }
+          }
+        `}</style>
+        
+        <div 
+          className="hidden lg:block absolute top-0 left-0 w-2 h-full cursor-col-resize hover:bg-indigo-500/30 transition-colors z-[60] -ml-1"
+          onMouseDown={handleSidebarMouseDown}
+          title="Drag to resize"
+        ></div>
+
         <CommentSidebar 
           comments={comments} 
           currentTime={currentTime} 
           onAddComment={handleAddComment}
           onCommentClick={handleCommentClick}
+          currentUserIdentity={isClient ? { name: guestName, isClient: true, id: user?.id } : { id: user?.id, name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous' }}
         />
       </div>
     </div>
