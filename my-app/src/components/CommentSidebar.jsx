@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Play, MessageSquare } from 'lucide-react';
+import { Send, Play, MessageSquare, Trash2 } from 'lucide-react';
 import dayjs from 'dayjs';
 
 const formatTime = (seconds) => {
@@ -8,7 +8,7 @@ const formatTime = (seconds) => {
   return `${m}:${s}`;
 };
 
-export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentClick, currentUserIdentity }) => {
+export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentClick, currentUserIdentity, onDeleteComment }) => {
   const [newComment, setNewComment] = useState('');
 
   const handleSubmit = (e) => {
@@ -42,7 +42,7 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
                 className={`flex w-full ${isMine ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] backdrop-blur-sm rounded-2xl p-3 border transition-colors group cursor-pointer shadow-lg ${
+                  className={`min-w-[50%] max-w-[85%] backdrop-blur-sm rounded-2xl p-3 border transition-colors group cursor-pointer shadow-lg ${
                     isMine 
                       ? 'bg-indigo-600/30 border-indigo-500/30 hover:border-indigo-400/50 rounded-br-sm' 
                       : 'bg-black/40 border-white/10 hover:border-white/30 rounded-bl-sm'
@@ -59,6 +59,15 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
                       <Play size={8} />
                       {formatTime(comment.timestamp)}
                     </span>
+                    {isMine && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onDeleteComment(comment.id); }}
+                        className="text-zinc-500 hover:text-red-400 transition-colors opacity-100 lg:opacity-0 group-hover:opacity-100 p-0.5 rounded-full ml-1"
+                        title="Delete comment"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
                   </div>
                   <p className={`text-sm leading-relaxed break-words ${isMine ? 'text-indigo-100 text-right' : 'text-zinc-300 text-left'}`}>
                     {comment.comment_text}

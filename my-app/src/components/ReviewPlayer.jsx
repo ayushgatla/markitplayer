@@ -85,6 +85,9 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
           return [...current, payload.new].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         });
       })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'comments', filter: `room_id=eq.${roomId}` }, (payload) => {
+        setComments((current) => current.filter(c => c.id !== payload.old.id));
+      })
       .subscribe();
 
     return () => {
@@ -209,6 +212,26 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
     }
   };
 
+  const handleDeleteComment = async (commentId) => {
+    // Optimistic delete
+    const commentToDelete = comments.find(c => c.id === commentId);
+    setComments(prev => prev.filter(c => c.id !== commentId));
+
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId);
+
+    if (error) {
+      console.error("Error deleting comment:", error);
+      // Restore on failure
+      if (commentToDelete) {
+        setComments(prev => [...prev, commentToDelete].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
+      }
+      alert(`Failed to delete comment: ${error.message}`);
+    }
+  };
+
   const handleCommentClick = (comment) => {
     if (playerRef.current) {
       playerRef.current.seekTo(comment.timestamp);
@@ -304,6 +327,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
           currentTime={currentTime} 
           onAddComment={handleAddComment}
           onCommentClick={handleCommentClick}
+          onDeleteComment={handleDeleteComment}
           currentUserIdentity={isClient ? { name: guestName, isClient: true, id: user?.id } : { id: user?.id, name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous' }}
         />
       </div>
