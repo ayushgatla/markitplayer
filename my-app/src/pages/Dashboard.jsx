@@ -8,6 +8,25 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 
 dayjs.extend(relativeTime);
 
+const getThumbnailUrl = (url) => {
+  if (!url) return null;
+  
+  const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+  if (ytMatch && ytMatch[1]) {
+    return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+  }
+  
+  const gdMatch = url.match(/(?:drive\.google\.com\/(?:file\/d\/|open\?id=))([a-zA-Z0-9_-]+)/);
+  if (gdMatch && gdMatch[1]) {
+    const baseUrl = import.meta.env.PROD 
+      ? 'https://markitplayer-production.up.railway.app' 
+      : 'http://localhost:3001';
+    return `${baseUrl}/api/thumbnail/${gdMatch[1]}`;
+  }
+  
+  return null;
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -150,32 +169,44 @@ export default function Dashboard() {
               <div 
                 key={room.id} 
                 onClick={() => navigate(`/room/${room.id}`)}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 hover:border-indigo-500/50 hover:bg-zinc-800/50 transition-all cursor-pointer group flex flex-col h-full"
+                className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 hover:border-indigo-500/50 hover:bg-zinc-800/50 transition-all cursor-pointer group flex flex-col h-full relative overflow-hidden"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="bg-zinc-800 p-3 rounded-lg group-hover:bg-indigo-500/20 transition-colors">
-                    <Video className="w-6 h-6 text-indigo-400" />
+                {room.video_url && getThumbnailUrl(room.video_url) && (
+                  <>
+                    <div 
+                      className="absolute inset-0 bg-cover bg-center z-0 opacity-50 group-hover:opacity-70 transition-opacity duration-500"
+                      style={{ backgroundImage: `url(${getThumbnailUrl(room.video_url)})` }}
+                    />
+                    <div className="absolute inset-0 bg-zinc-900/80 group-hover:bg-zinc-900/70 transition-colors duration-500 z-0"></div>
+                  </>
+                )}
+                
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="bg-zinc-800/80 backdrop-blur-sm p-3 rounded-lg group-hover:bg-indigo-500/30 transition-colors">
+                      <Video className="w-6 h-6 text-indigo-400" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={(e) => handleDeleteRoom(e, room.id)}
+                        className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-colors z-10"
+                        title="Delete room"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <ArrowRight className="w-5 h-5 text-zinc-400 group-hover:text-indigo-400 transition-colors opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0" />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={(e) => handleDeleteRoom(e, room.id)}
-                      className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors z-10"
-                      title="Delete room"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-indigo-400 transition-colors opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0" />
-                  </div>
-                </div>
-                <h2 className="text-lg font-semibold mb-2 group-hover:text-indigo-300 transition-colors truncate flex-1">{room.title}</h2>
-                <div className="flex items-center gap-4 text-xs text-zinc-500 mt-4 pt-4 border-t border-zinc-800/50">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4" />
-                    {dayjs(room.created_at).fromNow()}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Users className="w-4 h-4" />
-                    1
+                  <h2 className="text-lg font-semibold mb-2 group-hover:text-indigo-300 transition-colors truncate flex-1 text-white">{room.title}</h2>
+                  <div className="flex items-center gap-4 text-xs text-zinc-400 mt-4 pt-4 border-t border-zinc-700/50">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4" />
+                      {dayjs(room.created_at).fromNow()}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Users className="w-4 h-4" />
+                      1
+                    </div>
                   </div>
                 </div>
               </div>

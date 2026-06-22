@@ -88,6 +88,30 @@ app.get('/api/video/:id', async (req, res) => {
   }
 });
 
+app.get('/api/thumbnail/:id', async (req, res) => {
+  const videoId = req.params.id;
+  try {
+    const response = await axios({
+      method: 'get',
+      url: `https://drive.google.com/thumbnail?id=${videoId}&sz=w800-h600`,
+      responseType: 'stream',
+      maxRedirects: 5,
+      validateStatus: () => true 
+    });
+    
+    ['content-type', 'content-length', 'cache-control'].forEach(header => {
+      if (response.headers[header]) {
+        res.setHeader(header, response.headers[header]);
+      }
+    });
+
+    response.data.pipe(res);
+  } catch (error) {
+    console.error('Thumbnail Proxy Error:', error.message);
+    res.status(500).send('Error proxying the thumbnail');
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Proxy server is running on http://localhost:${PORT}`);
 });
