@@ -94,6 +94,7 @@ export default function ClientRoom() {
         title={roomData?.title || 'Loading Session...'} 
         isClient={true}
         roomId={roomId}
+        videoUrl={roomData?.video_url}
       />
       <main className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
         {roomData?.video_url ? (

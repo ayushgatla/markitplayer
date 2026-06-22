@@ -107,6 +107,7 @@ export default function Room() {
         onRename={handleRenameRoom}
         roomId={roomId}
         onUpdateLink={handleUpdateLink}
+        videoUrl={roomData?.video_url}
       />
       <main className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
         {roomData?.video_url ? (
