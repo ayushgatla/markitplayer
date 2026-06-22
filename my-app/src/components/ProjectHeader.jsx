@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Film, Share2, Edit2, UserPlus, Check } from 'lucide-react';
 
-export const ProjectHeader = ({ title, onRename, isClient, roomId }) => {
+export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink }) => {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
@@ -76,13 +76,25 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId }) => {
       
       <div className="flex items-center gap-2 sm:gap-4">
         {!isClient && (
-          <button 
-            onClick={handleCopyClientLink}
-            className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-300 hover:text-white transition-colors bg-zinc-800/50 hover:bg-zinc-800 px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700/50"
-          >
-            {copied ? <Check className="w-4 h-4 sm:w-4 sm:h-4 text-green-400" /> : <UserPlus className="w-4 h-4 sm:w-4 sm:h-4" />}
-            <span className="hidden sm:inline">{copied ? 'Copied Link' : 'Add Client'}</span>
-          </button>
+          <>
+            {onUpdateLink && (
+              <button
+                onClick={onUpdateLink}
+                className="group flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 transition-colors text-xs sm:text-sm font-medium text-zinc-300 hover:text-white"
+                title="Update video link for a new version"
+              >
+                <img src="/drive.png" alt="Drive" className="w-4 h-4 object-contain opacity-80 group-hover:opacity-100" />
+                <span className="hidden sm:inline">Update Drive Link</span>
+              </button>
+            )}
+            <button 
+              onClick={handleCopyClientLink}
+              className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-300 hover:text-white transition-colors bg-zinc-800/50 hover:bg-zinc-800 px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700/50"
+            >
+              {copied ? <Check className="w-4 h-4 sm:w-4 sm:h-4 text-green-400" /> : <UserPlus className="w-4 h-4 sm:w-4 sm:h-4" />}
+              <span className="hidden sm:inline">{copied ? 'Copied Link' : 'Add Client'}</span>
+            </button>
+          </>
         )}
       </div>
     </header>

@@ -9,12 +9,16 @@ export const TimelineMarkers = ({ duration, comments, onMarkerClick }) => {
   return (
     <div className="absolute bottom-[35px] left-0 right-0 h-4 w-full px-4 z-50 pointer-events-none">
       <div className="relative w-full h-full">
-        {comments.map((comment) => {
+        {comments.filter(c => c.timestamp !== -1).map((comment) => {
           const leftPercent = (comment.timestamp / duration) * 100;
           return (
             <div
               key={comment.id}
-              className="absolute top-1 w-3 h-3 bg-indigo-500 rounded-full cursor-pointer pointer-events-auto transform -translate-x-1/2 hover:scale-125 hover:bg-indigo-400 transition-all shadow-[0_0_8px_rgba(99,102,241,0.8)] border-2 border-zinc-900"
+              className={`absolute top-1 w-3 h-3 rounded-full cursor-pointer pointer-events-auto transform -translate-x-1/2 hover:scale-125 transition-all shadow-[0_0_8px_rgba(0,0,0,0.8)] border-2 border-zinc-900 ${
+                comment.resolved 
+                  ? 'bg-green-500 hover:bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.8)]' 
+                  : 'bg-indigo-500 hover:bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]'
+              }`}
               style={{ left: `${leftPercent}%` }}
               onClick={() => onMarkerClick(comment)}
               onMouseEnter={() => setHoveredComment(comment)}

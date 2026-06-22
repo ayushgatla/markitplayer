@@ -18,7 +18,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
   const idleTimeoutRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const wrapperRef = useRef(null);
-  
+
   const [sidebarWidth, setSidebarWidth] = useState(384);
   const isDraggingRef = useRef(false);
 
@@ -102,8 +102,8 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
   if (isDrive) {
     const match = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|uc\?.*id=)([-\w]+)/);
     if (match && match[1]) {
-      const baseUrl = import.meta.env.PROD 
-        ? 'https://markitplayer-production.up.railway.app' 
+      const baseUrl = import.meta.env.PROD
+        ? 'https://markitplayer-production.up.railway.app'
         : 'http://localhost:3001';
       processedUrl = `${baseUrl}/api/video/${match[1]}`;
     }
@@ -143,7 +143,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
     if (player.duration()) {
       setDuration(player.duration());
     }
-    
+
     player.on('loadedmetadata', () => {
       setDuration(player.duration());
     });
@@ -157,15 +157,15 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
     setCurrentTime(time);
   };
 
-  const handleAddComment = async (text) => {
-    // Pause video automatically when adding a comment
-    if (playerRef.current) {
+  const handleAddComment = async (text, isChat = false) => {
+    // Pause video automatically when adding a comment, unless it's a general chat
+    if (playerRef.current && !isChat) {
       playerRef.current.pause();
     }
-    
+
     let authorName = 'Anonymous';
     let userId = null;
-    
+
     if (isClient) {
       authorName = guestName || 'Client';
       if (user?.id) {
@@ -186,10 +186,10 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
       room_id: roomId,
       user_id: userId,
       author_name: authorName,
-      timestamp: currentTime,
+      timestamp: isChat ? -1 : currentTime,
       comment_text: text
     };
-    
+
     // Optimistic UI update
     const tempId = Math.random().toString();
     setComments(prev => [...prev, { ...newComment, id: tempId, created_at: new Date().toISOString() }]);
@@ -232,6 +232,39 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
     }
   };
 
+  const handleToggleResolve = async (commentId) => {
+    const commentToUpdate = comments.find(c => c.id === commentId);
+    if (!commentToUpdate) return;
+    const newStatus = !commentToUpdate.resolved;
+
+    setComments(prev => prev.map(c => c.id === commentId ? { ...c, resolved: newStatus } : c));
+
+    const { error } = await supabase
+      .from('comments')
+      .update({ resolved: newStatus })
+      .eq('id', commentId);
+
+    if (error) {
+      console.warn("Could not save resolved state. Perhaps the column doesn't exist?", error);
+    }
+  };
+
+  const handleUpdateLink = async () => {
+    const newLink = window.prompt("Enter new Google Drive link for this version:");
+    if (!newLink || !newLink.trim()) return;
+
+    const { error } = await supabase
+      .from('rooms')
+      .update({ video_url: newLink.trim() })
+      .eq('id', roomId);
+
+    if (error) {
+      alert("Error updating link: " + error.message);
+    } else {
+      window.location.reload();
+    }
+  };
+
   const handleCommentClick = (comment) => {
     if (playerRef.current) {
       playerRef.current.seekTo(comment.timestamp);
@@ -267,39 +300,37 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
   const isControlsActive = isFullscreen ? !isIdle : (isMouseInside && !isIdle);
 
   return (
-    <div 
+    <div
       className="flex flex-col lg:flex-row w-full min-h-full lg:h-[calc(100vh-3.5rem)] sm:lg:h-[calc(100vh-4rem)] bg-zinc-950 lg:overflow-hidden bg-cover bg-center bg-fixed"
       style={{ backgroundImage: 'url(/sky.jpg)' }}
     >
       <div className="w-full lg:flex-1 flex flex-col items-center justify-start lg:justify-center p-4 lg:p-6 relative min-h-[40vh] lg:min-h-0 gap-6 lg:gap-0">
-        <div 
+        <div
           ref={wrapperRef}
-          className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-6 lg:gap-0 ${
-            isFullscreen 
-              ? 'w-screen h-screen bg-black z-50' 
-              : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
-          } ${!isControlsActive && isMouseInside ? 'cursor-none' : ''}`}
+          className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-6 lg:gap-0 ${isFullscreen
+            ? 'w-screen h-screen bg-black z-50'
+            : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
+            } ${!isControlsActive && isMouseInside ? 'cursor-none' : ''}`}
           onMouseEnter={() => setIsMouseInside(true)}
           onMouseLeave={() => setIsMouseInside(false)}
           onMouseMove={handleMouseMove}
           onDoubleClick={handleToggleFullscreen}
         >
           <div className="w-full aspect-video relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto">
-            <VideoPlayer 
+            <VideoPlayer
               ref={playerRef}
-              options={videoOptions} 
+              options={videoOptions}
               onReady={handlePlayerReady}
               onTimeUpdate={handleTimeUpdate}
             />
           </div>
-          
-          <div className={`w-full z-50 flex justify-center ${
-            isFullscreen 
-              ? 'absolute bottom-6 left-0 right-0 px-4' 
-              : 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-0 pb-6 lg:pb-0'
-          }`}>
-            <PlayerControls 
-              playerRef={playerRef} 
+
+          <div className={`w-full z-50 flex justify-center ${isFullscreen
+            ? 'absolute bottom-6 left-0 right-0 px-4'
+            : 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-0 pb-6 lg:pb-0'
+            }`}>
+            <PlayerControls
+              playerRef={playerRef}
               comments={comments}
               onMarkerClick={handleCommentClick}
               isMouseInside={isControlsActive}
@@ -315,19 +346,20 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
             .sidebar-container { width: ${sidebarWidth}px !important; }
           }
         `}</style>
-        
-        <div 
+
+        <div
           className="hidden lg:block absolute top-0 left-0 w-2 h-full cursor-col-resize hover:bg-indigo-500/30 transition-colors z-[60] -ml-1"
           onMouseDown={handleSidebarMouseDown}
           title="Drag to resize"
         ></div>
 
-        <CommentSidebar 
-          comments={comments} 
-          currentTime={currentTime} 
+        <CommentSidebar
+          comments={comments}
+          currentTime={currentTime}
           onAddComment={handleAddComment}
           onCommentClick={handleCommentClick}
           onDeleteComment={handleDeleteComment}
+          onToggleResolve={handleToggleResolve}
           currentUserIdentity={isClient ? { name: guestName, isClient: true, id: user?.id } : { id: user?.id, name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous' }}
         />
       </div>

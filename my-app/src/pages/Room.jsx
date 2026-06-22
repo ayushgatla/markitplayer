@@ -59,6 +59,22 @@ export default function Room() {
     setSavingUrl(false);
   };
 
+  const handleUpdateLink = async () => {
+    const newLink = window.prompt("Enter new Google Drive link for this version:");
+    if (!newLink || !newLink.trim()) return;
+    
+    const { error } = await supabase
+      .from('rooms')
+      .update({ video_url: newLink.trim() })
+      .eq('id', roomId);
+      
+    if (error) {
+      alert("Error updating link: " + error.message);
+    } else {
+      setRoomData({ ...roomData, video_url: newLink.trim() });
+    }
+  };
+
   const handleRenameRoom = async (newTitle) => {
     const { data, error } = await supabase
       .from('rooms')
@@ -90,6 +106,7 @@ export default function Room() {
         title={roomData?.title || 'Loading Session...'} 
         onRename={handleRenameRoom}
         roomId={roomId}
+        onUpdateLink={handleUpdateLink}
       />
       <main className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
         {roomData?.video_url ? (
@@ -97,8 +114,15 @@ export default function Room() {
         ) : (
           <div className="flex-1 flex items-center justify-center p-6 bg-zinc-950">
             <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mb-6">
-                <Video className="w-8 h-8" />
+              <div className="flex items-center justify-center mb-6">
+                <div className="relative w-[104px] h-16 hover:scale-105 transition-transform duration-300">
+                  <div className="absolute left-0 w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-700/50 shadow-2xl flex items-center justify-center z-10 p-3">
+                    <img src="/drive.png" alt="Google Drive" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="absolute left-10 w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-700/50 shadow-xl flex items-center justify-center z-0 p-3">
+                    <img src="/youtube.png" alt="YouTube" className="w-full h-full object-contain" />
+                  </div>
+                </div>
               </div>
               <h2 className="text-2xl font-bold mb-2">Setup Your Session</h2>
               <p className="text-zinc-400 mb-8">Paste a Google Drive or YouTube link to start reviewing and collaborating.</p>
