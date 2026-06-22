@@ -38,6 +38,8 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [menuOpenForRoom, setMenuOpenForRoom] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const [isResizing, setIsResizing] = useState(false);
   const [customFolders, setCustomFolders] = useState(() => {
     const saved = localStorage.getItem('feedplayer_folders');
     return saved ? JSON.parse(saved) : ['Marketing Assets', 'Internal Reviews'];
@@ -46,6 +48,27 @@ export default function Dashboard() {
   useEffect(() => {
     localStorage.setItem('feedplayer_folders', JSON.stringify(customFolders));
   }, [customFolders]);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing) return;
+      const newWidth = Math.max(200, Math.min(600, e.clientX));
+      setSidebarWidth(newWidth);
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   const handleCreateFolder = () => {
     const newFolder = window.prompt("Enter new folder name:");
@@ -136,22 +159,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-[#0a0a0f] text-zinc-300 font-sans overflow-hidden selection:bg-indigo-500/30">
-      {/* Icon Sidebar */}
-      <div className="hidden md:flex w-14 flex-shrink-0 bg-[#050508] border-r border-white/5 flex-col items-center py-4 z-20">
-        <div className="w-8 h-8 bg-white text-black rounded-md flex items-center justify-center font-bold text-lg mb-8">
-          D
-        </div>
-        <div className="flex flex-col gap-6 w-full items-center flex-1">
-          <button className="p-2 text-zinc-500 hover:text-white transition-colors"><Home className="w-5 h-5" /></button>
-          <button className="p-2 text-zinc-500 hover:text-white transition-colors"><Search className="w-5 h-5" /></button>
-          <button className="p-2 text-zinc-500 hover:text-white transition-colors"><Bell className="w-5 h-5" /></button>
-          <button className="p-2 text-zinc-500 hover:text-white transition-colors"><Cloud className="w-5 h-5" /></button>
-        </div>
-        <div className="flex flex-col gap-6 w-full items-center mt-auto">
-          <button className="p-2 text-zinc-500 hover:text-white transition-colors"><HelpCircle className="w-5 h-5" /></button>
-          <button className="p-2 text-zinc-500 hover:text-white transition-colors" onClick={handleLogout} title="Sign Out"><LogOut className="w-5 h-5" /></button>
-        </div>
-      </div>
+
 
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -162,9 +170,32 @@ export default function Dashboard() {
       )}
 
       {/* Secondary Sidebar */}
-      <div className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 w-64 md:w-60 flex-shrink-0 bg-[#0c0a14] border-r border-white/5 flex flex-col overflow-y-auto z-40 transition-transform duration-300`}>
+      <div 
+        className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 flex-shrink-0 bg-[#0c0a14] border-r border-white/5 flex flex-col overflow-y-auto z-40 ${isResizing ? 'transition-none' : 'transition-transform duration-300'}`}
+        style={{ width: `${sidebarWidth}px` }}
+      >
         <div className="md:hidden flex items-center justify-between p-4 border-b border-white/5">
-          <div className="w-8 h-8 bg-white text-black rounded-md flex items-center justify-center font-bold text-lg">D</div>
+          {(() => {
+            const avatarUrl = user?.user_metadata?.avatar_url || 
+                              user?.user_metadata?.picture || 
+                              user?.raw_user_meta_data?.avatar_url || 
+                              user?.raw_user_meta_data?.picture || 
+                              user?.identities?.[0]?.identity_data?.avatar_url || 
+                              user?.identities?.[0]?.identity_data?.picture;
+            
+            return avatarUrl ? (
+              <img 
+                src={avatarUrl} 
+                alt="Profile" 
+                className="w-8 h-8 rounded-md object-cover shadow-sm border border-white/10"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-8 h-8 bg-white text-black rounded-md flex items-center justify-center font-bold text-lg uppercase">
+                {user?.email?.[0] || 'D'}
+              </div>
+            );
+          })()}
           <button onClick={() => setIsSidebarOpen(false)} className="p-1.5 hover:bg-white/10 rounded text-zinc-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 flex items-center justify-between">
@@ -174,15 +205,15 @@ export default function Dashboard() {
         <div className="flex flex-col px-2 gap-1 mb-6">
           <button 
             onClick={() => setActiveFolder('All Rooms')}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${activeFolder === 'All Rooms' ? 'text-white bg-indigo-600/20 font-medium' : 'text-zinc-400 hover:bg-white/5'}`}>
-            <Folder className={`w-4 h-4 ${activeFolder === 'All Rooms' ? 'text-indigo-400' : ''}`} /> All Rooms
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${activeFolder === 'All Rooms' ? 'text-white bg-zinc-800 font-medium' : 'text-zinc-400 hover:bg-white/5'}`}>
+            <Folder className={`w-4 h-4 ${activeFolder === 'All Rooms' ? 'text-white' : ''}`} /> All Rooms
           </button>
           {customFolders.map(f => (
             <button 
               key={f}
               onClick={() => setActiveFolder(f)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${activeFolder === f ? 'text-white bg-indigo-600/20 font-medium' : 'text-zinc-400 hover:bg-white/5'}`}>
-              <Folder className={`w-4 h-4 ${activeFolder === f ? 'text-indigo-400' : ''}`} /> {f}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${activeFolder === f ? 'text-white bg-zinc-800 font-medium' : 'text-zinc-400 hover:bg-white/5'}`}>
+              <Folder className={`w-4 h-4 ${activeFolder === f ? 'text-white' : ''}`} /> {f}
             </button>
           ))}
         </div>
@@ -207,6 +238,15 @@ export default function Dashboard() {
             <XCircle className="w-4 h-4 text-white" /> Rejected
           </button>
         </div>
+
+        {/* Resize Handle */}
+        <div 
+          className="hidden md:block absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-indigo-500/50 z-50 transition-colors"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setIsResizing(true);
+          }}
+        />
       </div>
 
       {/* Main Content Area */}
@@ -293,7 +333,7 @@ export default function Dashboard() {
             </div>
             <button 
               onClick={handleCreateRoom}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap"
+              className="bg-white hover:bg-zinc-200 text-black px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" /> New
             </button>
@@ -304,8 +344,9 @@ export default function Dashboard() {
           {rooms.length} Assets · {loading ? 'Loading...' : 'Ready'}
         </div>
 
-        {/* Grid */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-6 relative z-10">
+        {/* Grid and Right Sidebar */}
+        <div className="flex flex-1 overflow-hidden relative z-10">
+          <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-6 relative z-10">
           {loading ? (
             <div className="flex items-center justify-center h-40 text-zinc-500">Loading rooms...</div>
           ) : rooms.length === 0 ? (
@@ -320,7 +361,7 @@ export default function Dashboard() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
               {rooms.filter(room => {
                 if (activeFolder !== 'All Rooms' && (room.folder || 'All Rooms') !== activeFolder) return false;
                 if (activeState && (room.state || 'In Progress') !== activeState) return false;
@@ -330,7 +371,7 @@ export default function Dashboard() {
                 <div 
                   key={room.id} 
                   onClick={() => navigate(`/room/${room.id}`)}
-                  className="bg-[#101014] border border-white/5 rounded-2xl hover:border-white/10 hover:bg-[#15151a] transition-all cursor-pointer group flex flex-col h-56 relative shadow-md"
+                  className="bg-[#101014] border border-white/5 rounded-2xl hover:border-white/10 hover:bg-[#15151a] transition-all cursor-pointer group flex flex-col aspect-video relative shadow-md"
                 >
                   {/* Background Thumbnail */}
                   {room.video_url && getThumbnailUrl(room.video_url) && (
@@ -357,9 +398,6 @@ export default function Dashboard() {
                           } ${selectedRooms.length > 0 ? 'opacity-100' : ''}`}
                         >
                           {selectedRooms.includes(room.id) && <Check className="w-3 h-3 text-white" />}
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center backdrop-blur-sm">
-                          <Video className="w-5 h-5 text-indigo-400" />
                         </div>
                       </div>
                       
@@ -496,8 +534,21 @@ export default function Dashboard() {
                         <MessageSquare className="w-3.5 h-3.5" />
                         {room.comments?.[0]?.count || 0}
                       </div>
-                      <div className="ml-auto bg-white/5 px-2 py-0.5 rounded text-[10px] text-zinc-400">
-                        V1
+                      <div className="ml-auto flex items-center gap-3">
+                        {(() => {
+                            const isYouTube = room.video_url && (room.video_url.includes('youtube.com') || room.video_url.includes('youtu.be'));
+                            const isDrive = room.video_url && room.video_url.includes('drive.google.com');
+                            if (isYouTube) {
+                              return <img src="/youtube.png" alt="YouTube" className="w-4 h-4 object-contain opacity-80" />;
+                            } else if (isDrive) {
+                              return <img src="/drive.png" alt="Drive" className="w-4 h-4 object-contain opacity-80" />;
+                            } else {
+                              return <Video className="w-4 h-4 text-zinc-500" />;
+                            }
+                        })()}
+                        <div className="bg-white/5 px-2 py-0.5 rounded text-[10px] text-zinc-400">
+                          V1
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -506,6 +557,42 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* Floating Icon Sidebar on the right */}
+        <div className="hidden md:flex w-14 flex-shrink-0 bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-2xl flex-col items-center py-4 mr-4 mb-6 z-20 shadow-xl overflow-hidden h-[calc(100%-1rem)]">
+          {(() => {
+            const avatarUrl = user?.user_metadata?.avatar_url || 
+                              user?.user_metadata?.picture || 
+                              user?.raw_user_meta_data?.avatar_url || 
+                              user?.raw_user_meta_data?.picture || 
+                              user?.identities?.[0]?.identity_data?.avatar_url || 
+                              user?.identities?.[0]?.identity_data?.picture;
+            
+            return avatarUrl ? (
+              <img 
+                src={avatarUrl} 
+                alt="Profile" 
+                className="w-8 h-8 rounded-md object-cover mb-8 shadow-sm border border-white/10"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-8 h-8 bg-white text-black rounded-md flex items-center justify-center font-bold text-lg mb-8 uppercase">
+                {user?.email?.[0] || 'D'}
+              </div>
+            );
+          })()}
+          <div className="flex flex-col gap-6 w-full items-center flex-1">
+            <button onClick={() => alert('Home feature coming soon!')} className="p-2 text-zinc-500 hover:text-white transition-colors"><Home className="w-5 h-5" /></button>
+            <button onClick={() => alert('Search feature coming soon!')} className="p-2 text-zinc-500 hover:text-white transition-colors"><Search className="w-5 h-5" /></button>
+            <button onClick={() => alert('Notifications feature coming soon!')} className="p-2 text-zinc-500 hover:text-white transition-colors"><Bell className="w-5 h-5" /></button>
+            <button onClick={() => alert('Cloud feature coming soon!')} className="p-2 text-zinc-500 hover:text-white transition-colors"><Cloud className="w-5 h-5" /></button>
+          </div>
+          <div className="flex flex-col gap-6 w-full items-center mt-auto">
+            <button onClick={() => alert('Help center coming soon!')} className="p-2 text-zinc-500 hover:text-white transition-colors"><HelpCircle className="w-5 h-5" /></button>
+            <button className="p-2 text-zinc-500 hover:text-white transition-colors" onClick={handleLogout} title="Sign Out"><LogOut className="w-5 h-5" /></button>
+          </div>
+        </div>
+      </div>
       </div>
     </div>
   );
