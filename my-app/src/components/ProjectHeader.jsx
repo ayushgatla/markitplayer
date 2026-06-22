@@ -26,8 +26,9 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
     } else {
       setEditTitle(title);
     }
-  };
 
+  };
+  //temp
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') handleSave();
     if (e.key === 'Escape') {
@@ -57,7 +58,7 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
             <Film size={18} />
           )}
         </div>
-        
+
         {isEditing && !isClient ? (
           <input
             ref={inputRef}
@@ -69,8 +70,8 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
             className="font-medium bg-zinc-900 border border-indigo-500 rounded px-2 py-1 focus:outline-none text-white w-64 max-w-full"
           />
         ) : (
-          <div 
-            className={`flex items-center gap-2 group ${!isClient ? 'cursor-pointer' : ''}`} 
+          <div
+            className={`flex items-center gap-2 group ${!isClient ? 'cursor-pointer' : ''}`}
             onClick={() => !isClient && setIsEditing(true)}
             title={!isClient ? "Click to rename" : ""}
           >
@@ -78,10 +79,10 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
             {!isClient && <Edit2 size={14} className="text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />}
           </div>
         )}
-        
+
         <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full ml-2 shrink-0">V2.1</span>
       </div>
-      
+
       <div className="flex items-center gap-2 sm:gap-4">
         {!isClient && (
           <>
@@ -98,7 +99,7 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
                 <span className="hidden sm:inline">Update Link</span>
               </button>
             )}
-            <button 
+            <button
               onClick={handleCopyClientLink}
               className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-300 hover:text-white transition-colors bg-zinc-800/50 hover:bg-zinc-800 px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700/50"
             >
