@@ -318,7 +318,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
           className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-6 lg:gap-0 ${isFullscreen
             ? 'w-screen h-screen bg-black z-50'
             : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
-            } ${!isControlsActive && isMouseInside ? 'cursor-none' : ''}`}
+            } ${!isControlsActive && isMouseInside && !(videoError && isDrive) ? 'cursor-none' : ''}`}
           onMouseEnter={() => setIsMouseInside(true)}
           onMouseLeave={() => setIsMouseInside(false)}
           onMouseMove={handleMouseMove}
@@ -347,14 +347,16 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
             ? 'absolute bottom-6 left-0 right-0 px-4'
             : 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-0 pb-6 lg:pb-0'
             }`}>
-            <PlayerControls
-              playerRef={playerRef}
-              comments={comments}
-              onMarkerClick={handleCommentClick}
-              isMouseInside={isControlsActive}
-              onToggleFullscreen={handleToggleFullscreen}
-              isFullscreen={isFullscreen}
-            />
+            {!(videoError && isDrive) && (
+              <PlayerControls
+                playerRef={playerRef}
+                comments={comments}
+                onMarkerClick={handleCommentClick}
+                isMouseInside={isControlsActive}
+                onToggleFullscreen={handleToggleFullscreen}
+                isFullscreen={isFullscreen}
+              />
+            )}
           </div>
         </div>
       </div>
