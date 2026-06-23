@@ -239,6 +239,15 @@ export default function Dashboard() {
           </button>
         </div>
 
+        <div className="mt-auto px-2 pb-4 pt-4 border-t border-white/5 md:hidden">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm transition-colors text-red-400 hover:bg-red-500/10"
+          >
+            <LogOut className="w-4 h-4" /> Sign Out
+          </button>
+        </div>
+
         {/* Resize Handle */}
         <div 
           className="hidden md:block absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-indigo-500/50 z-50 transition-colors"

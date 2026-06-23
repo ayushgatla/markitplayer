@@ -18,7 +18,16 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
   const idleTimeoutRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [showQuotaWarning, setShowQuotaWarning] = useState(false);
   const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    let timer;
+    if (showQuotaWarning) {
+      timer = setTimeout(() => setShowQuotaWarning(false), 5000);
+    }
+    return () => clearTimeout(timer);
+  }, [showQuotaWarning]);
 
   const [sidebarWidth, setSidebarWidth] = useState(384);
   const isDraggingRef = useRef(false);
@@ -157,6 +166,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
       console.error('VideoJS Player Error:', player.error());
       if (isDrive) {
         setVideoError(true);
+        setShowQuotaWarning(true);
       }
     });
   };
@@ -360,20 +370,30 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
           </div>
 
           {/* Quota Exceeded Notification Popup */}
-          {videoError && isDrive && (
-            <div className="absolute bottom-6 left-6 z-[100] max-w-xs bg-red-950/90 border border-red-500/30 backdrop-blur-xl rounded-2xl p-4 shadow-2xl transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
-              <div className="flex items-start gap-3">
-                <div className="bg-red-500/20 p-2 rounded-full flex-shrink-0">
-                  <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          {showQuotaWarning && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[100] bg-red-950/90 border border-red-500/30 backdrop-blur-xl rounded-2xl p-4 shadow-2xl transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="bg-red-500/20 p-2 rounded-full flex-shrink-0">
+                    <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-red-100 font-medium text-sm">Quota Exceeded</h3>
+                    <p className="text-red-200/70 text-xs mt-1 leading-relaxed">
+                      Video link used too many times. Switching to iframe. Provide a fresh link to use all features.
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowQuotaWarning(false)}
+                  className="text-red-400 hover:text-red-200 transition-colors flex-shrink-0 p-1 bg-white/5 rounded-full"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </div>
-                <div>
-                  <h3 className="text-red-100 font-medium text-sm">Quota Exceeded</h3>
-                  <p className="text-red-200/70 text-xs mt-1 leading-relaxed">
-                    Video link used too many times. Switching to iframe mode. Provide a fresh link to use all features.
-                  </p>
-                </div>
+                </button>
               </div>
             </div>
           )}
