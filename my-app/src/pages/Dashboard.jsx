@@ -275,8 +275,27 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs text-white font-medium border border-white/10">A</div>
-              <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-xs text-white font-medium border border-white/10 -ml-4">B</div>
+              {(() => {
+                const avatarUrl = user?.user_metadata?.avatar_url || 
+                                  user?.user_metadata?.picture || 
+                                  user?.raw_user_meta_data?.avatar_url || 
+                                  user?.raw_user_meta_data?.picture || 
+                                  user?.identities?.[0]?.identity_data?.avatar_url || 
+                                  user?.identities?.[0]?.identity_data?.picture;
+                
+                return avatarUrl ? (
+                  <img 
+                    src={avatarUrl} 
+                    alt="Profile" 
+                    className="w-8 h-8 rounded-full object-cover border border-white/10"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm text-white font-medium border border-white/10 uppercase">
+                    {user?.email?.[0] || 'D'}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

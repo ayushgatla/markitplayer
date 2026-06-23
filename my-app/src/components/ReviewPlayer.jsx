@@ -17,6 +17,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
   const [isIdle, setIsIdle] = useState(false);
   const idleTimeoutRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const wrapperRef = useRef(null);
 
   const [sidebarWidth, setSidebarWidth] = useState(384);
@@ -150,6 +151,13 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
 
     player.on('durationchange', () => {
       setDuration(player.duration());
+    });
+
+    player.on('error', () => {
+      console.error('VideoJS Player Error:', player.error());
+      if (isDrive) {
+        setVideoError(true);
+      }
     });
   };
 
@@ -317,12 +325,22 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
           onDoubleClick={handleToggleFullscreen}
         >
           <div className="w-full aspect-video relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto">
-            <VideoPlayer
-              ref={playerRef}
-              options={videoOptions}
-              onReady={handlePlayerReady}
-              onTimeUpdate={handleTimeUpdate}
-            />
+            {videoError && isDrive ? (
+              <iframe
+                src={`https://drive.google.com/file/d/${videoUrl.match(/drive\.google\.com\/(?:file\/d\/|uc\?.*id=)([-\w]+)/)?.[1]}/preview`}
+                className="w-full h-full absolute inset-0 border-0"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                title="Google Drive Video Fallback"
+              />
+            ) : (
+              <VideoPlayer
+                ref={playerRef}
+                options={videoOptions}
+                onReady={handlePlayerReady}
+                onTimeUpdate={handleTimeUpdate}
+              />
+            )}
           </div>
 
           <div className={`w-full z-50 flex justify-center ${isFullscreen
