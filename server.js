@@ -38,7 +38,7 @@ app.get('/api/video/:id', async (req, res) => {
       let confirmToken = 't';
       const confirmMatch = html.match(/confirm=([0-9A-Za-z_-]+)/i) || html.match(/name="confirm"\s+value="([^"]+)"/i);
       if (confirmMatch) {
-        confirmToken = confirmMatch[1];
+        confirmToken = confirmMatch[1] || confirmMatch[2];
       }
 
       const uuidMatch = html.match(/name="uuid"\s+value="([^"]+)"/i);
