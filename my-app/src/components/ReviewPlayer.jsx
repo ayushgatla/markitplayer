@@ -301,10 +301,16 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
 
   return (
     <div
-      className="flex flex-col lg:flex-row w-full min-h-full lg:h-[calc(100vh-3.5rem)] sm:lg:h-[calc(100vh-4rem)] bg-zinc-950 lg:overflow-hidden bg-cover bg-center bg-fixed"
-      style={{ backgroundImage: 'url(/sky.jpg)' }}
+      className="flex flex-col lg:flex-row w-full min-h-full lg:h-[calc(100vh-3.5rem)] sm:lg:h-[calc(100vh-4rem)] bg-[#0f0e17] lg:overflow-hidden relative"
     >
-      <div className="w-full lg:flex-1 flex flex-col items-center justify-start lg:justify-center p-4 lg:p-6 relative min-h-[40vh] lg:min-h-0 gap-6 lg:gap-0">
+      {/* Dashboard Matching Background Image & Overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-fixed z-0 opacity-40"
+        style={{ backgroundImage: 'url(/dashboard.jpg)' }}
+      ></div>
+      <div className="absolute inset-0 bg-[#0f0e17]/80 backdrop-blur-[2px] z-0 pointer-events-none"></div>
+
+      <div className="w-full lg:flex-1 flex flex-col items-center justify-start lg:justify-center p-4 lg:p-6 relative z-10 min-h-[40vh] lg:min-h-0 gap-6 lg:gap-0">
         <div
           ref={wrapperRef}
           className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-6 lg:gap-0 ${isFullscreen
@@ -340,7 +346,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
           </div>
         </div>
       </div>
-      <div className="sidebar-container w-full flex-shrink-0 lg:border-l border-white/10 bg-black/40 backdrop-blur-xl relative">
+      <div className="sidebar-container w-full flex-shrink-0 lg:border-l border-white/10 bg-black/40 backdrop-blur-xl relative z-10">
         <style>{`
           @media (min-width: 1024px) {
             .sidebar-container { width: ${sidebarWidth}px !important; }
