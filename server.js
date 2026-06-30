@@ -42,27 +42,37 @@ app.get('/api/video/:id', async (req, res) => {
       }
 
       const uuidMatch = html.match(/name="uuid"\s+value="([^"]+)"/i);
-      
       const actionMatch = html.match(/<form[^>]*action="([^"]+)"/i);
-      const baseUrl = actionMatch ? actionMatch[1] : 'https://drive.usercontent.google.com/download';
       
-      driveUrl = `${baseUrl}?id=${videoId}&export=download&confirm=${confirmToken}`;
-      if (uuidMatch && uuidMatch[1]) {
-         driveUrl += `&uuid=${uuidMatch[1]}`;
+      if (actionMatch || confirmMatch) {
+        const baseUrl = actionMatch ? actionMatch[1] : 'https://drive.usercontent.google.com/download';
+        driveUrl = `${baseUrl}?id=${videoId}&export=download&confirm=${confirmToken}`;
+        if (uuidMatch && uuidMatch[1]) {
+           driveUrl += `&uuid=${uuidMatch[1]}`;
+        }
+        
+        // Make the second request bypassing the warning
+        response = await axios({
+          method: 'get',
+          url: driveUrl,
+          responseType: 'stream',
+          headers: {
+            Range: req.headers.range,
+            Cookie: cookies.map(c => c.split(';')[0]).join('; ')
+          },
+          maxRedirects: 5,
+          validateStatus: () => true 
+        });
+
+        if (response.headers['content-type'] && response.headers['content-type'].includes('text/html')) {
+          console.error('Google Drive second request returned HTML (Quota Exceeded or File Not Found).');
+          return res.status(429).send('Google Drive Quota Exceeded or file unavailable.');
+        }
+      } else {
+        // This means it's an HTML page but not a virus warning (e.g., Quota exceeded, or File Not Found)
+        console.error('Google Drive returned an HTML page without a confirmation prompt. Possibly Quota Exceeded or File Not Found.');
+        return res.status(429).send('Google Drive Quota Exceeded or file unavailable.');
       }
-      
-      // Make the second request bypassing the warning
-      response = await axios({
-        method: 'get',
-        url: driveUrl,
-        responseType: 'stream',
-        headers: {
-          Range: req.headers.range,
-          Cookie: cookies.map(c => c.split(';')[0]).join('; ')
-        },
-        maxRedirects: 5,
-        validateStatus: () => true 
-      });
     }
 
     res.status(response.status);

@@ -300,6 +300,15 @@ export default function Dashboard() {
           </button>
         </div>
 
+        <div className="mt-auto px-2 pb-4 pt-4 border-t border-white/5 md:hidden">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm transition-colors text-red-400 hover:bg-red-500/10"
+          >
+            <LogOut className="w-4 h-4" /> Sign Out
+          </button>
+        </div>
+
         {/* Resize Handle */}
         <div 
           className="hidden md:block absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-indigo-500/50 z-50 transition-colors"
@@ -336,8 +345,27 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs text-white font-medium border border-white/10">A</div>
-              <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-xs text-white font-medium border border-white/10 -ml-4">B</div>
+              {(() => {
+                const avatarUrl = user?.user_metadata?.avatar_url || 
+                                  user?.user_metadata?.picture || 
+                                  user?.raw_user_meta_data?.avatar_url || 
+                                  user?.raw_user_meta_data?.picture || 
+                                  user?.identities?.[0]?.identity_data?.avatar_url || 
+                                  user?.identities?.[0]?.identity_data?.picture;
+                
+                return avatarUrl ? (
+                  <img 
+                    src={avatarUrl} 
+                    alt="Profile" 
+                    className="w-8 h-8 rounded-full object-cover border border-white/10"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm text-white font-medium border border-white/10 uppercase">
+                    {user?.email?.[0] || 'D'}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
