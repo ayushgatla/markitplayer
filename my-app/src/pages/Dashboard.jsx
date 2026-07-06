@@ -489,7 +489,7 @@ export default function Dashboard() {
                   <div 
                     key={room.id}
                     onClick={() => navigate(`/room/${room.id}`)}
-                    className="bg-[#101014] border border-white/5 hover:border-white/20 rounded-xl p-3.5 flex items-center justify-between gap-4 transition-all cursor-pointer group shadow-sm hover:bg-[#15151a]"
+                    className={`bg-[#101014] border border-white/5 hover:border-white/20 rounded-xl p-3.5 flex items-center justify-between gap-4 transition-all cursor-pointer group shadow-sm hover:bg-[#15151a] relative ${menuOpenForRoom === room.id ? 'z-50' : 'z-0'}`}
                   >
                     <div className="flex items-center gap-4 min-w-0 flex-1">
                       <div 
@@ -641,7 +641,7 @@ export default function Dashboard() {
                   <div 
                     key={room.id} 
                     onClick={() => navigate(`/room/${room.id}`)}
-                    className="bg-[#101014] border border-white/5 rounded-2xl hover:border-white/10 hover:bg-[#15151a] transition-all cursor-pointer group flex flex-col relative shadow-md aspect-video"
+                    className={`bg-[#101014] border border-white/5 rounded-2xl hover:border-white/10 hover:bg-[#15151a] transition-all cursor-pointer group flex flex-col relative shadow-md aspect-video ${menuOpenForRoom === room.id ? 'z-50' : 'z-0'}`}
                   >
                     {/* Background Thumbnail */}
                     {room.video_url && getThumbnailUrl(room.video_url) && (
