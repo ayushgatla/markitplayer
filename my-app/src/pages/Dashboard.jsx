@@ -27,6 +27,15 @@ const getThumbnailUrl = (url) => {
   return null;
 };
 
+const getFallbackIcon = (url) => {
+  if (!url) return null;
+  if (url.includes('instagram.com')) return '/instagram.png';
+  if (url.startsWith('magnet:?') || url.includes('127.0.0.1:11470') || /\/[a-fA-F0-9]{40}\//.test(url)) return '/utorrent.png';
+  if (url.includes('youtube.com') || url.includes('youtu.be')) return '/youtube.png';
+  if (url.includes('drive.google.com')) return '/drive.png';
+  return null;
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -506,6 +515,8 @@ export default function Dashboard() {
                       <div className="w-16 h-10 rounded-lg overflow-hidden bg-black/40 border border-white/10 shrink-0 relative flex items-center justify-center">
                         {room.video_url && getThumbnailUrl(room.video_url) ? (
                           <img src={getThumbnailUrl(room.video_url)} alt="" className="w-full h-full object-cover" />
+                        ) : getFallbackIcon(room?.video_url) ? (
+                          <img src={getFallbackIcon(room.video_url)} alt="" className="w-5 h-5 object-contain opacity-70" />
                         ) : (
                           <Video className="w-4 h-4 text-zinc-500" />
                         )}
@@ -643,8 +654,8 @@ export default function Dashboard() {
                     onClick={() => navigate(`/room/${room.id}`)}
                     className={`bg-[#101014] border border-white/5 rounded-2xl hover:border-white/10 hover:bg-[#15151a] transition-all cursor-pointer group flex flex-col relative shadow-md aspect-video ${menuOpenForRoom === room.id ? 'z-50' : 'z-0'}`}
                   >
-                    {/* Background Thumbnail */}
-                    {room.video_url && getThumbnailUrl(room.video_url) && (
+                    {/* Background Thumbnail or Icon */}
+                    {room.video_url && getThumbnailUrl(room.video_url) ? (
                       <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none z-0">
                         <div 
                           className="absolute inset-0 bg-cover bg-center opacity-25 group-hover:opacity-40 transition-opacity duration-500"
@@ -652,7 +663,11 @@ export default function Dashboard() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-[#101014] via-[#101014]/80 to-[#101014]/30"></div>
                       </div>
-                    )}
+                    ) : getFallbackIcon(room?.video_url) ? (
+                      <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none z-0 flex items-center justify-center opacity-[0.03] group-hover:opacity-10 transition-opacity duration-500">
+                        <img src={getFallbackIcon(room.video_url)} alt="" className="w-32 h-32 object-contain grayscale" />
+                      </div>
+                    ) : null}
                     
                     <div className="relative z-10 flex flex-col h-full p-5">
                       {/* Top Row */}
@@ -796,17 +811,11 @@ export default function Dashboard() {
                           </div>
                         )}
                         <div className="ml-auto flex items-center gap-3">
-                          {(() => {
-                              const isYouTube = room.video_url && (room.video_url.includes('youtube.com') || room.video_url.includes('youtu.be'));
-                              const isDrive = room.video_url && room.video_url.includes('drive.google.com');
-                              if (isYouTube) {
-                                return <img src="/youtube.png" alt="YouTube" className="w-4 h-4 object-contain opacity-80" />;
-                              } else if (isDrive) {
-                                return <img src="/drive.png" alt="Drive" className="w-4 h-4 object-contain opacity-80" />;
-                              } else {
-                                return <Video className="w-4 h-4 text-zinc-500" />;
-                              }
-                          })()}
+                          {getFallbackIcon(room?.video_url) ? (
+                            <img src={getFallbackIcon(room.video_url)} alt="" className="w-4 h-4 object-contain opacity-80" />
+                          ) : (
+                            <Video className="w-4 h-4 text-zinc-500" />
+                          )}
                           {visibleFields.version && (
                             <div className="bg-white/5 px-2 py-0.5 rounded text-[10px] text-zinc-400">
                               V1

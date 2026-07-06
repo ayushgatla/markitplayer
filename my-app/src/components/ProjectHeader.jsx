@@ -4,6 +4,8 @@ import { Film, Share2, Edit2, UserPlus, Check } from 'lucide-react';
 export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink, videoUrl }) => {
   const isYouTube = videoUrl && (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be'));
   const isDrive = videoUrl && videoUrl.includes('drive.google.com');
+  const isInstagram = videoUrl && videoUrl.includes('instagram.com');
+  const isTorrent = videoUrl && (videoUrl.startsWith('magnet:?') || videoUrl.includes('127.0.0.1:11470') || /\/[a-fA-F0-9]{40}\//.test(videoUrl));
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
@@ -54,6 +56,10 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
             <img src="/youtube.png" alt="YouTube" className="w-5 h-5 object-contain" />
           ) : isDrive ? (
             <img src="/drive.png" alt="Drive" className="w-5 h-5 object-contain" />
+          ) : isInstagram ? (
+            <img src="/instagram.png" alt="Instagram" className="w-5 h-5 object-contain" />
+          ) : isTorrent ? (
+            <img src="/utorrent.png" alt="Torrent" className="w-5 h-5 object-contain" />
           ) : (
             <Film size={18} />
           )}
@@ -92,9 +98,10 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
                 className="group flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 transition-colors text-xs sm:text-sm font-medium text-zinc-300 hover:text-white"
                 title="Update video link for a new version"
               >
-                <div className="relative w-7 h-4 flex items-center opacity-80 group-hover:opacity-100 transition-opacity">
-                  <img src="/drive.png" alt="Drive" className="absolute left-0 w-4 h-4 object-contain z-10" />
-                  <img src="/youtube.png" alt="YouTube" className="absolute left-3 w-4 h-4 object-contain z-0" />
+                <div className="relative w-10 h-4 flex items-center opacity-80 group-hover:opacity-100 transition-opacity">
+                  <img src="/drive.png" alt="Drive" className="absolute left-0 w-4 h-4 object-contain z-20" />
+                  <img src="/youtube.png" alt="YouTube" className="absolute left-3 w-4 h-4 object-contain z-10" />
+                  <img src="/utorrent.png" alt="Torrent" className="absolute left-6 w-4 h-4 object-contain z-0" />
                 </div>
                 <span className="hidden sm:inline">Update Link</span>
               </button>

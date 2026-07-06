@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const torrentStream = require('torrent-stream');
+const { instagramGetUrl } = require('instagram-url-direct');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -109,6 +111,76 @@ app.get('/api/thumbnail/:id', async (req, res) => {
   } catch (error) {
     console.error('Thumbnail Proxy Error:', error.message);
     res.status(500).send('Error proxying the thumbnail');
+  }
+});
+
+app.get('/api/torrent', (req, res) => {
+  const magnet = req.query.magnet;
+  if (!magnet) return res.status(400).send('Magnet link required');
+  
+  const engine = torrentStream(magnet);
+  
+  engine.on('ready', () => {
+    const file = engine.files.reduce((a, b) => a.length > b.length ? a : b);
+    const range = req.headers.range;
+    
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : file.length - 1;
+      const chunksize = (end - start) + 1;
+      
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${file.length}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': 'video/mp4'
+      });
+      file.createReadStream({start, end}).pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': file.length,
+        'Content-Type': 'video/mp4'
+      });
+      file.createReadStream().pipe(res);
+    }
+  });
+
+  engine.on('error', (err) => {
+    console.error('Torrent engine error:', err);
+    if (!res.headersSent) res.status(500).send('Error streaming torrent');
+  });
+});
+
+app.get('/api/instagram', async (req, res) => {
+  const url = req.query.url;
+  if (!url) return res.status(400).send('Instagram URL required');
+  
+  try {
+    const links = await instagramGetUrl(url);
+    if (links && links.url_list && links.url_list.length > 0) {
+      const directUrl = links.url_list[0];
+      const response = await axios({
+        method: 'get',
+        url: directUrl,
+        responseType: 'stream',
+        headers: { Range: req.headers.range },
+        validateStatus: () => true
+      });
+      
+      res.status(response.status);
+      ['content-type', 'content-length', 'accept-ranges', 'content-range'].forEach(header => {
+        if (response.headers[header]) {
+          res.setHeader(header, response.headers[header]);
+        }
+      });
+      response.data.pipe(res);
+    } else {
+      res.status(404).send('Video not found in Instagram post');
+    }
+  } catch (err) {
+    console.error('Instagram proxy error:', err.message);
+    if (!res.headersSent) res.status(500).send('Error proxying Instagram video');
   }
 });
 
