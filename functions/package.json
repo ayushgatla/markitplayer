@@ -19,8 +19,7 @@
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^7.0.0",
-    "instagram-url-direct": "^2.0.7",
-    "torrent-stream": "^1.2.1"
+    "instagram-url-direct": "^2.0.7"
   },
   "devDependencies": {
     "eslint": "^8.15.0",

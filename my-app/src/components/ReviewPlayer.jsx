@@ -98,7 +98,6 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
   const isYouTube = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
   const isDrive = videoUrl.includes('drive.google.com');
   const isInstagram = videoUrl.includes('instagram.com');
-  const isMagnet = videoUrl.startsWith('magnet:?');
 
   const baseUrl = import.meta.env.PROD
     ? 'https://markitplayer-production.up.railway.app'
@@ -112,8 +111,6 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
     }
   } else if (isInstagram) {
     processedUrl = `${baseUrl}/api/instagram?url=${encodeURIComponent(videoUrl)}`;
-  } else if (isMagnet) {
-    processedUrl = `${baseUrl}/api/torrent?magnet=${encodeURIComponent(videoUrl)}`;
   }
 
   const videoOptions = {

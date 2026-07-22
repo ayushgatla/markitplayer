@@ -9,7 +9,6 @@
     "express": "^5.2.1",
     "instagram-url-direct": "^2.0.7",
     "snapsave-media-downloader": "^2.4.0",
-    "torrent-stream": "^1.2.1",
     "video.js": "^8.23.7"
   }
 }

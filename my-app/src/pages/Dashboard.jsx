@@ -30,7 +30,6 @@ const getThumbnailUrl = (url) => {
 const getFallbackIcon = (url) => {
   if (!url) return null;
   if (url.includes('instagram.com')) return '/instagram.png';
-  if (url.startsWith('magnet:?') || url.includes('127.0.0.1:11470') || /\/[a-fA-F0-9]{40}\//.test(url)) return '/utorrent.png';
   if (url.includes('youtube.com') || url.includes('youtu.be')) return '/youtube.png';
   if (url.includes('drive.google.com')) return '/drive.png';
   return null;
