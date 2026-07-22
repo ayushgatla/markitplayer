@@ -7,6 +7,7 @@
     "axios": "^1.17.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "googleapis": "^173.0.0",
     "instagram-url-direct": "^2.0.7",
     "snapsave-media-downloader": "^2.4.0",
     "video.js": "^8.23.7"

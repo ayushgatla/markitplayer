@@ -2,14 +2,65 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const { instagramGetUrl } = require('instagram-url-direct');
+const { google } = require('googleapis');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 
+let drive;
+try {
+  if (process.env.GOOGLE_CREDENTIALS) {
+    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+    });
+    drive = google.drive({ version: 'v3', auth });
+    console.log("Google Drive API initialized successfully.");
+  } else {
+    console.warn("GOOGLE_CREDENTIALS environment variable is not set. Drive links will fallback to proxy scraping, which may fail.");
+  }
+} catch (e) {
+  console.error("Failed to parse GOOGLE_CREDENTIALS", e);
+}
+
 app.get('/api/video/:id', async (req, res) => {
   const videoId = req.params.id;
+
+  if (drive) {
+    try {
+      const driveReqOpts = { responseType: 'stream' };
+      if (req.headers.range) {
+         driveReqOpts.headers = { Range: req.headers.range };
+      }
+      
+      const response = await drive.files.get(
+        { fileId: videoId, alt: 'media' },
+        driveReqOpts
+      );
+
+      res.status(response.status);
+      
+      ['content-type', 'content-length', 'accept-ranges', 'content-range'].forEach(header => {
+        if (response.headers && response.headers[header]) {
+          res.setHeader(header, response.headers[header]);
+        }
+      });
+
+      response.data.pipe(res);
+      response.data.on('error', (err) => {
+        console.error('Drive API Stream error:', err);
+        res.end();
+      });
+      return;
+    } catch (error) {
+      console.error('Drive API Error:', error.message);
+      // Fallback to scraping
+    }
+  }
+
   let driveUrl = `https://drive.google.com/uc?export=download&id=${videoId}`;
   let cookies = [];
 
