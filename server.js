@@ -46,8 +46,9 @@ app.get('/api/video/:id', async (req, res) => {
       
       res.setHeader('Accept-Ranges', 'bytes');
       ['content-type', 'content-length', 'content-range'].forEach(header => {
-        if (response.headers && response.headers[header]) {
-          res.setHeader(header, response.headers[header]);
+        const value = typeof response.headers.get === 'function' ? response.headers.get(header) : response.headers[header];
+        if (value) {
+          res.setHeader(header, value);
         }
       });
 
