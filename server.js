@@ -44,7 +44,8 @@ app.get('/api/video/:id', async (req, res) => {
 
       res.status(response.status);
       
-      ['content-type', 'content-length', 'accept-ranges', 'content-range'].forEach(header => {
+      res.setHeader('Accept-Ranges', 'bytes');
+      ['content-type', 'content-length', 'content-range'].forEach(header => {
         if (response.headers && response.headers[header]) {
           res.setHeader(header, response.headers[header]);
         }
@@ -57,7 +58,7 @@ app.get('/api/video/:id', async (req, res) => {
       });
       return;
     } catch (error) {
-      console.error('Drive API Error:', error.message);
+      console.error('Drive API Video Stream Error:', error.message);
       // Fallback to scraping
     }
   }
@@ -143,6 +144,22 @@ app.get('/api/video/:id', async (req, res) => {
 
 app.get('/api/thumbnail/:id', async (req, res) => {
   const videoId = req.params.id;
+
+  if (drive) {
+    try {
+      const fileInfo = await drive.files.get({
+        fileId: videoId,
+        fields: 'thumbnailLink'
+      });
+      if (fileInfo.data.thumbnailLink) {
+        const thumbUrl = fileInfo.data.thumbnailLink.replace(/=s\d+$/, '=s800');
+        return res.redirect(thumbUrl);
+      }
+    } catch (e) {
+      console.error('Drive API Thumbnail Error:', e.message);
+    }
+  }
+
   try {
     const response = await axios({
       method: 'get',
