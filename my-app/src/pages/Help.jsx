@@ -122,7 +122,6 @@ export default function Help() {
             </button>
             <div className="h-5 w-px bg-white/10"></div>
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
               <h1 className="text-xl font-bold tracking-tight text-white">Platform Features Guide</h1>
             </div>
           </div>
@@ -146,9 +145,9 @@ export default function Help() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10">
-        <div className="mb-8 bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-transparent p-6 rounded-2xl border border-indigo-500/20 shadow-xl">
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-            <span>Welcome to Feedplayer</span>
+        <div className="mb-8 bg-zinc-900 border border-white/5 p-6 rounded-2xl shadow-lg">
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Welcome to Feedplayer
           </h2>
           <p className="text-zinc-400 text-sm leading-relaxed max-w-3xl">
             Explore all the features and capabilities of Feedplayer below. Click on any feature tab to expand or contract its detailed explanation, workflow tips, and capabilities.
@@ -166,38 +165,31 @@ export default function Help() {
                 key={feature.id}
                 className={`rounded-xl border transition-all duration-200 overflow-hidden ${
                   isOpen 
-                    ? 'bg-[#1a1b23] border-indigo-500/40 shadow-lg shadow-indigo-950/20' 
+                    ? 'bg-zinc-900 border-zinc-700 shadow-xl' 
                     : 'bg-[#16171e] border-white/10 hover:border-white/20'
                 }`}
               >
                 {/* Accordion Header / Tab Toggle Button */}
                 <button
                   onClick={() => toggleTab(idx)}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left transition-colors cursor-pointer group"
+                  className="w-full px-6 py-5 flex items-center justify-between text-left transition-colors cursor-pointer group"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2.5 rounded-lg transition-colors ${
-                      isOpen ? 'bg-indigo-500/20 text-indigo-400' : 'bg-white/5 text-zinc-400 group-hover:text-white group-hover:bg-white/10'
-                    }`}>
-                      <IconComponent className="w-5 h-5" />
+                  <div className="flex flex-col gap-1 pr-6">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-semibold text-white group-hover:text-zinc-300 transition-colors">
+                        {feature.title}
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase bg-white/5 text-zinc-400 border border-white/5">
+                        {feature.category}
+                      </span>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">
-                          {feature.title}
-                        </h3>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase bg-white/5 text-zinc-400 border border-white/5">
-                          {feature.category}
-                        </span>
-                      </div>
-                      <p className="text-xs text-zinc-400 mt-0.5">
-                        {feature.summary}
-                      </p>
-                    </div>
+                    <p className="text-sm text-zinc-400">
+                      {feature.summary}
+                    </p>
                   </div>
 
-                  <div className={`p-2 rounded-lg transition-transform duration-200 ${
-                    isOpen ? 'rotate-180 text-indigo-400 bg-indigo-500/10' : 'text-zinc-500 group-hover:text-white'
+                  <div className={`p-2 rounded-lg transition-transform duration-200 flex-shrink-0 ${
+                    isOpen ? 'rotate-180 text-white bg-zinc-800' : 'text-zinc-500 group-hover:text-white'
                   }`}>
                     <ChevronDown className="w-5 h-5" />
                   </div>
@@ -212,13 +204,10 @@ export default function Help() {
                         const title = parts[0];
                         const desc = parts.slice(1).join(': ');
                         return (
-                          <div key={dIdx} className="p-3.5 rounded-lg bg-white/[0.03] border border-white/5 flex items-start gap-3">
-                            <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                            <div className="text-xs">
-                              <span className="font-semibold text-zinc-200 block mb-0.5">{title}</span>
-                              <span className="text-zinc-400 leading-normal">{desc}</span>
+                            <div key={dIdx} className="p-4 rounded-lg bg-white/[0.02] border border-white/5 flex flex-col gap-1">
+                              <span className="font-semibold text-zinc-200 text-sm">{title}</span>
+                              <span className="text-zinc-400 text-sm leading-relaxed">{desc}</span>
                             </div>
-                          </div>
                         );
                       })}
                     </div>
