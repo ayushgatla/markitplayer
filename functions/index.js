@@ -3,14 +3,67 @@ const cors = require("cors");
 const axios = require("axios");
 const {instagramGetUrl} = require("instagram-url-direct");
 const functions = require("firebase-functions");
+const { google } = require('googleapis');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 
+let drive;
+try {
+  if (process.env.GOOGLE_CREDENTIALS) {
+    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+    });
+    drive = google.drive({ version: 'v3', auth });
+    console.log("Google Drive API initialized successfully.");
+  } else {
+    console.warn("GOOGLE_CREDENTIALS environment variable is not set. Drive links will fallback to proxy scraping, which may fail.");
+  }
+} catch (e) {
+  console.error("Failed to parse GOOGLE_CREDENTIALS", e);
+}
+
 app.get("/api/video/:id", async (req, res) => {
   const videoId = req.params.id;
+
+  if (drive) {
+    try {
+      const driveReqOpts = { responseType: 'stream' };
+      if (req.headers.range) {
+         driveReqOpts.headers = { Range: req.headers.range };
+      }
+      
+      const response = await drive.files.get(
+        { fileId: videoId, alt: 'media' },
+        driveReqOpts
+      );
+
+      res.status(response.status);
+      
+      res.setHeader('Accept-Ranges', 'bytes');
+      ['content-type', 'content-length', 'content-range'].forEach(header => {
+        const value = typeof response.headers.get === 'function' ? response.headers.get(header) : response.headers[header];
+        if (value) {
+          res.setHeader(header, value);
+        }
+      });
+
+      response.data.pipe(res);
+      response.data.on('error', (err) => {
+        console.error('Drive API Stream error:', err);
+        res.end();
+      });
+      return;
+    } catch (error) {
+      console.error('Drive API Video Stream Error:', error.message);
+      // Fallback to scraping
+    }
+  }
+
   let driveUrl = `https://drive.google.com/uc?export=download&id=${videoId}`;
   let cookies = [];
 
@@ -30,7 +83,6 @@ app.get("/api/video/:id", async (req, res) => {
       cookies = response.headers["set-cookie"];
     }
 
-    // Check if Google Drive returned the virus scan warning HTML page
     if (response.headers["content-type"] && response.headers["content-type"].includes("text/html")) {
       let html = "";
       for await (const chunk of response.data) {
@@ -53,7 +105,6 @@ app.get("/api/video/:id", async (req, res) => {
         driveUrl += `&uuid=${uuidMatch[1]}`;
       }
 
-      // Make the second request bypassing the warning
       response = await axios({
         method: "get",
         url: driveUrl,
@@ -91,6 +142,21 @@ app.get("/api/video/:id", async (req, res) => {
 
 app.get("/api/thumbnail/:id", async (req, res) => {
   const videoId = req.params.id;
+  if (drive) {
+    try {
+      const fileInfo = await drive.files.get({
+        fileId: videoId,
+        fields: 'thumbnailLink'
+      });
+      if (fileInfo.data.thumbnailLink) {
+        const thumbUrl = fileInfo.data.thumbnailLink.replace(/=s\d+$/, '=s800');
+        return res.redirect(thumbUrl);
+      }
+    } catch (e) {
+      console.error('Drive API Thumbnail Error:', e.message);
+    }
+  }
+
   try {
     const response = await axios({
       method: "get",
@@ -112,8 +178,6 @@ app.get("/api/thumbnail/:id", async (req, res) => {
     res.status(500).send("Error proxying the thumbnail");
   }
 });
-
-
 
 app.get("/api/instagram", async (req, res) => {
   const url = req.query.url;
@@ -147,10 +211,8 @@ app.get("/api/instagram", async (req, res) => {
   }
 });
 
-// Export the app as a Firebase Cloud Function
 exports.app = functions.https.onRequest(app);
 
-// Keep the error handlers for added safety
 process.on("uncaughtException", (err) => {
   console.error("Uncaught Exception:", err);
 });
