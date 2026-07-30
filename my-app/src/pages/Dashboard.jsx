@@ -209,14 +209,14 @@ export default function Dashboard() {
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Left Sidebar (Desktop & Mobile) */}
       <div 
-        className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 flex-shrink-0 bg-[#0c0a14] border-r border-white/5 flex flex-col overflow-y-auto z-40 ${isResizing ? 'transition-none' : 'transition-transform duration-300'}`}
+        className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 flex-shrink-0 bg-[#0c0a14] border-r border-white/5 flex flex-col overflow-y-auto z-[60] ${isResizing ? 'transition-none' : 'transition-transform duration-300'}`}
         style={{ width: `${sidebarWidth}px` }}
       >
         <div className="md:hidden flex items-center justify-between p-4 border-b border-white/5">
