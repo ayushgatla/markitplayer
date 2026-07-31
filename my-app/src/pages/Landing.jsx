@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { HardDrive, MessageSquare, History, Users, FileText, Library, PlayCircle, CheckCircle2 } from 'lucide-react';
-import Landing3DBackground from '../components/Landing3DBackground';
-import FeatureCube from '../components/FeatureCube';
+import Video from '../components/Video';
 
 const features = [
   {
@@ -40,9 +39,17 @@ const features = [
 
 export default function Landing() {
   const navigate = useNavigate();
+  const [hoveredImage, setHoveredImage] = useState(null);
 
   return (
     <div className="min-h-screen bg-background text-primary selection:bg-zinc-800 selection:text-white font-sans overflow-x-hidden">
+      {/* Dimming Overlay for Image Hover */}
+      <div 
+        className={`fixed inset-0 bg-black/80 transition-opacity duration-500 pointer-events-none z-[55] ${
+          hoveredImage ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-background/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -75,39 +82,101 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6">
-        <Landing3DBackground />
-        <div className="relative z-10 max-w-5xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-medium text-zinc-400 mb-8">
-              <span className="w-2 h-2 rounded-full bg-zinc-500 animate-pulse"></span>
-              Now in beta - Join Waitlist
+      <section className="pt-24 lg:pt-32 pb-20 px-6">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Column: Text */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="flex flex-col items-start"
+            >
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter mb-6 leading-[1.1]">
+                One Platform<br />
+                Every Client<br />
+                <span className="text-zinc-500">Zero Chaos</span>
+              </h1>
+              <p className="text-base md:text-lg text-zinc-400 max-w-xl mb-8 leading-relaxed">
+                Blasync is for freelancers - powered by your own Google Drive. Manage projects, collect feedback, and deliver files without juggling six tools.
+              </p>
+              <div className="flex flex-col sm:flex-row items-start justify-start gap-4 w-full sm:w-auto">
+                <button 
+                  onClick={() => navigate('/login')}
+                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-medium hover:bg-zinc-200 transition-colors"
+                >
+                  Start Free - No Credit Card
+                </button>
+                <button 
+                  onClick={() => document.getElementById('demo-video')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-zinc-900 border border-zinc-800 text-white font-medium hover:bg-zinc-800 transition-colors"
+                >
+                  Watch Demo
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Right Column: Visual Composition (Imaginary Rectangle) */}
+            <div className="mt-12 lg:mt-0 w-full grid grid-cols-3 gap-6 items-center">
+              {/* Left Side: Two stacked images */}
+              <div className="col-span-2 flex flex-col gap-6">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.15 }}
+                  onHoverStart={() => setHoveredImage('hero-1')}
+                  onHoverEnd={() => setHoveredImage(null)}
+                  transition={{ duration: 0.4 }}
+                  className={`relative cursor-crosshair ${hoveredImage === 'hero-1' ? 'z-[60]' : 'z-10'}`}
+                >
+                  <img 
+                    src="/product/video_projects.png" 
+                    alt="Projects Dashboard" 
+                    className="w-full h-auto rounded-2xl shadow-2xl border border-white/10" 
+                  />
+                </motion.div>
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.15 }}
+                  onHoverStart={() => setHoveredImage('hero-2')}
+                  onHoverEnd={() => setHoveredImage(null)}
+                  transition={{ duration: 0.4 }}
+                  className={`relative cursor-crosshair ${hoveredImage === 'hero-2' ? 'z-[60]' : 'z-10'}`}
+                >
+                  <img 
+                    src="/product/video_player.png" 
+                    alt="Video Player" 
+                    className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10" 
+                  />
+                </motion.div>
+              </div>
+              
+              {/* Right Side: Tall image */}
+              <div className="col-span-1">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.15 }}
+                  onHoverStart={() => setHoveredImage('hero-3')}
+                  onHoverEnd={() => setHoveredImage(null)}
+                  transition={{ duration: 0.4 }}
+                  className={`relative cursor-crosshair ${hoveredImage === 'hero-3' ? 'z-[60]' : 'z-10'}`}
+                >
+                  <img 
+                    src="/product/front.png" 
+                    alt="Comments Panel" 
+                    className="w-full h-auto rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/10" 
+                  />
+                </motion.div>
+              </div>
             </div>
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-[1.1]">
-              One Platform<br />
-              Every Client<br />
-              <span className="text-zinc-500">Zero Chaos</span>
-            </h1>
-            <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Blasync is for freelancers - powered by your own Google Drive. Manage projects, collect feedback, and deliver files without juggling six tools.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button 
-                onClick={() => navigate('/login')}
-                className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-medium hover:bg-zinc-200 transition-colors"
-              >
-                Start Free - No Credit Card
-              </button>
-              <button className="w-full sm:w-auto px-8 py-4 rounded-full bg-zinc-900 border border-zinc-800 text-white font-medium hover:bg-zinc-800 transition-colors">
-                Watch Demo
-              </button>
-            </div>
-          </motion.div>
+          </div>
         </div>
+      </section>
+
+      <section id="demo-video" className="px-6">
+        <Video />
       </section>
 
       {/* Stats Section */}
@@ -181,68 +250,208 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Right Column: 3D Feature Cube (first 4 features) */}
-            <div className="flex flex-col items-center justify-center">
-              <FeatureCube features={features.slice(0, 4)} />
+            {/* Right Column: Visual Composition (Imaginary Rectangle) */}
+            <div className="mt-12 lg:mt-0 w-full grid grid-cols-3 gap-6 items-center">
+              {/* Left Side: Two stacked images */}
+              <div className="col-span-2 flex flex-col gap-6">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.15 }}
+                  onHoverStart={() => setHoveredImage('feat-1')}
+                  onHoverEnd={() => setHoveredImage(null)}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4 }}
+                  className={`relative cursor-crosshair ${hoveredImage === 'feat-1' ? 'z-[60]' : 'z-10'}`}
+                >
+                  <img 
+                    src="/product/video_projects.png" 
+                    alt="Projects Dashboard" 
+                    className="w-full h-auto rounded-2xl shadow-2xl border border-white/10" 
+                  />
+                </motion.div>
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.15 }}
+                  onHoverStart={() => setHoveredImage('feat-2')}
+                  onHoverEnd={() => setHoveredImage(null)}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4 }}
+                  className={`relative cursor-crosshair ${hoveredImage === 'feat-2' ? 'z-[60]' : 'z-10'}`}
+                >
+                  <img 
+                    src="/product/video_player.png" 
+                    alt="Video Player" 
+                    className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10" 
+                  />
+                </motion.div>
+              </div>
+              
+              {/* Right Side: Tall image */}
+              <div className="col-span-1">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.15 }}
+                  onHoverStart={() => setHoveredImage('feat-3')}
+                  onHoverEnd={() => setHoveredImage(null)}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4 }}
+                  className={`relative cursor-crosshair ${hoveredImage === 'feat-3' ? 'z-[60]' : 'z-10'}`}
+                >
+                  <img 
+                    src="/product/front.png" 
+                    alt="Comments Panel" 
+                    className="w-full h-auto rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/10" 
+                  />
+                </motion.div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Video Review Preview */}
-      <section className="py-32 px-6 bg-zinc-950/50">
-        <div className="max-w-5xl mx-auto">
+
+
+      {/* Workflow Section */}
+      <section id="workflow" className="py-32">
+        <div className="max-w-7xl mx-auto px-6 mb-20">
+          <div className="text-center max-w-3xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+              How it works
+            </h2>
+            <p className="text-lg text-zinc-400">
+              A seamless flow from the first cut to the final payment.
+            </p>
+          </div>
+        </div>
+
+        {/* Infinite Scrolling Strip */}
+        <div className="relative overflow-hidden w-full flex">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="rounded-3xl border border-white/10 bg-zinc-900/80 p-8 md:p-12 shadow-glow-strong"
+            className="flex gap-8 w-max pl-8"
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{
+              repeat: Infinity,
+              ease: "linear",
+              duration: 30,
+            }}
           >
-            <div className="mb-10">
-              <div className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-3">Video Review System</div>
-              <h2 className="text-3xl md:text-4xl font-bold">Frame-by-frame feedback,<br />zero WhatsApp chaos</h2>
-            </div>
-            
-            {/* Mock UI */}
-            <div className="rounded-xl border border-zinc-800 bg-black overflow-hidden flex flex-col md:flex-row shadow-2xl">
-              <div className="flex-1 bg-zinc-950 aspect-video flex items-center justify-center border-b md:border-b-0 md:border-r border-zinc-800 relative">
-                <PlayCircle className="w-16 h-16 text-zinc-700" />
-                <div className="absolute bottom-0 left-0 w-full p-4">
-                  <div className="h-1 bg-zinc-800 rounded-full w-full relative">
-                    <div className="absolute left-0 top-0 h-full bg-zinc-500 rounded-full w-1/3"></div>
-                    <div className="absolute left-1/3 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full"></div>
+            {[...Array(4)].map((_, arrayIndex) => (
+              <React.Fragment key={arrayIndex}>
+                {[
+                  {
+                    step: '01',
+                    title: 'Sync & Share',
+                    desc: 'Connect your Google Drive and generate a professional, branded review link in seconds.',
+                  },
+                  {
+                    step: '02',
+                    title: 'Review & Iterate',
+                    desc: 'Clients leave frame-accurate comments directly on the video. No more confusing timestamps.',
+                  },
+                  {
+                    step: '03',
+                    title: 'Deliver & Bill',
+                    desc: 'Approve the final version, send the high-res files, and generate an invoice in one click.',
+                  }
+                ].map((item, i) => (
+                  <div
+                    key={`${arrayIndex}-${i}`}
+                    className="w-[300px] md:w-[400px] flex-shrink-0 bg-zinc-900/40 p-8 border border-white/5 hover:bg-zinc-900/60 transition-colors"
+                  >
+                    <div className="text-sm font-bold text-zinc-500 mb-4">STEP {item.step}</div>
+                    <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                    <p className="text-zinc-400 leading-relaxed whitespace-normal">{item.desc}</p>
                   </div>
-                </div>
-              </div>
-              <div className="w-full md:w-80 p-6 bg-zinc-900 flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-                  <span className="font-semibold text-sm">Comments</span>
-                  <span className="text-xs text-zinc-500">2 total</span>
-                </div>
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-zinc-800 flex-shrink-0"></div>
-                  <div>
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="font-medium text-sm">Client</span>
-                      <span className="text-xs text-zinc-500">0:12</span>
-                    </div>
-                    <p className="text-sm text-zinc-300">Can we make the logo slightly bigger here?</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-zinc-800 flex-shrink-0"></div>
-                  <div>
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="font-medium text-sm">Director</span>
-                      <span className="text-xs text-zinc-500">1:45</span>
-                    </div>
-                    <p className="text-sm text-zinc-300">Great transition. Ship it!</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+                ))}
+              </React.Fragment>
+            ))}
           </motion.div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-32 px-6 bg-zinc-950/50 border-t border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+              Simple, transparent pricing
+            </h2>
+            <p className="text-lg text-zinc-400">
+              Start for free, upgrade when you need to scale.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Free Tier */}
+            <div className="p-8 rounded-3xl bg-zinc-900/50 border border-white/5">
+              <h3 className="text-2xl font-bold mb-2">Starter</h3>
+              <div className="text-4xl font-bold mb-6">$0<span className="text-lg text-zinc-500 font-normal">/mo</span></div>
+              <p className="text-zinc-400 mb-8">Perfect for freelancers just starting out.</p>
+              
+              <ul className="space-y-4 mb-8">
+                {['1 Active Project', 'Basic Video Reviews', 'Standard Support', 'Google Drive Integration'].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-3 text-zinc-300">
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <button 
+                onClick={() => navigate('/login')}
+                className="w-full py-3 rounded-full bg-zinc-800 text-white font-medium hover:bg-zinc-700 transition-colors"
+              >
+                Get Started
+              </button>
+            </div>
+
+            {/* Pro Tier */}
+            <div className="p-8 rounded-3xl bg-white text-black relative">
+              <div className="absolute top-0 right-8 -translate-y-1/2 bg-zinc-900 text-white px-4 py-1 rounded-full text-sm font-medium">
+                Most Popular
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Pro</h3>
+              <div className="text-4xl font-bold mb-6">$15<span className="text-lg text-zinc-500 font-normal">/mo</span></div>
+              <p className="text-zinc-600 mb-8">Everything you need to run your freelance business.</p>
+              
+              <ul className="space-y-4 mb-8">
+                {['Unlimited Projects', 'Custom Client Portals', 'Invoice Generator', 'Priority Support', 'Custom Branding'].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-3 font-medium">
+                    <CheckCircle2 className="w-5 h-5 text-black" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <button 
+                onClick={() => navigate('/login')}
+                className="w-full py-3 rounded-full bg-black text-white font-medium hover:bg-zinc-800 transition-colors"
+              >
+                Upgrade to Pro
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-32 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
+            Ready to stop juggling tools?
+          </h2>
+          <p className="text-xl text-zinc-400 mb-10 max-w-2xl mx-auto">
+            Join thousands of professional video editors who have simplified their workflow with Blasync.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button 
+              onClick={() => navigate('/login')}
+              className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-medium hover:bg-zinc-200 transition-colors text-lg"
+            >
+              Start Free - No Credit Card
+            </button>
+          </div>
         </div>
       </section>
 

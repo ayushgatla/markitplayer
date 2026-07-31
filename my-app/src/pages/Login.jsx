@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlaySquare } from 'lucide-react';
+import { PlayCircle } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import LiquidGlass from 'liquid-glass-react';
@@ -81,11 +81,11 @@ export default function Login() {
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none rounded-[32px]"></div>
           <div className="relative z-10">
             <div className="flex flex-col items-center mb-8">
-              <div className="bg-indigo-500/20 p-3 rounded-xl mb-4">
-                <PlaySquare className="w-8 h-8 text-indigo-400" />
+              <div className="w-12 h-12 rounded bg-zinc-100 flex items-center justify-center mb-4">
+                <PlayCircle className="w-8 h-8 text-zinc-950" />
               </div>
               <h1 className="text-2xl font-bold text-white tracking-tight">
-                {isSignUp ? 'Create an Account' : 'Welcome to Aurora'}
+                {isSignUp ? 'Create an Account' : 'Welcome to Blasync'}
               </h1>
               <p className="text-zinc-400 text-sm mt-2">
                 {isSignUp ? 'Sign up for a new account' : 'Sign in to your account'}
@@ -238,11 +238,11 @@ export default function Login() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none rounded-[32px]"></div>
             <div className="relative z-10">
               <div className="flex flex-col items-center mb-8">
-                <div className="bg-indigo-500/20 p-3 rounded-xl mb-4">
-                  <PlaySquare className="w-8 h-8 text-indigo-400" />
+                <div className="w-12 h-12 rounded bg-zinc-100 flex items-center justify-center mb-4">
+                  <PlayCircle className="w-8 h-8 text-zinc-950" />
                 </div>
                 <h1 className="text-2xl font-bold text-white tracking-tight">
-                  {isSignUp ? 'Create an Account' : 'Welcome to Aurora'}
+                  {isSignUp ? 'Create an Account' : 'Welcome to Blasync'}
                 </h1>
                 <p className="text-zinc-400 text-sm mt-2">
                   {isSignUp ? 'Sign up for a new account' : 'Sign in to your account'}
