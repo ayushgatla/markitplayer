@@ -10,7 +10,7 @@ export default function Video() {
         playsInline
         className="w-full h-auto"
       >
-        <source src="/export-1785497641204.mp4" type="video/mp4" />
+        <source src="/video.mp4" type="video/mp4" />
       </video>
     </div>
   );
