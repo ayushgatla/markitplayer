@@ -14,6 +14,9 @@ export default function Room() {
   const [loading, setLoading] = useState(true);
   const [urlInput, setUrlInput] = useState('');
   const [savingUrl, setSavingUrl] = useState(false);
+  const [updateModalConfig, setUpdateModalConfig] = useState(null); // { isOpen, platform }
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [isUpdatingUrl, setIsUpdatingUrl] = useState(false);
 
   useEffect(() => {
     async function fetchRoom() {
@@ -59,19 +62,27 @@ export default function Room() {
     setSavingUrl(false);
   };
 
-  const handleUpdateLink = async () => {
-    const newLink = window.prompt("Enter new Google Drive link for this version:");
-    if (!newLink || !newLink.trim()) return;
+  const handleUpdateLink = (platform) => {
+    setUpdateModalConfig({ isOpen: true, platform });
+    setNewVideoUrl('');
+  };
+
+  const submitUpdateLink = async (e) => {
+    e.preventDefault();
+    if (!newVideoUrl.trim()) return;
     
+    setIsUpdatingUrl(true);
     const { error } = await supabase
       .from('rooms')
-      .update({ video_url: newLink.trim() })
+      .update({ video_url: newVideoUrl.trim() })
       .eq('id', roomId);
       
+    setIsUpdatingUrl(false);
     if (error) {
       alert("Error updating link: " + error.message);
     } else {
-      setRoomData({ ...roomData, video_url: newLink.trim() });
+      setRoomData({ ...roomData, video_url: newVideoUrl.trim() });
+      setUpdateModalConfig(null);
     }
   };
 
@@ -102,6 +113,64 @@ export default function Room() {
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col font-sans text-white">
+      {/* Custom Update Link Modal */}
+      {updateModalConfig?.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <button 
+              onClick={() => setUpdateModalConfig(null)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+            >
+              ✕
+            </button>
+            <div className="flex items-center gap-3 mb-6">
+              {updateModalConfig.platform === 'drive' ? (
+                <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                  <img src="/drive.png" alt="Drive" className="w-5 h-5 object-contain" />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                  <img src="/youtube.png" alt="YouTube" className="w-5 h-5 object-contain" />
+                </div>
+              )}
+              <div>
+                <h3 className="text-lg font-bold">Update Video Link</h3>
+                <p className="text-sm text-zinc-400">
+                  {updateModalConfig.platform === 'drive' ? 'Enter a new Google Drive link.' : 'Enter a new YouTube link.'}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={submitUpdateLink} className="flex flex-col gap-4">
+              <input
+                type="url"
+                required
+                placeholder={updateModalConfig.platform === 'drive' ? "https://drive.google.com/file/d/..." : "https://youtube.com/watch?v=..."}
+                value={newVideoUrl}
+                onChange={(e) => setNewVideoUrl(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              />
+              <div className="flex gap-3 justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setUpdateModalConfig(null)}
+                  className="px-4 py-2 rounded-lg font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingUrl || !newVideoUrl.trim()}
+                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white rounded-lg font-medium transition-all"
+                >
+                  {isUpdatingUrl ? 'Saving...' : 'Update'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <ProjectHeader 
         title={roomData?.title || 'Loading Session...'} 
         onRename={handleRenameRoom}

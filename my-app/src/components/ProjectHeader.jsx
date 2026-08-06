@@ -86,21 +86,27 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
         <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full ml-2 shrink-0">V2.1</span>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-8 sm:gap-2">
         {!isClient && (
           <>
             {onUpdateLink && (
-              <button
-                onClick={onUpdateLink}
-                className="group flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 transition-colors text-xs sm:text-sm font-medium text-zinc-300 hover:text-white"
+              <div
+                className="group flex items-center rounded-lg overflow-hidden border border-zinc-700/50 transition-all opacity-80 hover:opacity-100 hover:scale-105"
                 title="Update video link for a new version"
               >
-                <div className="relative w-10 h-4 flex items-center opacity-80 group-hover:opacity-100 transition-opacity">
-                  <img src="/drive.png" alt="Drive" className="absolute left-0 w-4 h-4 object-contain z-20" />
-                  <img src="/youtube.png" alt="YouTube" className="absolute left-3 w-4 h-4 object-contain z-10" />
-                </div>
-                <span className="hidden sm:inline">Update Link</span>
-              </button>
+                <button 
+                  onClick={() => onUpdateLink('drive')}
+                  className="flex items-center justify-center px-3 py-1.5 bg-green-500/20 hover:bg-green-500/40 transition-colors"
+                >
+                  <img src="/drive.png" alt="Drive" className="w-4 h-4 object-contain drop-shadow-md" />
+                </button>
+                <button 
+                  onClick={() => onUpdateLink('youtube')}
+                  className="flex items-center justify-center px-3 py-1.5 bg-red-500/20 hover:bg-red-500/40 transition-colors"
+                >
+                  <img src="/youtube.png" alt="YouTube" className="w-4 h-4 object-contain drop-shadow-md" />
+                </button>
+              </div>
             )}
             <button
               onClick={handleCopyClientLink}

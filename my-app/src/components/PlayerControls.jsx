@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Subtitles, Volume2, VolumeX, Maximize, Plus, Minus } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Subtitles, Volume2, VolumeX, Maximize, Plus, Minus, Expand } from 'lucide-react';
 import LiquidGlass from 'liquid-glass-react';
 
-export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMouseInside, onToggleFullscreen, isFullscreen }) => {
+export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMouseInside, onToggleFullscreen, isFullscreen, onToggleExpand }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -276,6 +276,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
                   <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 p-0.5"><Plus size={12} /></button>
                 </div>
                 <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 p-1"><Subtitles size={16} /></button>
+                <button onClick={onToggleExpand} className="text-white hover:text-indigo-400 p-1"><Expand size={16} /></button>
                 <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 p-1"><Maximize size={16} /></button>
               </div>
             </div>
@@ -301,6 +302,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
                 <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 p-1"><Plus size={14} className="w-3 h-3 lg:w-3.5 lg:h-3.5" /></button>
               </div>
               <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1"><Subtitles size={20} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
+              <button onClick={onToggleExpand} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1"><Expand size={20} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
               <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1"><Maximize size={20} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
             </div>
 

@@ -17,6 +17,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
   const [isIdle, setIsIdle] = useState(false);
   const idleTimeoutRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const wrapperRef = useRef(null);
 
   const [sidebarWidth, setSidebarWidth] = useState(384);
@@ -314,19 +315,21 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
       ></div>
       <div className="absolute inset-0 bg-[#0f0e17]/80 backdrop-blur-[2px] z-0 pointer-events-none"></div>
 
-      <div className="w-full lg:flex-1 flex flex-col items-center justify-start lg:justify-center p-4 lg:p-6 relative z-10 min-h-[40vh] lg:min-h-0 gap-6 lg:gap-0">
+      <div className={`w-full lg:flex-1 flex flex-col items-center justify-start lg:justify-center relative z-10 min-h-[40vh] lg:min-h-0 gap-6 lg:gap-0 ${isExpanded ? 'p-0' : 'p-4 lg:p-6'}`}>
         <div
           ref={wrapperRef}
           className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-6 lg:gap-0 ${isFullscreen
             ? 'w-screen h-screen bg-black z-50'
-            : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
+            : isExpanded
+              ? 'w-full h-full bg-black'
+              : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
             } ${!isControlsActive && isMouseInside ? 'cursor-none' : ''}`}
           onMouseEnter={() => setIsMouseInside(true)}
           onMouseLeave={() => setIsMouseInside(false)}
           onMouseMove={handleMouseMove}
           onDoubleClick={handleToggleFullscreen}
         >
-          <div className="w-full aspect-video relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto">
+          <div className={`w-full relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto ${isExpanded ? 'h-full' : 'aspect-video'}`}>
             <VideoPlayer
               ref={playerRef}
               options={videoOptions}
@@ -335,7 +338,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
             />
           </div>
 
-          <div className={`w-full z-50 flex justify-center ${isFullscreen
+          <div className={`w-full z-50 flex justify-center ${isFullscreen || isExpanded
             ? 'absolute bottom-6 left-0 right-0 px-4'
             : 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-0 pb-6 lg:pb-0'
             }`}>
@@ -346,6 +349,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
               isMouseInside={isControlsActive}
               onToggleFullscreen={handleToggleFullscreen}
               isFullscreen={isFullscreen}
+              onToggleExpand={() => setIsExpanded(!isExpanded)}
             />
           </div>
         </div>
