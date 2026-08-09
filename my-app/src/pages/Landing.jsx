@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { HardDrive, MessageSquare, History, Users, FileText, Library, PlayCircle, CheckCircle2 } from 'lucide-react';
+import { HardDrive, MessageSquare, History, Users, FileText, Library, PlayCircle, CheckCircle2, Link } from 'lucide-react';
 import Video from '../components/Video';
-
+import RadialStats from '../components/RadialStats';
 const features = [
   {
     icon: <img src="/drive_mono_chrome.png" alt="Google Drive" className="w-8 h-8 object-contain" />,
@@ -44,18 +44,17 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-primary selection:bg-zinc-800 selection:text-white font-sans overflow-x-hidden">
       {/* Dimming Overlay for Image Hover */}
-      <div 
-        className={`fixed inset-0 bg-black/80 transition-opacity duration-500 pointer-events-none z-[55] ${
-          hoveredImage ? 'opacity-100' : 'opacity-0'
-        }`}
+      <div
+        className={`fixed inset-0 bg-black/80 transition-opacity duration-500 pointer-events-none z-[55] ${hoveredImage ? 'opacity-100' : 'opacity-0'
+          }`}
       />
 
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-background/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-zinc-100 flex items-center justify-center">
-              <PlayCircle className="w-5 h-5 text-zinc-950" />
+            <div className="w-8 h-8 rounded flex items-center justify-center">
+              <img src="/blasync_icon.svg" alt="Blasync" className="w-8 h-8 object-contain" />
             </div>
             <span className="font-bold text-xl tracking-tight">Blasync</span>
           </div>
@@ -65,13 +64,13 @@ export default function Landing() {
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
           </div>
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => navigate('/login')}
               className="text-sm font-medium text-zinc-300 hover:text-white transition-colors"
             >
               Log in
             </button>
-            <button 
+            <button
               onClick={() => navigate('/login')}
               className="px-4 py-2 rounded-full bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors"
             >
@@ -92,24 +91,24 @@ export default function Landing() {
               transition={{ duration: 0.6 }}
               className="flex flex-col items-start"
             >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter mb-6 leading-[1.1]">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter mb-6 leading-[1.05]">
                 One Platform<br />
                 Every Client<br />
-                <span className="text-zinc-500">Zero Chaos</span>
+                <span className="text-[#a8a292]">Zero Chaos</span>
               </h1>
               <p className="text-base md:text-lg text-zinc-400 max-w-xl mb-8 leading-relaxed">
-                Blasync is for freelancers - powered by your own Google Drive. Manage projects, collect feedback, and deliver files without juggling six tools.
+                Stop managing video revisions in WhatsApp. Blasync turns your Google Drive videos into professional client review pages — with timeline comments, approvals, and everything in one place.
               </p>
               <div className="flex flex-col sm:flex-row items-start justify-start gap-4 w-full sm:w-auto">
-                <button 
+                <button
                   onClick={() => navigate('/login')}
-                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-medium hover:bg-zinc-200 transition-colors"
+                  className="w-full sm:w-auto px-6 py-3 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition-colors"
                 >
                   Start Free - No Credit Card
                 </button>
-                <button 
+                <button
                   onClick={() => document.getElementById('demo-video')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-zinc-900 border border-zinc-800 text-white font-medium hover:bg-zinc-800 transition-colors"
+                  className="w-full sm:w-auto px-6 py-3 rounded-full bg-transparent border border-zinc-600 text-zinc-300 font-medium hover:bg-zinc-800/50 transition-colors"
                 >
                   Watch Demo
                 </button>
@@ -120,7 +119,7 @@ export default function Landing() {
             <div className="mt-12 lg:mt-0 w-full grid grid-cols-3 gap-6 items-center">
               {/* Left Side: Two stacked images */}
               <div className="col-span-2 flex flex-col gap-6">
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   whileHover={{ scale: 1.15 }}
@@ -129,13 +128,13 @@ export default function Landing() {
                   transition={{ duration: 0.4 }}
                   className={`relative cursor-crosshair ${hoveredImage === 'hero-1' ? 'z-[60]' : 'z-10'}`}
                 >
-                  <img 
-                    src="/product/video_projects.png" 
-                    alt="Projects Dashboard" 
-                    className="w-full h-auto rounded-2xl shadow-2xl border border-white/10" 
+                  <img
+                    src="/product/video_projects.png"
+                    alt="Projects Dashboard"
+                    className="w-full h-auto rounded-2xl shadow-2xl border border-white/10"
                   />
                 </motion.div>
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   whileHover={{ scale: 1.15 }}
@@ -144,17 +143,17 @@ export default function Landing() {
                   transition={{ duration: 0.4 }}
                   className={`relative cursor-crosshair ${hoveredImage === 'hero-2' ? 'z-[60]' : 'z-10'}`}
                 >
-                  <img 
-                    src="/product/video_player.png" 
-                    alt="Video Player" 
-                    className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10" 
+                  <img
+                    src="/product/video_player.png"
+                    alt="Video Player"
+                    className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10"
                   />
                 </motion.div>
               </div>
-              
+
               {/* Right Side: Tall image */}
               <div className="col-span-1">
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   whileHover={{ scale: 1.15 }}
@@ -163,10 +162,10 @@ export default function Landing() {
                   transition={{ duration: 0.4 }}
                   className={`relative cursor-crosshair ${hoveredImage === 'hero-3' ? 'z-[60]' : 'z-10'}`}
                 >
-                  <img 
-                    src="/product/front.png" 
-                    alt="Comments Panel" 
-                    className="w-full h-auto rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/10" 
+                  <img
+                    src="/product/front.png"
+                    alt="Comments Panel"
+                    className="w-full h-auto rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/10"
                   />
                 </motion.div>
               </div>
@@ -183,27 +182,9 @@ export default function Landing() {
       <section className="py-20 border-y border-white/5 bg-zinc-950/50">
         <div className="max-w-7xl mx-auto px-6">
           <p className="text-center text-sm font-medium text-zinc-500 mb-12 uppercase tracking-widest">
-            Trusted by top editors globally
+            Built for freelance video editors
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {[
-              { label: 'Tool Replaced', value: '6 in 1' },
-              { label: 'Storage Cost (Your drive)', value: '0$' },
-              { label: 'Client Portals on Pro', value: '∞' },
-              { label: 'Fewer Revision Rounds', value: '60%' },
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-              >
-                <div className="text-4xl md:text-5xl font-bold mb-2">{stat.value}</div>
-                <div className="text-sm text-zinc-500">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
+          <RadialStats />
         </div>
       </section>
 
@@ -225,7 +206,7 @@ export default function Landing() {
               <div className="bg-zinc-900/50 p-8 rounded-3xl border border-white/5">
                 <h3 className="text-2xl font-bold mb-4">Everything you need in one place</h3>
                 <p className="text-zinc-400 mb-6 leading-relaxed">
-                  Stop constantly switching between email, WhatsApp, and Google Drive. 
+                  Stop constantly switching between email, WhatsApp, and Google Drive.
                   Bring your entire workflow into a single, unified workspace designed specifically for professional video editors.
                 </p>
                 <div className="flex items-center gap-2 text-sm font-medium text-white group cursor-pointer">
@@ -251,10 +232,10 @@ export default function Landing() {
             </div>
 
             {/* Right Column: Visual Composition (Imaginary Rectangle) */}
-            <div className="mt-12 lg:mt-0 w-full grid grid-cols-3 gap-6 items-center">
+            <div className="mt-12 lg:mt-0 w-full grid grid-cols-3 gap-6 items-center lg:order-first">
               {/* Left Side: Two stacked images */}
               <div className="col-span-2 flex flex-col gap-6">
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   whileHover={{ scale: 1.15 }}
@@ -264,13 +245,13 @@ export default function Landing() {
                   transition={{ duration: 0.4 }}
                   className={`relative cursor-crosshair ${hoveredImage === 'feat-1' ? 'z-[60]' : 'z-10'}`}
                 >
-                  <img 
-                    src="/product/video_projects.png" 
-                    alt="Projects Dashboard" 
-                    className="w-full h-auto rounded-2xl shadow-2xl border border-white/10" 
+                  <img
+                    src="/3_page_images/Screenshot-2026-08-09_11:15:17.png"
+                    alt="Projects Dashboard"
+                    className="w-full h-auto rounded-2xl shadow-2xl border border-white/10"
                   />
                 </motion.div>
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   whileHover={{ scale: 1.15 }}
@@ -280,17 +261,17 @@ export default function Landing() {
                   transition={{ duration: 0.4 }}
                   className={`relative cursor-crosshair ${hoveredImage === 'feat-2' ? 'z-[60]' : 'z-10'}`}
                 >
-                  <img 
-                    src="/product/video_player.png" 
-                    alt="Video Player" 
-                    className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10" 
+                  <img
+                    src="/3_page_images/Screenshot-2026-08-09_11:16:02.png"
+                    alt="Video Player"
+                    className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10"
                   />
                 </motion.div>
               </div>
-              
+
               {/* Right Side: Tall image */}
               <div className="col-span-1">
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   whileHover={{ scale: 1.15 }}
@@ -300,10 +281,10 @@ export default function Landing() {
                   transition={{ duration: 0.4 }}
                   className={`relative cursor-crosshair ${hoveredImage === 'feat-3' ? 'z-[60]' : 'z-10'}`}
                 >
-                  <img 
-                    src="/product/front.png" 
-                    alt="Comments Panel" 
-                    className="w-full h-auto rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/10" 
+                  <img
+                    src="/3_page_images/textbox.png"
+                    alt="Comments Panel"
+                    className="w-full h-auto rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/10"
                   />
                 </motion.div>
               </div>
@@ -322,7 +303,7 @@ export default function Landing() {
               How it works
             </h2>
             <p className="text-lg text-zinc-400">
-              A seamless flow from the first cut to the final payment.
+              A seamless workflow from first cut to client approval
             </p>
           </div>
         </div>
@@ -353,8 +334,8 @@ export default function Landing() {
                   },
                   {
                     step: '03',
-                    title: 'Deliver & Bill',
-                    desc: 'Approve the final version, send the high-res files, and generate an invoice in one click.',
+                    title: 'Approve & Deliver',
+                    desc: 'Resolve feedback and get final approval from your clients seamlessly.',
                   }
                 ].map((item, i) => (
                   <div
@@ -377,58 +358,34 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-20">
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
-              Simple, transparent pricing
+              Blasync is free during beta.
             </h2>
             <p className="text-lg text-zinc-400">
-              Start for free, upgrade when you need to scale.
+              We're building Blasync with video editors, not guessing what they need. Join the beta and get full access while we're testing and improving the workflow.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Free Tier */}
-            <div className="p-8 rounded-3xl bg-zinc-900/50 border border-white/5">
-              <h3 className="text-2xl font-bold mb-2">Starter</h3>
-              <div className="text-4xl font-bold mb-6">$0<span className="text-lg text-zinc-500 font-normal">/mo</span></div>
-              <p className="text-zinc-400 mb-8">Perfect for freelancers just starting out.</p>
-              
+          <div className="max-w-md mx-auto">
+            <div className="p-8 rounded-3xl bg-zinc-900/50 border border-white/5 relative">
+              <div className="absolute top-0 right-8 -translate-y-1/2 bg-white text-black px-4 py-1 rounded-full text-sm font-bold tracking-wider">
+                BETA
+              </div>
+              <div className="text-5xl font-bold mb-2">$0</div>
+              <p className="text-zinc-400 mb-8 font-medium">Free during beta</p>
+
               <ul className="space-y-4 mb-8">
-                {['1 Active Project', 'Basic Video Reviews', 'Standard Support', 'Google Drive Integration'].map((feature, i) => (
+                {['Timeline video reviews', 'Google Drive integration', 'Client review links', 'Frame-accurate comments', 'Client approval', 'No credit card required'].map((feature, i) => (
                   <li key={i} className="flex items-center gap-3 text-zinc-300">
                     <CheckCircle2 className="w-5 h-5 text-white" />
                     {feature}
                   </li>
                 ))}
               </ul>
-              <button 
+              <button
                 onClick={() => navigate('/login')}
-                className="w-full py-3 rounded-full bg-zinc-800 text-white font-medium hover:bg-zinc-700 transition-colors"
+                className="w-full py-4 rounded-full bg-white text-black font-bold hover:bg-zinc-200 transition-colors"
               >
-                Get Started
-              </button>
-            </div>
-
-            {/* Pro Tier */}
-            <div className="p-8 rounded-3xl bg-white text-black relative">
-              <div className="absolute top-0 right-8 -translate-y-1/2 bg-zinc-900 text-white px-4 py-1 rounded-full text-sm font-medium">
-                Most Popular
-              </div>
-              <h3 className="text-2xl font-bold mb-2">Pro</h3>
-              <div className="text-4xl font-bold mb-6">$15<span className="text-lg text-zinc-500 font-normal">/mo</span></div>
-              <p className="text-zinc-600 mb-8">Everything you need to run your freelance business.</p>
-              
-              <ul className="space-y-4 mb-8">
-                {['Unlimited Projects', 'Custom Client Portals', 'Invoice Generator', 'Priority Support', 'Custom Branding'].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3 font-medium">
-                    <CheckCircle2 className="w-5 h-5 text-black" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <button 
-                onClick={() => navigate('/login')}
-                className="w-full py-3 rounded-full bg-black text-white font-medium hover:bg-zinc-800 transition-colors"
-              >
-                Upgrade to Pro
+                Join the Beta →
               </button>
             </div>
           </div>
@@ -439,17 +396,32 @@ export default function Landing() {
       <section className="py-32 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
-            Ready to stop juggling tools?
+            Help us build Blasync.
           </h2>
           <p className="text-xl text-zinc-400 mb-10 max-w-2xl mx-auto">
-            Join thousands of professional video editors who have simplified their workflow with Blasync.
+            We're in beta, and we're building Blasync with real video editors. Tell us what's missing, what's confusing, or what would make your workflow better.
+          </p>
+          <div className="flex justify-center mb-24">
+            <button
+              onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfILVvZVE92_GTssmu4rh8Yodlv2pnCsWB0JUlqjO1_lfHG1g/viewform?usp=publish-editor', '_blank')}
+              className="px-8 py-4 rounded-full bg-zinc-900 border border-zinc-800 text-white font-medium hover:bg-zinc-800 transition-colors text-lg"
+            >
+              Share Feedback →
+            </button>
+          </div>
+
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
+            Ready to simplify your client reviews?
+          </h2>
+          <p className="text-xl text-zinc-400 mb-10 max-w-2xl mx-auto">
+            Join the Blasync beta and help shape the future of video review.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button 
+            <button
               onClick={() => navigate('/login')}
-              className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-medium hover:bg-zinc-200 transition-colors text-lg"
+              className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-bold hover:bg-zinc-200 transition-colors text-lg"
             >
-              Start Free - No Credit Card
+              Join Beta — It's Free →
             </button>
           </div>
         </div>
