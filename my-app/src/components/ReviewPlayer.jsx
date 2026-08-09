@@ -315,13 +315,13 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
       ></div>
       <div className="absolute inset-0 bg-[#0f0e17]/80 backdrop-blur-[2px] z-0 pointer-events-none"></div>
 
-      <div className={`w-full lg:flex-1 flex flex-col items-center justify-start lg:justify-center relative z-10 min-h-[40vh] lg:min-h-0 gap-6 lg:gap-0 ${isExpanded ? 'p-0' : 'p-4 lg:p-6'}`}>
+      <div className={`w-full lg:flex-1 flex flex-col items-center justify-start lg:justify-center relative z-10 min-h-[40vh] lg:min-h-0 gap-6 lg:gap-0 ${isExpanded ? 'p-4 lg:p-0' : 'p-4 lg:p-6'}`}>
         <div
           ref={wrapperRef}
           className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-6 lg:gap-0 ${isFullscreen
             ? 'w-screen h-screen bg-black z-50'
             : isExpanded
-              ? 'w-full h-full bg-black'
+              ? 'w-full lg:h-full bg-black'
               : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
             } ${!isControlsActive && isMouseInside ? 'cursor-none' : ''}`}
           onMouseEnter={() => setIsMouseInside(true)}
@@ -329,7 +329,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
           onMouseMove={handleMouseMove}
           onDoubleClick={handleToggleFullscreen}
         >
-          <div className={`w-full relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto ${isExpanded ? 'h-full' : 'aspect-video'}`}>
+          <div className={`w-full relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto ${isExpanded ? 'aspect-video lg:h-full lg:aspect-auto' : 'aspect-video'}`}>
             <VideoPlayer
               ref={playerRef}
               options={videoOptions}
@@ -338,9 +338,11 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
             />
           </div>
 
-          <div className={`w-full z-50 flex justify-center ${isFullscreen || isExpanded
+          <div className={`w-full z-50 flex justify-center ${isFullscreen
             ? 'absolute bottom-6 left-0 right-0 px-4'
-            : 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-0 pb-6 lg:pb-0'
+            : isExpanded
+              ? 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-4 pb-6 lg:pb-0'
+              : 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-0 pb-6 lg:pb-0'
             }`}>
             <PlayerControls
               playerRef={playerRef}
