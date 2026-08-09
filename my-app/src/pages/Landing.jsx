@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { HardDrive, MessageSquare, History, Users, FileText, Library, PlayCircle, CheckCircle2, Link } from 'lucide-react';
 import Video from '../components/Video';
 import RadialStats from '../components/RadialStats';
+import { FeedbackForm } from '../components/FeedbackForm';
 const features = [
   {
     icon: <img src="/drive_mono_chrome.png" alt="Google Drive" className="w-8 h-8 object-contain" />,
@@ -92,9 +93,9 @@ export default function Landing() {
               className="flex flex-col items-start"
             >
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter mb-6 leading-[1.05]">
-                One Platform<br />
-                Every Client<br />
-                <span className="text-[#a8a292]">Zero Chaos</span>
+                Stop managing .<br />
+                video revisions<br />
+                <span className="text-[#a8a292]"> in WhatsApp</span>
               </h1>
               <p className="text-base md:text-lg text-zinc-400 max-w-xl mb-8 leading-relaxed">
                 Stop managing video revisions in WhatsApp. Blasync turns your Google Drive videos into professional client review pages — with timeline comments, approvals, and everything in one place.
@@ -179,121 +180,69 @@ export default function Landing() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 border-y border-white/5 bg-zinc-950/50">
-        <div className="max-w-7xl mx-auto px-6">
+      <section className="py-20 border-y border-white/5 bg-zinc-950/50 overflow-hidden">
+        <div className="max-w-[1400px] mx-auto px-6">
           <p className="text-center text-sm font-medium text-zinc-500 mb-12 uppercase tracking-widest">
             Built for freelance video editors
           </p>
-          <RadialStats />
-        </div>
-      </section>
-
-      {/* Features Grid */}
-      <section id="features" className="py-32 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
-              Built for how editors<br />actually work
-            </h2>
-            <p className="text-lg text-zinc-400">
-              Every feature is designed around the real freelance video workflow - from first project to final invoice.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Column: Remaining features and more info */}
-            <div className="flex flex-col gap-8">
-              <div className="bg-zinc-900/50 p-8 rounded-3xl border border-white/5">
-                <h3 className="text-2xl font-bold mb-4">Everything you need in one place</h3>
-                <p className="text-zinc-400 mb-6 leading-relaxed">
-                  Stop constantly switching between email, WhatsApp, and Google Drive.
-                  Bring your entire workflow into a single, unified workspace designed specifically for professional video editors.
-                </p>
-                <div className="flex items-center gap-2 text-sm font-medium text-white group cursor-pointer">
-                  Learn more about our workflow
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-6">
-                {features.slice(4).map((feature, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: i * 0.1 }}
-                    className="p-6 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-white/10 transition-colors group"
-                  >
-                    <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                    <p className="text-zinc-400 text-sm leading-relaxed">{feature.description}</p>
-                  </motion.div>
-                ))}
-              </div>
+          <div className="flex flex-col lg:grid lg:grid-cols-[1.5fr_auto_1fr] gap-12 lg:gap-8 items-center justify-center">
+            {/* Left Side: Two stacked images */}
+            <div className="hidden lg:flex flex-col gap-12 w-full max-w-[380px] lg:max-w-[500px] mx-auto order-2 lg:order-1">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                whileHover={{ scale: 1.05 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4 }}
+                className="relative z-10"
+              >
+                <img
+                  src="/3_page_images/Screenshot-2026-08-09_11:16:02.png"
+                  alt="Video Player"
+                  className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10"
+                />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                whileHover={{ scale: 1.05 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="relative z-10"
+              >
+                <img
+                  src="/3_page_images/Screenshot-2026-08-09_11:15:17.png"
+                  alt="Projects Dashboard"
+                  className="w-full h-auto rounded-2xl shadow-2xl border border-white/10"
+                />
+              </motion.div>
             </div>
 
-            {/* Right Column: Visual Composition (Imaginary Rectangle) */}
-            <div className="mt-12 lg:mt-0 w-full grid grid-cols-3 gap-6 items-center lg:order-first">
-              {/* Left Side: Two stacked images */}
-              <div className="col-span-2 flex flex-col gap-6">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.15 }}
-                  onHoverStart={() => setHoveredImage('feat-1')}
-                  onHoverEnd={() => setHoveredImage(null)}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4 }}
-                  className={`relative cursor-crosshair ${hoveredImage === 'feat-1' ? 'z-[60]' : 'z-10'}`}
-                >
-                  <img
-                    src="/3_page_images/Screenshot-2026-08-09_11:15:17.png"
-                    alt="Projects Dashboard"
-                    className="w-full h-auto rounded-2xl shadow-2xl border border-white/10"
-                  />
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.15 }}
-                  onHoverStart={() => setHoveredImage('feat-2')}
-                  onHoverEnd={() => setHoveredImage(null)}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4 }}
-                  className={`relative cursor-crosshair ${hoveredImage === 'feat-2' ? 'z-[60]' : 'z-10'}`}
-                >
-                  <img
-                    src="/3_page_images/Screenshot-2026-08-09_11:16:02.png"
-                    alt="Video Player"
-                    className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10"
-                  />
-                </motion.div>
-              </div>
+            {/* Center: Wheel */}
+            <div className="flex justify-center w-full relative z-20 order-1 lg:order-2">
+              <RadialStats />
+            </div>
 
-              {/* Right Side: Tall image */}
-              <div className="col-span-1">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.15 }}
-                  onHoverStart={() => setHoveredImage('feat-3')}
-                  onHoverEnd={() => setHoveredImage(null)}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4 }}
-                  className={`relative cursor-crosshair ${hoveredImage === 'feat-3' ? 'z-[60]' : 'z-10'}`}
-                >
-                  <img
-                    src="/3_page_images/textbox.png"
-                    alt="Comments Panel"
-                    className="w-full h-auto rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/10"
-                  />
-                </motion.div>
-              </div>
+            {/* Right Side: Tall image */}
+            <div className="hidden lg:block w-full max-w-[280px] lg:max-w-[320px] mx-auto order-3">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                whileHover={{ scale: 1.05 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4 }}
+                className="relative z-10"
+              >
+                <img
+                  src="/3_page_images/textbox.png"
+                  alt="Comments Panel"
+                  className="w-full h-auto rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/10"
+                />
+              </motion.div>
             </div>
           </div>
         </div>
       </section>
-
-
 
       {/* Workflow Section */}
       <section id="workflow" className="py-32">
@@ -353,6 +302,67 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Features Grid */}
+      <section id="features" className="py-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+              Built for how editors<br />actually work
+            </h2>
+            <p className="text-lg text-zinc-400">
+              Every feature is designed around the real freelance video workflow - from first project to final invoice.
+            </p>
+          </div>
+
+          <div className="max-w-6xl mx-auto relative mt-20">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+              {features.map((feature, i) => {
+                // Determine grid placement for snake layout
+                let colStart = "";
+                let rowStart = "";
+                if (i === 0) { colStart = "md:col-start-1"; rowStart = "md:row-start-1"; }
+                if (i === 1) { colStart = "md:col-start-2"; rowStart = "md:row-start-1"; }
+                if (i === 2) { colStart = "md:col-start-3"; rowStart = "md:row-start-1"; }
+                if (i === 3) { colStart = "md:col-start-3"; rowStart = "md:row-start-2"; }
+                if (i === 4) { colStart = "md:col-start-2"; rowStart = "md:row-start-2"; }
+                if (i === 5) { colStart = "md:col-start-1"; rowStart = "md:row-start-2"; }
+
+                return (
+                  <div key={i} className={`relative flex flex-col ${colStart} ${rowStart}`}>
+
+                    {/* Connecting Lines */}
+                    {/* Mobile: All except last have a vertical line down */}
+                    {i !== 5 && (
+                      <div className="md:hidden absolute bottom-[-32px] left-1/2 -translate-x-1/2 w-[2px] h-[32px] bg-white/20 z-0"></div>
+                    )}
+
+                    {/* Desktop Lines */}
+                    {i === 0 && <div className="hidden md:block absolute right-[-32px] top-1/2 -translate-y-1/2 w-[32px] h-[2px] bg-white/20 z-0"></div>}
+                    {i === 1 && <div className="hidden md:block absolute right-[-32px] top-1/2 -translate-y-1/2 w-[32px] h-[2px] bg-white/20 z-0"></div>}
+                    {i === 2 && <div className="hidden md:block absolute bottom-[-32px] left-1/2 -translate-x-1/2 w-[2px] h-[32px] bg-white/20 z-0"></div>}
+                    {i === 3 && <div className="hidden md:block absolute left-[-32px] top-1/2 -translate-y-1/2 w-[32px] h-[2px] bg-white/20 z-0"></div>}
+                    {i === 4 && <div className="hidden md:block absolute left-[-32px] top-1/2 -translate-y-1/2 w-[32px] h-[2px] bg-white/20 z-0"></div>}
+
+                    {/* The Box */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: i * 0.1 }}
+                      className="w-full h-full bg-zinc-950 border border-white/10 p-8 relative z-10 hover:border-white/30 transition-colors flex flex-col justify-center"
+                    >
+                      <div className="text-xs font-bold text-zinc-500 mb-4 tracking-widest uppercase">STEP 0{i + 1}</div>
+                      <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                      <p className="text-zinc-400 leading-relaxed text-sm">{feature.description}</p>
+                    </motion.div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section id="pricing" className="py-32 px-6 bg-zinc-950/50 border-t border-white/5">
         <div className="max-w-7xl mx-auto">
@@ -401,35 +411,61 @@ export default function Landing() {
           <p className="text-xl text-zinc-400 mb-10 max-w-2xl mx-auto">
             We're in beta, and we're building Blasync with real video editors. Tell us what's missing, what's confusing, or what would make your workflow better.
           </p>
-          <div className="flex justify-center mb-24">
-            <button
-              onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfILVvZVE92_GTssmu4rh8Yodlv2pnCsWB0JUlqjO1_lfHG1g/viewform?usp=publish-editor', '_blank')}
-              className="px-8 py-4 rounded-full bg-zinc-900 border border-zinc-800 text-white font-medium hover:bg-zinc-800 transition-colors text-lg"
-            >
-              Share Feedback →
-            </button>
-          </div>
 
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
-            Ready to simplify your client reviews?
-          </h2>
-          <p className="text-xl text-zinc-400 mb-10 max-w-2xl mx-auto">
-            Join the Blasync beta and help shape the future of video review.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => navigate('/login')}
-              className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-bold hover:bg-zinc-200 transition-colors text-lg"
-            >
-              Join Beta — It's Free →
-            </button>
-          </div>
+          <FeedbackForm />
+
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-6 border-t border-white/5 text-center text-zinc-500 text-sm">
-        <p>© 2026 Blasync. All rights reserved.</p>
+      <footer className="w-full bg-zinc-950 border-t border-white/5 py-10 px-6 text-sm">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6">
+
+          {/* Primary Column */}
+          <div className="flex flex-col gap-2">
+            <h3 className="text-zinc-100 font-semibold mb-1">Primary</h3>
+            <a href="#" className="text-zinc-400 hover:text-white transition-colors">Home</a>
+            <a href="#" className="text-zinc-400 hover:text-white transition-colors">Products</a>
+            <a href="#" className="text-zinc-400 hover:text-white transition-colors">Pricing</a>
+            <a href="#" className="text-zinc-400 hover:text-white transition-colors">Our Work</a>
+            <a href="#" className="text-zinc-400 hover:text-white transition-colors">Contact Us</a>
+          </div>
+
+          {/* Others Column */}
+          <div className="flex flex-col gap-2">
+            <h3 className="text-zinc-100 font-semibold mb-1">Others</h3>
+            <a href="#" className="text-zinc-400 hover:text-white transition-colors">Privacy Policy</a>
+            <a href="#" className="text-zinc-400 hover:text-white transition-colors">Guidelines</a>
+            <a href="#" className="text-zinc-400 hover:text-white transition-colors">Terms of Service</a>
+            <a href="#" className="text-zinc-400 hover:text-white transition-colors">Credits</a>
+          </div>
+
+          {/* Contact Column */}
+          <div className="flex flex-col gap-4">
+            <div>
+              <h3 className="text-zinc-100 font-semibold mb-1">Contact</h3>
+              <p className="text-zinc-400 mb-1">Email:</p>
+              <a href="mailto:blasync93@gmail.com" className="text-white hover:text-zinc-300 transition-colors">
+                blasync93@gmail.com
+              </a>
+            </div>
+
+            <div>
+              <h3 className="text-zinc-100 font-semibold mb-1">Socials</h3>
+              <div className="flex gap-4 font-bold text-xs mt-1">
+                <a href="#" className="text-zinc-400 hover:text-white transition-colors">IG</a>
+                <a href="#" className="text-zinc-400 hover:text-white transition-colors">IN</a>
+                <a href="#" className="text-zinc-400 hover:text-white transition-colors">X</a>
+                <a href="#" className="text-zinc-400 hover:text-white transition-colors">FB</a>
+                <a href="#" className="text-zinc-400 hover:text-white transition-colors">YT</a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div className="max-w-6xl mx-auto mt-8 pt-6 border-t border-white/5 text-center text-zinc-500 text-xs">
+          <p>© 2026 Blasync. All rights reserved.</p>
+        </div>
       </footer>
     </div>
   );

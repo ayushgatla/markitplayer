@@ -48,8 +48,8 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
   };
 
   return (
-    <header className="h-14 sm:h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-3 sm:px-6 text-zinc-100">
-      <div className="flex items-center gap-3 flex-1">
+    <header className="h-14 sm:h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-3 sm:px-6 text-zinc-100 gap-2">
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
         <div className="w-8 h-8 rounded bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
           {isYouTube ? (
             <img src="/youtube.png" alt="YouTube" className="w-5 h-5 object-contain" />
@@ -74,24 +74,24 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
           />
         ) : (
           <div
-            className={`flex items-center gap-2 group ${!isClient ? 'cursor-pointer' : ''}`}
+            className={`flex items-center gap-2 group min-w-0 ${!isClient ? 'cursor-pointer' : ''}`}
             onClick={() => !isClient && setIsEditing(true)}
             title={!isClient ? "Click to rename" : ""}
           >
             <h1 className="font-medium truncate max-w-[300px]">{title}</h1>
-            {!isClient && <Edit2 size={14} className="text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />}
+            {!isClient && <Edit2 size={14} className="text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />}
           </div>
         )}
 
-        <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full ml-2 shrink-0">V2.1</span>
+        <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full ml-1 sm:ml-2 shrink-0">V2.1</span>
       </div>
 
-      <div className="flex items-center gap-8 sm:gap-2">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {!isClient && (
           <>
             {onUpdateLink && (
               <div
-                className="group flex items-center rounded-lg overflow-hidden border border-zinc-700/50 transition-all opacity-80 hover:opacity-100 hover:scale-105"
+                className="group flex items-center rounded-lg overflow-hidden border border-zinc-700/50 transition-all opacity-80 hover:opacity-100 hover:scale-105 shrink-0"
                 title="Update video link for a new version"
               >
                 <button 
@@ -110,7 +110,7 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
             )}
             <button
               onClick={handleCopyClientLink}
-              className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-300 hover:text-white transition-colors bg-zinc-800/50 hover:bg-zinc-800 px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700/50"
+              className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-300 hover:text-white transition-colors bg-zinc-800/50 hover:bg-zinc-800 px-2.5 sm:px-3 py-1.5 rounded-lg border border-zinc-700/50 shrink-0"
             >
               {copied ? <Check className="w-4 h-4 sm:w-4 sm:h-4 text-green-400" /> : <UserPlus className="w-4 h-4 sm:w-4 sm:h-4" />}
               <span className="hidden sm:inline">{copied ? 'Copied Link' : 'Add Client'}</span>
