@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+const fs = require('fs');
+
+const content = `import React, { useState, useRef } from 'react';
 import { Send, Globe, MoreHorizontal, CheckCircle, Search, Menu, ListFilter, Trash2, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -11,7 +13,7 @@ const formatTime = (seconds) => {
   const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
   const s = Math.floor(seconds % 60).toString().padStart(2, '0');
   const frames = Math.floor((seconds % 1) * 30).toString().padStart(2, '0'); // assuming 30fps
-  return `${h}:${m}:${s}:${frames}`;
+  return \`\${h}:\${m}:\${s}:\${frames}\`;
 };
 
 const formatRelativeTime = (dateStr) => {
@@ -35,9 +37,9 @@ const baseUrl = import.meta.env.PROD
 
 // Parse markdown image syntax ![alt](url)
 const renderTextWithImages = (text) => {
-  const parts = text.split(/(!\[.*?\]\(.*?\))/g);
+  const parts = text.split(/(!\\[.*?\\]\\(.*?\\))/g);
   return parts.map((part, index) => {
-    const match = part.match(/^!\[(.*?)\]\((.*?)\)$/);
+    const match = part.match(/^!\\[(.*?)\\]\\((.*?)\\)$/);
     if (match) {
       return (
         <a key={index} href={match[2]} target="_blank" rel="noopener noreferrer" className="block mt-2">
@@ -67,7 +69,7 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
     const formData = new FormData();
     formData.append('image', file);
     try {
-      const response = await fetch(`${baseUrl}/api/upload-image`, {
+      const response = await fetch(\`\${baseUrl}/api/upload-image\`, {
         method: 'POST',
         body: formData,
       });
@@ -92,7 +94,7 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
       const imageUrl = await uploadImage(mainImageFile);
       setIsUploadingMain(false);
       if (!imageUrl) return; // Stop if upload failed
-      finalComment += `\n\n![image](${imageUrl})`;
+      finalComment += \`\\n\\n![image](\${imageUrl})\`;
     }
 
     onAddComment(finalComment, activeTab === 'chat');
@@ -111,7 +113,7 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
       const imageUrl = await uploadImage(inlineImageFile);
       setIsUploadingInline(false);
       if (!imageUrl) return;
-      finalComment += `\n\n![image](${imageUrl})`;
+      finalComment += \`\\n\\n![image](\${imageUrl})\`;
     }
 
     onAddComment(finalComment, activeTab === 'chat', parentId);
@@ -126,13 +128,13 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
       <div className="flex items-center gap-2 p-3 pb-2 border-b border-white/5">
         <button 
           onClick={() => setActiveTab('comments')}
-          className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === 'comments' ? 'bg-[#2c2d3c] text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
+          className={\`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors \${activeTab === 'comments' ? 'bg-[#2c2d3c] text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}\`}
         >
           Comments
         </button>
         <button 
           onClick={() => setActiveTab('chat')}
-          className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === 'chat' ? 'bg-[#2c2d3c] text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
+          className={\`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors \${activeTab === 'chat' ? 'bg-[#2c2d3c] text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}\`}
         >
           Chat
         </button>
@@ -206,11 +208,11 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
                   {/* Content Box */}
                   <div 
                     onClick={() => activeTab === 'comments' && onCommentClick(comment)}
-                    className={`flex-1 border rounded-xl p-3 ${activeTab === 'comments' ? 'cursor-pointer hover:bg-[#232430]' : ''} transition-colors shadow-sm ${
+                    className={\`flex-1 border rounded-xl p-3 \${activeTab === 'comments' ? 'cursor-pointer hover:bg-[#232430]' : ''} transition-colors shadow-sm \${
                       comment.resolved && activeTab === 'comments'
                         ? 'bg-[#1b3323] border-[#295c3c] hover:bg-[#213e2b]'
                         : 'bg-[#1c1d27] border-white/5'
-                    }`}
+                    }\`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -260,7 +262,7 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
                         )}
                         {activeTab === 'comments' && (
                           <CheckCircle 
-                            className={`w-4 h-4 transition-colors cursor-pointer ${comment.resolved ? 'text-green-400 hover:text-green-300' : 'hover:text-green-400'}`} 
+                            className={\`w-4 h-4 transition-colors cursor-pointer \${comment.resolved ? 'text-green-400 hover:text-green-300' : 'hover:text-green-400'}\`} 
                             onClick={(e) => { e.stopPropagation(); onToggleResolve && onToggleResolve(comment.id); }}
                           />
                         )}
@@ -298,7 +300,7 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setInlineReplyingTo(comment.id);
-                                  setInlineReplyText(`@${reply.author_name || reply.author} `);
+                                  setInlineReplyText(\`@\${reply.author_name || reply.author} \`);
                                   setInlineImageFile(null);
                                 }}
                               >
@@ -437,7 +439,7 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
             <textarea
               className="w-full bg-transparent p-3 pr-20 text-[13px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none"
               rows={2}
-              placeholder={`Type your ${activeTab === 'chat' ? 'message' : 'comment'}...`}
+              placeholder={\`Type your \${activeTab === 'chat' ? 'message' : 'comment'}...\`}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               onKeyDown={(e) => {
@@ -472,3 +474,6 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
 };
 
 export default CommentSidebar;
+`;
+
+fs.writeFileSync('/home/ayush/Projects/Feedplayer/my-app/src/components/CommentSidebar.jsx', content);

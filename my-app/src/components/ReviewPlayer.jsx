@@ -162,7 +162,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
     setCurrentTime(time);
   };
 
-  const handleAddComment = async (text, isChat = false) => {
+  const handleAddComment = async (text, isChat = false, parentId = null) => {
     // Pause video automatically when adding a comment, unless it's a general chat
     if (playerRef.current && !isChat) {
       playerRef.current.pause();
@@ -187,12 +187,23 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
       userId = user.id;
     }
 
+    let finalTimestamp = isChat ? -1 : currentTime;
+    let finalCommentText = text;
+
+    if (parentId) {
+      const parent = comments.find(c => c.id === parentId);
+      if (parent) {
+        finalTimestamp = parent.timestamp;
+      }
+      finalCommentText = `___REPLY:${parentId}___${text}`;
+    }
+
     const newComment = {
       room_id: roomId,
       user_id: userId,
       author_name: authorName,
-      timestamp: isChat ? -1 : currentTime,
-      comment_text: text
+      timestamp: finalTimestamp,
+      comment_text: finalCommentText
     };
 
     // Optimistic UI update

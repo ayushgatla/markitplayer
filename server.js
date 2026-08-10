@@ -4,6 +4,8 @@ const cors = require('cors');
 const axios = require('axios');
 const { instagramGetUrl } = require('instagram-url-direct');
 const { google } = require('googleapis');
+const multer = require('multer');
+const { Readable } = require('stream');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,7 +18,7 @@ try {
     const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
     const auth = new google.auth.GoogleAuth({
       credentials,
-      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+      scopes: ['https://www.googleapis.com/auth/drive.readonly', 'https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive'],
     });
     drive = google.drive({ version: 'v3', auth });
     console.log("Google Drive API initialized successfully.");
@@ -26,6 +28,51 @@ try {
 } catch (e) {
   console.error("Failed to parse GOOGLE_CREDENTIALS", e);
 }
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+app.post('/api/upload-image', upload.single('image'), async (req, res) => {
+  if (!drive) return res.status(500).send('Google Drive API not configured');
+  if (!req.file) return res.status(400).send('No file uploaded');
+
+  const folderId = process.env.DRIVE_IMAGE_FOLDER_ID;
+  if (!folderId) return res.status(500).send('DRIVE_IMAGE_FOLDER_ID is not configured');
+
+  try {
+    const fileMetadata = {
+      name: `chat-img-${Date.now()}-${req.file.originalname}`,
+      parents: [folderId]
+    };
+    const media = {
+      mimeType: req.file.mimetype,
+      body: Readable.from(req.file.buffer)
+    };
+
+    const file = await drive.files.create({
+      resource: fileMetadata,
+      media: media,
+      fields: 'id, webViewLink, webContentLink'
+    });
+
+    // Make the file publicly accessible
+    await drive.permissions.create({
+      fileId: file.data.id,
+      requestBody: {
+        role: 'reader',
+        type: 'anyone'
+      }
+    });
+
+    res.json({
+      id: file.data.id,
+      url: file.data.webViewLink,
+      downloadUrl: file.data.webContentLink
+    });
+  } catch (error) {
+    console.error('Drive API Upload Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.get('/api/video/:id', async (req, res) => {
   const videoId = req.params.id;
