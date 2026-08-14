@@ -199,7 +199,7 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
 
             {/* Markers */}
             <div className="absolute inset-0 w-full h-full pointer-events-none">
-              {comments.map((comment) => {
+              {comments.filter(c => c.timestamp !== -1 && !c.comment_text.startsWith('___REPLY:')).map((comment) => {
                 const leftPercent = duration ? (comment.timestamp / duration) * 100 : 0;
                 return (
                   <div
