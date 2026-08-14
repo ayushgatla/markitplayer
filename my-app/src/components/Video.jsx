@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function Video() {
   return (
-    <div className="w-full max-w-7xl mx-auto rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-black mt-12 mb-20">
+    <div className="w-full max-w-7xl mx-auto rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl relative bg-black mt-8 mb-12">
       <video
         autoPlay
         loop

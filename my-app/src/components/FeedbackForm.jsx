@@ -4,8 +4,6 @@ import { Star, CheckCircle2 } from 'lucide-react';
 export function FeedbackForm() {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [willingToPay, setWillingToPay] = useState('');
-  const [freeTrial, setFreeTrial] = useState('');
   
   const [contact, setContact] = useState('');
   const [feedback, setFeedback] = useState('');
@@ -27,8 +25,6 @@ export function FeedbackForm() {
           subject: 'New Feedback Submission from Blasync',
           from_name: 'Blasync Feedback Form',
           Rating: rating || 'Not rated',
-          'Willing To Pay': willingToPay || 'Not answered',
-          'Free Trial': freeTrial || 'Not answered',
           Contact: contact || 'Not provided',
           Feedback: feedback || 'No additional feedback',
         })
@@ -40,8 +36,6 @@ export function FeedbackForm() {
         setStatus('success');
         // Reset form
         setRating(0);
-        setWillingToPay('');
-        setFreeTrial('');
         setContact('');
         setFeedback('');
         
@@ -76,7 +70,7 @@ export function FeedbackForm() {
         {/* Left Side: Questions */}
         <div className="flex flex-col gap-8">
           <div>
-            <h3 className="text-[1.1rem] font-bold mb-3 tracking-wide text-zinc-100">1. Overall, how useful does this app feel for freelance video editors?</h3>
+            <h3 className="text-[1.1rem] font-bold mb-3 tracking-wide text-zinc-100">Overall, how useful does this app feel for freelance video editors?</h3>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -95,50 +89,20 @@ export function FeedbackForm() {
             </div>
           </div>
 
-          <div>
-            <h3 className="text-[1.1rem] font-bold mb-4 tracking-wide text-zinc-100">2. Would you consider paying for an app like this?</h3>
-            <div className="flex flex-col gap-3">
-              {['Yes Definitely', 'Maybe, if pricing is reasonable', 'No'].map((option) => (
-                <label key={option} className="flex items-center gap-4 cursor-pointer group">
-                  <div className={`w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center transition-colors ${willingToPay === option ? 'border-white' : 'border-zinc-600 group-hover:border-zinc-400'}`}>
-                    {willingToPay === option && <div className="w-[10px] h-[10px] bg-white rounded-full" />}
-                  </div>
-                  <span className="text-zinc-300 text-[1.05rem]">{option}</span>
-                  <input type="radio" className="hidden" checked={willingToPay === option} onChange={() => setWillingToPay(option)} />
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-[1.1rem] font-bold mb-4 tracking-wide text-zinc-100">3. Would you like to try a free trial of this app for a short time?</h3>
-            <div className="flex flex-col gap-3">
-              {['Yes', 'Maybe, Later', 'No'].map((option) => (
-                <label key={option} className="flex items-center gap-4 cursor-pointer group">
-                  <div className={`w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center transition-colors ${freeTrial === option ? 'border-white' : 'border-zinc-600 group-hover:border-zinc-400'}`}>
-                    {freeTrial === option && <div className="w-[10px] h-[10px] bg-white rounded-full" />}
-                  </div>
-                  <span className="text-zinc-300 text-[1.05rem]">{option}</span>
-                  <input type="radio" className="hidden" checked={freeTrial === option} onChange={() => setFreeTrial(option)} />
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side: Inputs */}
-        <div className="bg-zinc-950 border border-white/5 rounded-2xl p-6 flex flex-col h-full shadow-inner">
-          <div className="mb-6">
-            <h3 className="text-[1.1rem] font-bold mb-3 tracking-wide text-zinc-100">Your Contact Details<br/><span className="text-[0.95rem] font-normal text-zinc-500">(Optional)</span></h3>
+          <div className="mt-4">
+            <h3 className="text-[1.1rem] font-bold mb-3 tracking-wide text-zinc-100">Your Contact Details <span className="text-[0.95rem] font-normal text-zinc-500">(Optional)</span></h3>
             <input
               type="text"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               placeholder="Email or Phone number"
-              className="w-full bg-zinc-900 border border-white/10 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-zinc-500 transition-shadow"
+              className="w-full max-w-md bg-zinc-900 border border-white/10 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-zinc-500 transition-shadow"
             />
           </div>
-          
+        </div>
+
+        {/* Right Side: Inputs */}
+        <div className="bg-zinc-950 border border-white/5 rounded-2xl p-6 flex flex-col h-full shadow-inner">
           <div className="flex-1 flex flex-col">
             <h3 className="text-[1.1rem] font-bold mb-3 tracking-wide text-zinc-100">Feedback (Optional)</h3>
             <textarea

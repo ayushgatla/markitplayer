@@ -82,7 +82,7 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-24 lg:pt-32 pb-20 px-6">
+      <section className="pt-24 lg:pt-32 pb-12 px-6">
         <div className="max-w-7xl mx-auto w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Column: Text */}
@@ -103,7 +103,7 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row items-start justify-start gap-4 w-full sm:w-auto">
                 <button
                   onClick={() => navigate('/login')}
-                  className="w-full sm:w-auto px-6 py-3 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition-colors"
+                  className="w-full sm:w-auto px-6 py-3 rounded-full bg-white hover:bg-zinc-200 text-black font-medium transition-colors"
                 >
                   Start Free - No Credit Card
                 </button>
@@ -132,6 +132,7 @@ export default function Landing() {
                   <img
                     src="/product/video_projects.png"
                     alt="Projects Dashboard"
+                    fetchPriority="high"
                     className="w-full h-auto rounded-2xl shadow-2xl border border-white/10"
                   />
                 </motion.div>
@@ -147,6 +148,7 @@ export default function Landing() {
                   <img
                     src="/product/video_player.png"
                     alt="Video Player"
+                    fetchPriority="high"
                     className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10"
                   />
                 </motion.div>
@@ -166,6 +168,7 @@ export default function Landing() {
                   <img
                     src="/product/front.png"
                     alt="Comments Panel"
+                    fetchPriority="high"
                     className="w-full h-auto rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/10"
                   />
                 </motion.div>
@@ -180,7 +183,7 @@ export default function Landing() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 border-y border-white/5 bg-zinc-950/50 overflow-hidden">
+      <section className="py-12 lg:py-16 border-y border-white/5 bg-zinc-950/50 overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-6">
           <p className="text-center text-sm font-medium text-zinc-500 mb-12 uppercase tracking-widest">
             Built for freelance video editors
@@ -199,6 +202,7 @@ export default function Landing() {
                 <img
                   src="/3_page_images/Screenshot-2026-08-09_11:16:02.png"
                   alt="Video Player"
+                  loading="lazy"
                   className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10"
                 />
               </motion.div>
@@ -213,6 +217,7 @@ export default function Landing() {
                 <img
                   src="/3_page_images/Screenshot-2026-08-09_11:15:17.png"
                   alt="Projects Dashboard"
+                  loading="lazy"
                   className="w-full h-auto rounded-2xl shadow-2xl border border-white/10"
                 />
               </motion.div>
@@ -236,6 +241,7 @@ export default function Landing() {
                 <img
                   src="/3_page_images/textbox.png"
                   alt="Comments Panel"
+                  loading="lazy"
                   className="w-full h-auto rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/10"
                 />
               </motion.div>
@@ -245,8 +251,8 @@ export default function Landing() {
       </section>
 
       {/* Workflow Section */}
-      <section id="workflow" className="py-32">
-        <div className="max-w-7xl mx-auto px-6 mb-20">
+      <section id="workflow" className="py-16 lg:py-24">
+        <div className="max-w-7xl mx-auto px-6 mb-12">
           <div className="text-center max-w-3xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
               How it works
@@ -303,9 +309,9 @@ export default function Landing() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-32 px-6">
+      <section id="features" className="py-16 lg:py-24 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-20">
+          <div className="text-center max-w-3xl mx-auto mb-12">
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
               Built for how editors<br />actually work
             </h2>
@@ -314,7 +320,7 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="max-w-6xl mx-auto relative mt-20">
+          <div className="max-w-6xl mx-auto relative mt-12">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
               {features.map((feature, i) => {
                 // Determine grid placement for snake layout
@@ -364,9 +370,9 @@ export default function Landing() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-32 px-6 bg-zinc-950/50 border-t border-white/5">
+      <section id="pricing" className="py-16 lg:py-24 px-6 bg-zinc-950/50 border-t border-white/5">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-20">
+          <div className="text-center max-w-3xl mx-auto mb-12">
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
               Blasync is free during beta.
             </h2>
@@ -403,7 +409,7 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-32 px-6">
+      <section className="py-16 lg:py-24 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
             Help us build Blasync.
