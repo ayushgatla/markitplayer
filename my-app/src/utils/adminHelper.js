@@ -1,28 +1,71 @@
+import { supabase } from '../supabaseClient.js';
+
 /**
  * Admin access control and management utility for MarkIt Player.
  */
 
 export const PRIMARY_ADMIN_EMAIL = 'ayushgatla@gmail.com';
 
+export const INITIAL_ADMIN_EMAILS = [
+  'ayushgatla@gmail.com',
+  'harshitkhare607@gmail.com'
+];
+
 const STORAGE_KEY = 'markit_admin_emails';
+const CONFIG_FOLDER = '__system_admin_config__';
 
 /**
- * Get all current administrator emails.
+ * Get all current administrator emails (syncs local storage + defaults).
  * @returns {string[]}
  */
 export const getAdminEmails = () => {
   try {
+    let customAdmins = [];
     if (typeof window !== 'undefined' && window.localStorage) {
       const stored = window.localStorage.getItem(STORAGE_KEY);
-      const customAdmins = stored ? JSON.parse(stored) : [];
-      const all = [PRIMARY_ADMIN_EMAIL, ...customAdmins.map(e => (e || '').toLowerCase().trim())];
-      return Array.from(new Set(all.map(e => e.toLowerCase()).filter(Boolean)));
+      customAdmins = stored ? JSON.parse(stored) : [];
     }
-    return [PRIMARY_ADMIN_EMAIL];
+    const all = [
+      ...INITIAL_ADMIN_EMAILS,
+      ...customAdmins.map(e => (e || '').toLowerCase().trim())
+    ];
+    return Array.from(new Set(all.map(e => e.toLowerCase()).filter(Boolean)));
   } catch (e) {
     console.warn('Error reading admin emails:', e);
-    return [PRIMARY_ADMIN_EMAIL];
+    return INITIAL_ADMIN_EMAILS;
   }
+};
+
+/**
+ * Fetch and sync admin emails from Supabase so all devices share the same admin list.
+ * @returns {Promise<string[]>}
+ */
+export const syncAdminEmailsWithDatabase = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('video_url')
+      .eq('folder', CONFIG_FOLDER)
+      .limit(1);
+
+    if (!error && data && data.length > 0 && data[0].video_url) {
+      const remoteAdmins = JSON.parse(data[0].video_url);
+      if (Array.isArray(remoteAdmins)) {
+        const merged = Array.from(new Set([
+          ...INITIAL_ADMIN_EMAILS,
+          ...remoteAdmins.map(e => (e || '').toLowerCase().trim())
+        ].filter(Boolean)));
+
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        }
+        return merged;
+      }
+    }
+  } catch (e) {
+    console.warn('Could not sync admins from database:', e);
+  }
+  return getAdminEmails();
 };
 
 /**
@@ -48,11 +91,12 @@ export const isPrimaryAdmin = (email) => {
 };
 
 /**
- * Add a new administrator email.
+ * Add a new administrator email and sync to Supabase.
  * @param {string} newEmail 
- * @returns {{ success: boolean, message: string, admins: string[] }}
+ * @param {string} [userId]
+ * @returns {Promise<{ success: boolean, message: string, admins: string[] }>}
  */
-export const addAdminEmail = (newEmail) => {
+export const addAdminEmail = async (newEmail, userId = null) => {
   if (!newEmail || typeof newEmail !== 'string') {
     return { success: false, message: 'Invalid email address', admins: getAdminEmails() };
   }
@@ -67,25 +111,49 @@ export const addAdminEmail = (newEmail) => {
     return { success: false, message: 'This user is already an administrator', admins: current };
   }
 
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      const customAdmins = stored ? JSON.parse(stored) : [];
-      customAdmins.push(clean);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(customAdmins));
-    }
-    return { success: true, message: `Granted admin access to ${clean}`, admins: getAdminEmails() };
-  } catch (e) {
-    return { success: false, message: 'Failed to save admin access', admins: current };
+  const updated = Array.from(new Set([...current, clean]));
+
+  // Save to local storage
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   }
+
+  // Persist to Supabase
+  try {
+    const { data: existing } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('folder', CONFIG_FOLDER)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      await supabase
+        .from('rooms')
+        .update({ video_url: JSON.stringify(updated) })
+        .eq('id', existing[0].id);
+    } else if (userId) {
+      await supabase
+        .from('rooms')
+        .insert([{
+          title: 'Admin Access Config',
+          folder: CONFIG_FOLDER,
+          video_url: JSON.stringify(updated),
+          user_id: userId
+        }]);
+    }
+  } catch (e) {
+    console.warn('Failed to persist admin list to DB:', e);
+  }
+
+  return { success: true, message: `Granted admin access to ${clean}`, admins: updated };
 };
 
 /**
- * Remove an administrator.
+ * Remove an administrator and sync to Supabase.
  * @param {string} emailToRemove 
- * @returns {{ success: boolean, message: string, admins: string[] }}
+ * @returns {Promise<{ success: boolean, message: string, admins: string[] }>}
  */
-export const removeAdminEmail = (emailToRemove) => {
+export const removeAdminEmail = async (emailToRemove) => {
   if (!emailToRemove || typeof emailToRemove !== 'string') {
     return { success: false, message: 'Invalid email address', admins: getAdminEmails() };
   }
@@ -94,15 +162,31 @@ export const removeAdminEmail = (emailToRemove) => {
     return { success: false, message: 'Cannot remove primary super admin', admins: getAdminEmails() };
   }
 
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      let customAdmins = stored ? JSON.parse(stored) : [];
-      customAdmins = customAdmins.filter(e => (e || '').toLowerCase().trim() !== clean);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(customAdmins));
-    }
-    return { success: true, message: `Revoked admin access for ${clean}`, admins: getAdminEmails() };
-  } catch (e) {
-    return { success: false, message: 'Failed to update admin access', admins: getAdminEmails() };
+  const current = getAdminEmails();
+  const updated = current.filter(e => e.toLowerCase().trim() !== clean);
+
+  // Save to local storage
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   }
+
+  // Persist to Supabase
+  try {
+    const { data: existing } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('folder', CONFIG_FOLDER)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      await supabase
+        .from('rooms')
+        .update({ video_url: JSON.stringify(updated) })
+        .eq('id', existing[0].id);
+    }
+  } catch (e) {
+    console.warn('Failed to update admin list in DB:', e);
+  }
+
+  return { success: true, message: `Revoked admin access for ${clean}`, admins: updated };
 };

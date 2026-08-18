@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { isAdmin, isPrimaryAdmin, getAdminEmails, addAdminEmail, removeAdminEmail, PRIMARY_ADMIN_EMAIL } from '../utils/adminHelper';
+import { isAdmin, isPrimaryAdmin, getAdminEmails, addAdminEmail, removeAdminEmail, syncAdminEmailsWithDatabase, PRIMARY_ADMIN_EMAIL } from '../utils/adminHelper';
 import { parseVideoData, getActiveVideoUrl, detectPlatform } from '../utils/versionHelper';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -50,13 +50,19 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setRefreshing(true);
     try {
-      const [roomsRes, commentsRes] = await Promise.all([
+      const [roomsRes, commentsRes, syncedAdmins] = await Promise.all([
         supabase.from('rooms').select('*').order('created_at', { ascending: false }),
-        supabase.from('comments').select('*').order('created_at', { ascending: false })
+        supabase.from('comments').select('*').order('created_at', { ascending: false }),
+        syncAdminEmailsWithDatabase()
       ]);
 
-      if (roomsRes.data) setRooms(roomsRes.data);
+      if (roomsRes.data) {
+        // Filter out internal system configuration rows from normal rooms stats
+        const realRooms = roomsRes.data.filter(r => r.folder !== '__system_admin_config__');
+        setRooms(realRooms);
+      }
       if (commentsRes.data) setComments(commentsRes.data);
+      if (syncedAdmins) setAdminList(syncedAdmins);
     } catch (e) {
       console.error('Error fetching admin data:', e);
     } finally {
@@ -66,6 +72,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    syncAdminEmailsWithDatabase().then(list => setAdminList(list));
     if (userIsAdmin) {
       fetchData();
     } else {
@@ -169,10 +176,10 @@ export default function AdminDashboard() {
     };
   }, [rooms, comments, user]);
 
-  const handleAddAdmin = (e) => {
+  const handleAddAdmin = async (e) => {
     e.preventDefault();
     if (!newAdminInput.trim()) return;
-    const res = addAdminEmail(newAdminInput.trim());
+    const res = await addAdminEmail(newAdminInput.trim(), user?.id);
     if (res.success) {
       setAdminList(res.admins);
       setNewAdminInput('');
@@ -183,9 +190,9 @@ export default function AdminDashboard() {
     setTimeout(() => setAdminMessage(null), 4000);
   };
 
-  const handleRemoveAdmin = (email) => {
+  const handleRemoveAdmin = async (email) => {
     if (window.confirm(`Revoke admin access for ${email}?`)) {
-      const res = removeAdminEmail(email);
+      const res = await removeAdminEmail(email);
       if (res.success) {
         setAdminList(res.admins);
         setAdminMessage({ type: 'success', text: res.message });

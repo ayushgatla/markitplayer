@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { getActiveVideoUrl, parseVideoData, getActiveVersionObj } from '../utils/versionHelper';
-import { isAdmin } from '../utils/adminHelper';
+import { isAdmin, getAdminEmails, syncAdminEmailsWithDatabase } from '../utils/adminHelper';
 
 dayjs.extend(relativeTime);
 
@@ -60,10 +60,19 @@ export default function Dashboard() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [adminEmails, setAdminEmails] = useState(getAdminEmails());
   const [customFolders, setCustomFolders] = useState(() => {
     const saved = localStorage.getItem('feedplayer_folders');
     return saved ? JSON.parse(saved) : ['Marketing Assets', 'Internal Reviews'];
   });
+
+  const userIsAdmin = user?.email ? (isAdmin(user.email) || adminEmails.includes(user.email.toLowerCase().trim())) : false;
+
+  useEffect(() => {
+    syncAdminEmailsWithDatabase().then(list => {
+      if (list) setAdminEmails(list);
+    });
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('feedplayer_folders', JSON.stringify(customFolders));
@@ -266,7 +275,7 @@ export default function Dashboard() {
           <button onClick={() => { navigate('/help'); setIsSidebarOpen(false); }} className="p-2 text-zinc-400 hover:text-white transition-colors" title="Help">
             <HelpCircle className="w-5 h-5" />
           </button>
-          {isAdmin(user?.email) && (
+          {userIsAdmin && (
             <button onClick={() => { navigate('/admin'); setIsSidebarOpen(false); }} className="p-2 text-indigo-400 hover:text-indigo-300 transition-colors" title="Admin Console">
               <Shield className="w-5 h-5" />
             </button>
@@ -933,7 +942,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex flex-col gap-6 w-full items-center mt-auto">
-            {isAdmin(user?.email) && (
+            {userIsAdmin && (
               <button 
                 onClick={() => navigate('/admin')} 
                 className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-white/5 rounded-lg transition-colors relative group"
