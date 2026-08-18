@@ -6,7 +6,7 @@ import PlayerControls from './PlayerControls';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
-export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
+export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestName, currentVersionNum = 1 }) => {
   const playerRef = useRef(null);
   const { user } = useAuth();
   const [currentTime, setCurrentTime] = useState(0);
@@ -139,9 +139,6 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
   };
 
   const handlePlayerReady = (player) => {
-    // Explicitly force volume to 100% and unmuted.
-    // YouTube iframes often inherit the user's global YouTube volume/mute preferences,
-    // which causes the video to silently start muted even if our UI thinks it's unmuted.
     player.volume(1);
     player.muted(false);
 
@@ -196,6 +193,8 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
         finalTimestamp = parent.timestamp;
       }
       finalCommentText = `___REPLY:${parentId}___${text}`;
+    } else if (!isChat && currentVersionNum) {
+      finalCommentText = `___VER:${currentVersionNum}___${text}`;
     }
 
     const newComment = {
@@ -265,22 +264,6 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
     }
   };
 
-  const handleUpdateLink = async () => {
-    const newLink = window.prompt("Enter new Google Drive link for this version:");
-    if (!newLink || !newLink.trim()) return;
-
-    const { error } = await supabase
-      .from('rooms')
-      .update({ video_url: newLink.trim() })
-      .eq('id', roomId);
-
-    if (error) {
-      alert("Error updating link: " + error.message);
-    } else {
-      window.location.reload();
-    }
-  };
-
   const handleCommentClick = (comment) => {
     if (playerRef.current) {
       playerRef.current.seekTo(comment.timestamp);
@@ -342,6 +325,7 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
         >
           <div className={`w-full relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto ${isExpanded ? 'aspect-video lg:h-full lg:aspect-auto' : 'aspect-video'}`}>
             <VideoPlayer
+              key={processedUrl}
               ref={playerRef}
               options={videoOptions}
               onReady={handlePlayerReady}
@@ -388,6 +372,8 @@ export const ReviewPlayer = ({ videoUrl, roomId, isClient, guestName }) => {
           onDeleteComment={handleDeleteComment}
           onToggleResolve={handleToggleResolve}
           currentUserIdentity={isClient ? { name: guestName, isClient: true, id: user?.id } : { id: user?.id, name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous' }}
+          currentVersionNum={currentVersionNum}
+          rawVideoUrl={rawVideoUrl}
         />
       </div>
     </div>

@@ -5,10 +5,12 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { getActiveVideoUrl, parseVideoData, getActiveVersionObj } from '../utils/versionHelper';
 
 dayjs.extend(relativeTime);
 
-const getThumbnailUrl = (url) => {
+const getThumbnailUrl = (rawUrl) => {
+  const url = getActiveVideoUrl(rawUrl);
   if (!url) return null;
   
   const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
@@ -27,7 +29,8 @@ const getThumbnailUrl = (url) => {
   return null;
 };
 
-const getFallbackIcon = (url) => {
+const getFallbackIcon = (rawUrl) => {
+  const url = getActiveVideoUrl(rawUrl);
   if (!url) return null;
   if (url.includes('instagram.com')) return '/instagram.png';
   if (url.includes('youtube.com') || url.includes('youtu.be')) return '/youtube.png';
@@ -551,7 +554,9 @@ export default function Dashboard() {
                       </span>
 
                       {visibleFields.version && (
-                        <span className="bg-white/5 px-2 py-0.5 rounded text-[10px] text-zinc-400 border border-white/5">V1</span>
+                        <span className="bg-white/5 px-2 py-0.5 rounded text-[10px] text-indigo-300 font-mono border border-indigo-500/20">
+                          {getActiveVersionObj(room.video_url)?.title || `V${parseVideoData(room.video_url).currentVersion}`}
+                        </span>
                       )}
                     </div>
 
@@ -816,8 +821,8 @@ export default function Dashboard() {
                             <Video className="w-4 h-4 text-zinc-500" />
                           )}
                           {visibleFields.version && (
-                            <div className="bg-white/5 px-2 py-0.5 rounded text-[10px] text-zinc-400">
-                              V1
+                            <div className="bg-white/5 px-2 py-0.5 rounded text-[10px] text-indigo-300 font-mono border border-indigo-500/20">
+                              {getActiveVersionObj(room.video_url)?.title || `V${parseVideoData(room.video_url).currentVersion}`}
                             </div>
                           )}
                         </div>

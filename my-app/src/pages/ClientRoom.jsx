@@ -4,6 +4,7 @@ import ProjectHeader from '../components/ProjectHeader';
 import ReviewPlayer from '../components/ReviewPlayer';
 import { supabase } from '../supabaseClient';
 import { Video } from 'lucide-react';
+import { parseVideoData, getActiveVideoUrl } from '../utils/versionHelper';
 
 export default function ClientRoom() {
   const { roomId } = useParams();
@@ -12,6 +13,7 @@ export default function ClientRoom() {
   const [loading, setLoading] = useState(true);
   const [guestName, setGuestName] = useState('');
   const [isJoined, setIsJoined] = useState(false);
+  const [selectedVersionNum, setSelectedVersionNum] = useState(null);
 
   useEffect(() => {
     const savedName = localStorage.getItem(`guestName_${roomId}`);
@@ -42,12 +44,20 @@ export default function ClientRoom() {
     }
   }, [roomId, navigate]);
 
+  const videoData = parseVideoData(roomData?.video_url, roomData?.created_at);
+  const currentVersion = selectedVersionNum !== null ? selectedVersionNum : videoData.currentVersion;
+  const activeVideoUrl = getActiveVideoUrl(roomData?.video_url, currentVersion);
+
   const handleJoin = (e) => {
     e.preventDefault();
     if (guestName.trim()) {
       localStorage.setItem(`guestName_${roomId}`, guestName.trim());
       setIsJoined(true);
     }
+  };
+
+  const handleSwitchVersion = (verNum) => {
+    setSelectedVersionNum(verNum);
   };
 
   if (loading) {
@@ -95,10 +105,18 @@ export default function ClientRoom() {
         isClient={true}
         roomId={roomId}
         videoUrl={roomData?.video_url}
+        onSwitchVersion={handleSwitchVersion}
       />
       <main className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
-        {roomData?.video_url ? (
-          <ReviewPlayer videoUrl={roomData.video_url} roomId={roomId} isClient={true} guestName={guestName} />
+        {activeVideoUrl ? (
+          <ReviewPlayer
+            videoUrl={activeVideoUrl}
+            rawVideoUrl={roomData?.video_url}
+            roomId={roomId}
+            isClient={true}
+            guestName={guestName}
+            currentVersionNum={currentVersion}
+          />
         ) : (
           <div className="flex-1 flex items-center justify-center p-6 bg-zinc-950">
             <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center text-center">
@@ -114,3 +132,4 @@ export default function ClientRoom() {
     </div>
   );
 }
+

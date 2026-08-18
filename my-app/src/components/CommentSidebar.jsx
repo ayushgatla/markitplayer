@@ -46,11 +46,23 @@ const renderTextWithImages = (text) => {
   });
 };
 
-export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentClick, currentUserIdentity, onDeleteComment, onToggleResolve }) => {
+export const CommentSidebar = ({
+  comments,
+  currentTime,
+  onAddComment,
+  onCommentClick,
+  currentUserIdentity,
+  onDeleteComment,
+  onToggleResolve,
+  currentVersionNum = 1,
+  rawVideoUrl
+}) => {
   const [newComment, setNewComment] = useState('');
   const [activeTab, setActiveTab] = useState('comments');
   const [inlineReplyingTo, setInlineReplyingTo] = useState(null);
   const [inlineReplyText, setInlineReplyText] = useState('');
+  const [versionFilter, setVersionFilter] = useState('all'); // 'all' | 'current' | number
+  const [showVersionFilterMenu, setShowVersionFilterMenu] = useState(false);
 
   const [mainImageFile, setMainImageFile] = useState(null);
   const [inlineImageFile, setInlineImageFile] = useState(null);
@@ -144,13 +156,44 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
       </div>
 
       {/* Toolbar */}
-      <div className="px-4 py-3 flex items-center justify-between border-b border-white/5">
-        <div className="bg-[#1242a6] text-white text-xs font-semibold px-2 py-1 rounded">
-          All {activeTab}
+      <div className="px-4 py-2.5 flex items-center justify-between border-b border-white/5 relative text-xs">
+        <div className="flex items-center gap-2">
+          <button 
+            type="button"
+            onClick={() => setShowVersionFilterMenu(!showVersionFilterMenu)}
+            className="text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/60 px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <span>
+              {versionFilter === 'all'
+                ? `All ${activeTab}`
+                : `V${currentVersionNum} only`}
+            </span>
+            <ListFilter className="w-3 h-3 text-zinc-400" />
+          </button>
+
+          {showVersionFilterMenu && (
+            <div className="absolute top-full left-4 mt-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-50 py-1 w-44">
+              <button
+                type="button"
+                onClick={() => { setVersionFilter('all'); setShowVersionFilterMenu(false); }}
+                className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-zinc-800 transition-colors ${versionFilter === 'all' ? 'text-zinc-100 font-medium' : 'text-zinc-400'}`}
+              >
+                <span>All Versions</span>
+                {versionFilter === 'all' && <span>✓</span>}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setVersionFilter('current'); setShowVersionFilterMenu(false); }}
+                className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-zinc-800 transition-colors ${versionFilter === 'current' ? 'text-zinc-100 font-medium' : 'text-zinc-400'}`}
+              >
+                <span>V{currentVersionNum} only</span>
+                {versionFilter === 'current' && <span>✓</span>}
+              </button>
+            </div>
+          )}
         </div>
+
         <div className="flex items-center gap-3 text-zinc-400">
-          <Menu className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
-          <ListFilter className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
           <Search className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
           <MoreHorizontal className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
         </div>
@@ -160,11 +203,27 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {(() => {
           const parsedComments = comments.map(c => {
-            const match = c.comment_text.match(/^___REPLY:([a-zA-Z0-9-]+)___(.*)/s);
-            if (match) {
-              return { ...c, isReply: true, parentId: match[1], cleanText: match[2] };
+            let text = c.comment_text || '';
+            let version = null;
+            let isReply = false;
+            let parentId = null;
+
+            // Check reply prefix
+            const replyMatch = text.match(/^___REPLY:([a-zA-Z0-9-]+)___(.*)/s);
+            if (replyMatch) {
+              isReply = true;
+              parentId = replyMatch[1];
+              text = replyMatch[2];
             }
-            return { ...c, isReply: false, cleanText: c.comment_text };
+
+            // Check version prefix
+            const verMatch = text.match(/^___VER:(\d+)___(.*)/s);
+            if (verMatch) {
+              version = parseInt(verMatch[1], 10);
+              text = verMatch[2];
+            }
+
+            return { ...c, isReply, parentId, version, cleanText: text };
           });
 
           const getReplies = (parentId) => {
@@ -173,7 +232,22 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
           };
 
           const displayComments = parsedComments
-            .filter(c => !c.isReply && (activeTab === 'chat' ? c.timestamp === -1 : c.timestamp !== -1))
+            .filter(c => {
+              if (c.isReply) return false;
+              if (activeTab === 'chat') {
+                return c.timestamp === -1;
+              }
+              if (c.timestamp === -1) return false;
+
+              // Apply version filter if set
+              if (versionFilter === 'current' && c.version && c.version !== currentVersionNum) {
+                return false;
+              }
+              if (typeof versionFilter === 'number' && c.version && c.version !== versionFilter) {
+                return false;
+              }
+              return true;
+            })
             .sort((a, b) => {
               if (activeTab === 'comments') {
                 return a.timestamp - b.timestamp;
@@ -223,7 +297,12 @@ export const CommentSidebar = ({ comments, currentTime, onAddComment, onCommentC
                         <span className="text-[11px] text-zinc-500 font-medium">{formatRelativeTime(comment.created_at)}</span>
                       </div>
                       {activeTab === 'comments' && (
-                        <div className="flex items-center gap-2 text-zinc-500">
+                        <div className="flex items-center gap-1.5 text-zinc-500">
+                          {comment.version && (
+                            <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/50 px-1.5 py-0.2 rounded font-mono">
+                              v{comment.version}
+                            </span>
+                          )}
                           <span className="text-[11px] font-medium">#{index + 1}</span>
                           <Globe className="w-3.5 h-3.5" />
                         </div>

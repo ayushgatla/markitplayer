@@ -1,10 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Film, Share2, Edit2, UserPlus, Check } from 'lucide-react';
+import VersionDropdown from './VersionDropdown';
+import { getActiveVideoUrl, detectPlatform } from '../utils/versionHelper';
 
-export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink, videoUrl }) => {
-  const isYouTube = videoUrl && (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be'));
-  const isDrive = videoUrl && videoUrl.includes('drive.google.com');
-  const isInstagram = videoUrl && videoUrl.includes('instagram.com');
+export const ProjectHeader = ({
+  title,
+  onRename,
+  isClient,
+  roomId,
+  onUpdateLink,
+  videoUrl,
+  onSwitchVersion,
+  onDeleteVersion
+}) => {
+  const activeUrl = getActiveVideoUrl(videoUrl);
+  const platform = detectPlatform(activeUrl);
+  const isYouTube = platform === 'youtube';
+  const isDrive = platform === 'drive';
+  const isInstagram = platform === 'instagram';
+
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
@@ -27,9 +41,8 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
     } else {
       setEditTitle(title);
     }
-
   };
-  //temp
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') handleSave();
     if (e.key === 'Escape') {
@@ -78,12 +91,19 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
             onClick={() => !isClient && setIsEditing(true)}
             title={!isClient ? "Click to rename" : ""}
           >
-            <h1 className="font-medium truncate max-w-[300px]">{title}</h1>
+            <h1 className="font-medium truncate max-w-[200px] sm:max-w-[300px]">{title}</h1>
             {!isClient && <Edit2 size={14} className="text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />}
           </div>
         )}
 
-        <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full ml-1 sm:ml-2 shrink-0">V2.1</span>
+        {/* Version Switcher Dropdown */}
+        <VersionDropdown
+          videoUrl={videoUrl}
+          onSwitchVersion={onSwitchVersion}
+          onOpenAddVersion={onUpdateLink}
+          onDeleteVersion={onDeleteVersion}
+          isClient={isClient}
+        />
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -91,20 +111,23 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
           <>
             {onUpdateLink && (
               <div
-                className="group flex items-center rounded-lg overflow-hidden border border-zinc-700/50 transition-all opacity-80 hover:opacity-100 hover:scale-105 shrink-0"
-                title="Update video link for a new version"
+                className="flex items-center rounded-lg overflow-hidden border border-zinc-800 bg-zinc-900/80"
+                title="Add new video version"
               >
                 <button 
                   onClick={() => onUpdateLink('drive')}
-                  className="flex items-center justify-center px-3 py-1.5 bg-green-500/20 hover:bg-green-500/40 transition-colors"
+                  className="flex items-center justify-center px-2.5 py-1.5 hover:bg-zinc-800 transition-colors"
+                  title="Add Google Drive version"
                 >
-                  <img src="/drive.png" alt="Drive" className="w-4 h-4 object-contain drop-shadow-md" />
+                  <img src="/drive.png" alt="Drive" className="w-3.5 h-3.5 object-contain opacity-80 hover:opacity-100" />
                 </button>
+                <div className="w-[1px] h-4 bg-zinc-800" />
                 <button 
                   onClick={() => onUpdateLink('youtube')}
-                  className="flex items-center justify-center px-3 py-1.5 bg-red-500/20 hover:bg-red-500/40 transition-colors"
+                  className="flex items-center justify-center px-2.5 py-1.5 hover:bg-zinc-800 transition-colors"
+                  title="Add YouTube version"
                 >
-                  <img src="/youtube.png" alt="YouTube" className="w-4 h-4 object-contain drop-shadow-md" />
+                  <img src="/youtube.png" alt="YouTube" className="w-3.5 h-3.5 object-contain opacity-80 hover:opacity-100" />
                 </button>
               </div>
             )}
@@ -123,3 +146,4 @@ export const ProjectHeader = ({ title, onRename, isClient, roomId, onUpdateLink,
 };
 
 export default ProjectHeader;
+
