@@ -9,6 +9,8 @@ import Help from './pages/Help';
 import Notifications from './pages/Notifications';
 import Landing from './pages/Landing';
 
+import AdminDashboard from './pages/AdminDashboard';
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -27,6 +29,7 @@ function App() {
         <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         <Route path="/room/:roomId/client" element={<ClientRoom />} />

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Video, Clock, Users, ArrowRight, LogOut, User as UserIcon, Trash2, Home, Search, Bell, Settings, HelpCircle, Folder, LayoutGrid, MonitorPlay, Image as ImageIcon, Music, CheckCircle, ListFilter, MessageSquare, ChevronDown, Check, XCircle, MoreVertical, Edit2, Menu, X } from 'lucide-react';
+import { Plus, Video, Clock, Users, ArrowRight, LogOut, User as UserIcon, Trash2, Home, Search, Bell, Settings, HelpCircle, Folder, LayoutGrid, MonitorPlay, Image as ImageIcon, Music, CheckCircle, ListFilter, MessageSquare, ChevronDown, Check, XCircle, MoreVertical, Edit2, Menu, X, Shield } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { getActiveVideoUrl, parseVideoData, getActiveVersionObj } from '../utils/versionHelper';
+import { isAdmin } from '../utils/adminHelper';
 
 dayjs.extend(relativeTime);
 
@@ -265,6 +266,11 @@ export default function Dashboard() {
           <button onClick={() => { navigate('/help'); setIsSidebarOpen(false); }} className="p-2 text-zinc-400 hover:text-white transition-colors" title="Help">
             <HelpCircle className="w-5 h-5" />
           </button>
+          {isAdmin(user?.email) && (
+            <button onClick={() => { navigate('/admin'); setIsSidebarOpen(false); }} className="p-2 text-indigo-400 hover:text-indigo-300 transition-colors" title="Admin Console">
+              <Shield className="w-5 h-5" />
+            </button>
+          )}
           <button onClick={handleLogout} className="p-2 text-zinc-400 hover:text-red-400 transition-colors" title="Sign Out">
             <LogOut className="w-5 h-5" />
           </button>
@@ -927,6 +933,16 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex flex-col gap-6 w-full items-center mt-auto">
+            {isAdmin(user?.email) && (
+              <button 
+                onClick={() => navigate('/admin')} 
+                className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-white/5 rounded-lg transition-colors relative group"
+                title="Admin Console"
+              >
+                <Shield className="w-5 h-5" />
+                <span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Admin Console</span>
+              </button>
+            )}
             <button 
               onClick={() => navigate('/help')} 
               className="p-2 text-zinc-500 hover:text-white transition-colors relative group"
