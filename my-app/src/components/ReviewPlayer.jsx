@@ -1,16 +1,23 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import VideoPlayer from './VideoPlayer';
 import TimelineMarkers from './TimelineMarkers';
 import CommentSidebar from './CommentSidebar';
 import PlayerControls from './PlayerControls';
+import AnnotationCanvas from './AnnotationCanvas';
+import DrawingToolbar from './DrawingToolbar';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { extractDrawingFromText } from '../utils/drawingHelper';
+import { Pencil, Eye, X } from 'lucide-react';
 
 export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestName, currentVersionNum = 1 }) => {
   const playerRef = useRef(null);
+  const canvasRef = useRef(null);
   const { user } = useAuth();
+  
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(true);
   const [isMouseInside, setIsMouseInside] = useState(false);
@@ -19,6 +26,17 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const wrapperRef = useRef(null);
+
+  // Drawing & Annotation States
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [activeTool, setActiveTool] = useState('pen');
+  const [currentColor, setCurrentColor] = useState('#FACC15');
+  const [currentWidth, setCurrentWidth] = useState(4);
+  const [attachedDrawingStrokes, setAttachedDrawingStrokes] = useState([]);
+  const [activeCommentId, setActiveCommentId] = useState(null);
+  const [activeCommentDrawing, setActiveCommentDrawing] = useState(null);
+  const [showAnnotations, setShowAnnotations] = useState(true);
+  const [strokeHistoryState, setStrokeHistoryState] = useState({ canUndo: false, canRedo: false, count: 0 });
 
   const [sidebarWidth, setSidebarWidth] = useState(384);
   const isDraggingRef = useRef(false);
@@ -81,7 +99,6 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
       .channel(`room_${roomId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments', filter: `room_id=eq.${roomId}` }, (payload) => {
         setComments((current) => {
-          // Check if we already have it to prevent duplicates from our own insert
           if (current.some(c => c.id === payload.new.id)) return current;
           return [...current, payload.new].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         });
@@ -153,14 +170,145 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     player.on('durationchange', () => {
       setDuration(player.duration());
     });
+
+    player.on('play', () => {
+      setIsPlaying(true);
+      // Auto-exit drawing mode when playing
+      setIsDrawingMode(false);
+      setActiveCommentDrawing(null);
+      setActiveCommentId(null);
+    });
+
+    player.on('pause', () => {
+      setIsPlaying(false);
+    });
   };
 
   const handleTimeUpdate = (time) => {
     setCurrentTime(time);
+
+    // If paused and not drawing, check if there's a comment with drawings at this timestamp
+    if (!isDrawingMode && showAnnotations) {
+      const matchingComment = comments.find(c => 
+        c.timestamp !== -1 && 
+        Math.abs(c.timestamp - time) <= 0.3 && 
+        c.comment_text?.includes('___DRAW:')
+      );
+
+      if (matchingComment) {
+        const { drawingData } = extractDrawingFromText(matchingComment.comment_text);
+        if (drawingData?.strokes?.length > 0) {
+          setActiveCommentDrawing(drawingData.strokes);
+          setActiveCommentId(matchingComment.id);
+          return;
+        }
+      }
+
+      // If we seek away from the active comment's timestamp, clear drawing view
+      if (activeCommentDrawing && activeCommentId) {
+        const activeC = comments.find(c => c.id === activeCommentId);
+        if (activeC && Math.abs(activeC.timestamp - time) > 0.3) {
+          setActiveCommentDrawing(null);
+          setActiveCommentId(null);
+        }
+      }
+    }
   };
 
+  // Drawing Mode Controls
+  const handleToggleDraw = useCallback(() => {
+    if (isDrawingMode) {
+      setIsDrawingMode(false);
+    } else {
+      if (playerRef.current) {
+        playerRef.current.pause();
+      }
+      setIsDrawingMode(true);
+      setActiveCommentDrawing(null);
+      setActiveCommentId(null);
+    }
+  }, [isDrawingMode]);
+
+  const handleOpenDrawing = useCallback(() => {
+    if (playerRef.current) {
+      playerRef.current.pause();
+    }
+    setIsDrawingMode(true);
+    setActiveCommentDrawing(null);
+    setActiveCommentId(null);
+  }, []);
+
+  const handleDoneDrawing = useCallback(() => {
+    const currentStrokes = canvasRef.current?.getStrokes() || [];
+    setAttachedDrawingStrokes(currentStrokes);
+    setIsDrawingMode(false);
+  }, []);
+
+  const handleCloseDrawing = useCallback(() => {
+    setIsDrawingMode(false);
+  }, []);
+
+  const handleClearDrawing = useCallback(() => {
+    if (canvasRef.current) {
+      canvasRef.current.clear();
+    }
+    setAttachedDrawingStrokes([]);
+    setStrokeHistoryState({ canUndo: false, canRedo: false, count: 0 });
+  }, []);
+
+  const handleStrokesChange = useCallback((newStrokes) => {
+    setAttachedDrawingStrokes(newStrokes);
+    if (canvasRef.current) {
+      setStrokeHistoryState({
+        canUndo: canvasRef.current.canUndo,
+        canRedo: canvasRef.current.canRedo,
+        count: newStrokes.length
+      });
+    }
+  }, []);
+
+  // Keyboard shortcuts for drawing
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const target = e.target;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName) || target?.isContentEditable) {
+        return;
+      }
+
+      if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        handleToggleDraw();
+      } else if (isDrawingMode) {
+        if (e.key === 'a' || e.key === 'A') {
+          e.preventDefault();
+          setActiveTool('arrow');
+        } else if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          setActiveTool('rect');
+        } else if (e.key === 'c' || e.key === 'C') {
+          e.preventDefault();
+          setActiveTool('circle');
+        } else if (e.key === 'l' || e.key === 'L') {
+          e.preventDefault();
+          setActiveTool('line');
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          handleCloseDrawing();
+        } else if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          canvasRef.current?.undo();
+        } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z' || e.key === 'z'))) {
+          e.preventDefault();
+          canvasRef.current?.redo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDrawingMode, handleToggleDraw, handleCloseDrawing]);
+
   const handleAddComment = async (text, isChat = false, parentId = null) => {
-    // Pause video automatically when adding a comment, unless it's a general chat
     if (playerRef.current && !isChat) {
       playerRef.current.pause();
     }
@@ -209,6 +357,12 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     const tempId = Math.random().toString();
     setComments(prev => [...prev, { ...newComment, id: tempId, created_at: new Date().toISOString() }]);
 
+    // Clear attached drawing from local composer state
+    setAttachedDrawingStrokes([]);
+    if (canvasRef.current) {
+      canvasRef.current.clear();
+    }
+
     // Insert into Supabase
     const { data, error } = await supabase
       .from('comments')
@@ -218,19 +372,21 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
 
     if (error) {
       console.error("Error saving comment:", error);
-      // Revert optimistic update if error
       setComments(prev => prev.filter(c => c.id !== tempId));
       alert(`Failed to save comment: ${error.message}`);
     } else if (data) {
-      // Replace optimistic comment with real one from DB
       setComments(prev => prev.map(c => c.id === tempId ? data : c));
     }
   };
 
   const handleDeleteComment = async (commentId) => {
-    // Optimistic delete
     const commentToDelete = comments.find(c => c.id === commentId);
     setComments(prev => prev.filter(c => c.id !== commentId));
+
+    if (activeCommentId === commentId) {
+      setActiveCommentDrawing(null);
+      setActiveCommentId(null);
+    }
 
     const { error } = await supabase
       .from('comments')
@@ -239,7 +395,6 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
 
     if (error) {
       console.error("Error deleting comment:", error);
-      // Restore on failure
       if (commentToDelete) {
         setComments(prev => [...prev, commentToDelete].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
       }
@@ -260,7 +415,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
       .eq('id', commentId);
 
     if (error) {
-      console.warn("Could not save resolved state. Perhaps the column doesn't exist?", error);
+      console.warn("Could not save resolved state:", error);
     }
   };
 
@@ -268,6 +423,17 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     if (playerRef.current) {
       playerRef.current.seekTo(comment.timestamp);
       playerRef.current.pause();
+    }
+
+    // Check if clicked comment has drawing annotations
+    const { drawingData } = extractDrawingFromText(comment.comment_text);
+    if (drawingData?.strokes?.length > 0) {
+      setActiveCommentDrawing(drawingData.strokes);
+      setActiveCommentId(comment.id);
+      setIsDrawingMode(false);
+    } else {
+      setActiveCommentDrawing(null);
+      setActiveCommentId(comment.id);
     }
   };
 
@@ -296,7 +462,9 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
       setIsIdle(true);
     }, 2500);
   };
+
   const isControlsActive = isFullscreen ? !isIdle : (isMouseInside && !isIdle);
+  const activeCommentObj = comments.find(c => c.id === activeCommentId);
 
   return (
     <div
@@ -317,12 +485,13 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
             : isExpanded
               ? 'w-full lg:h-full bg-black'
               : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
-            } ${!isControlsActive && isMouseInside ? 'cursor-none' : ''}`}
+            } ${!isControlsActive && isMouseInside && !isDrawingMode ? 'cursor-none' : ''}`}
           onMouseEnter={() => setIsMouseInside(true)}
           onMouseLeave={() => setIsMouseInside(false)}
           onMouseMove={handleMouseMove}
-          onDoubleClick={handleToggleFullscreen}
+          onDoubleClick={isDrawingMode ? undefined : handleToggleFullscreen}
         >
+          {/* Video Container + Drawing Canvas Overlay */}
           <div className={`w-full relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto ${isExpanded ? 'aspect-video lg:h-full lg:aspect-auto' : 'aspect-video'}`}>
             <VideoPlayer
               key={processedUrl}
@@ -331,8 +500,64 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
               onReady={handlePlayerReady}
               onTimeUpdate={handleTimeUpdate}
             />
+
+            {/* Interactive Drawing Canvas Layer */}
+            <AnnotationCanvas
+              ref={canvasRef}
+              isDrawingMode={isDrawingMode}
+              activeTool={activeTool}
+              currentColor={currentColor}
+              currentWidth={currentWidth}
+              onStrokesChange={handleStrokesChange}
+              initialStrokes={attachedDrawingStrokes}
+              readOnlyStrokes={activeCommentDrawing}
+              showAnnotations={showAnnotations && !isPlaying}
+            />
+
+            {/* Floating Glassmorphic Drawing Toolbar */}
+            {isDrawingMode && (
+              <DrawingToolbar
+                activeTool={activeTool}
+                setActiveTool={setActiveTool}
+                currentColor={currentColor}
+                setCurrentColor={setCurrentColor}
+                currentWidth={currentWidth}
+                setCurrentWidth={setCurrentWidth}
+                canUndo={strokeHistoryState.canUndo}
+                canRedo={strokeHistoryState.canRedo}
+                onUndo={() => canvasRef.current?.undo()}
+                onRedo={() => canvasRef.current?.redo()}
+                onClear={handleClearDrawing}
+                onDone={handleDoneDrawing}
+                onClose={handleCloseDrawing}
+                strokeCount={strokeHistoryState.count}
+              />
+            )}
+
+            {/* Read-Only Annotation Indicator Pill */}
+            {!isDrawingMode && activeCommentDrawing && showAnnotations && !isPlaying && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-1.5 bg-black/75 backdrop-blur-xl border border-amber-500/40 rounded-full shadow-2xl animate-in fade-in duration-200">
+                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-xs font-semibold text-amber-200 flex items-center gap-1">
+                  <Pencil className="w-3 h-3 text-amber-400" />
+                  Annotation by {activeCommentObj?.author_name || activeCommentObj?.author || 'User'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveCommentDrawing(null);
+                    setActiveCommentId(null);
+                  }}
+                  className="text-zinc-400 hover:text-white ml-1 p-0.5 rounded-full hover:bg-white/10"
+                  title="Dismiss annotation overlay"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
+          {/* Player Controls Bar */}
           <div className={`w-full z-50 flex justify-center ${isFullscreen
             ? 'absolute bottom-6 left-0 right-0 px-4'
             : isExpanded
@@ -347,10 +572,16 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
               onToggleFullscreen={handleToggleFullscreen}
               isFullscreen={isFullscreen}
               onToggleExpand={() => setIsExpanded(!isExpanded)}
+              onToggleDraw={handleToggleDraw}
+              isDrawingMode={isDrawingMode}
+              showAnnotations={showAnnotations}
+              onToggleAnnotations={() => setShowAnnotations(!showAnnotations)}
             />
           </div>
         </div>
       </div>
+
+      {/* Comment & Chat Sidebar */}
       <div className="sidebar-container w-full flex-shrink-0 lg:border-l border-white/10 bg-black/40 backdrop-blur-xl relative z-10">
         <style>{`
           @media (min-width: 1024px) {
@@ -374,6 +605,10 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
           currentUserIdentity={isClient ? { name: guestName, isClient: true, id: user?.id } : { id: user?.id, name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous' }}
           currentVersionNum={currentVersionNum}
           rawVideoUrl={rawVideoUrl}
+          attachedDrawing={attachedDrawingStrokes}
+          onOpenDrawing={handleOpenDrawing}
+          onClearAttachedDrawing={handleClearDrawing}
+          activeCommentId={activeCommentId}
         />
       </div>
     </div>

@@ -1,8 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Subtitles, Volume2, VolumeX, Maximize, Plus, Minus, Expand } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Subtitles, Volume2, VolumeX, Maximize, Plus, Minus, Expand, Pencil, Eye, EyeOff } from 'lucide-react';
 import LiquidGlass from 'liquid-glass-react';
 
-export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMouseInside, onToggleFullscreen, isFullscreen, onToggleExpand }) => {
+export const PlayerControls = ({ 
+  playerRef, 
+  comments = [], 
+  onMarkerClick, 
+  isMouseInside, 
+  onToggleFullscreen, 
+  isFullscreen, 
+  onToggleExpand,
+  onToggleDraw,
+  isDrawingMode = false,
+  showAnnotations = true,
+  onToggleAnnotations
+}) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -167,16 +179,27 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
       {/* Hovered Comment Tooltip */}
       {hoveredComment && duration > 0 && (
         <div 
-          className="absolute bottom-full mb-4 bg-zinc-800 text-zinc-100 text-xs py-1.5 px-3 rounded-md w-48 shadow-xl z-[60] break-words pointer-events-none text-left transform -translate-x-1/2 transition-opacity duration-200"
+          className="absolute bottom-full mb-4 bg-zinc-800 text-zinc-100 text-xs py-2 px-3 rounded-xl border border-white/10 shadow-2xl z-[60] break-words pointer-events-none text-left transform -translate-x-1/2 transition-opacity duration-200 min-w-[140px] max-w-xs"
           style={{ left: `${(hoveredComment.timestamp / duration) * 100}%` }}
         >
-          <div className="font-semibold text-[10px] text-zinc-400 mb-0.5 uppercase tracking-wider">
-            {hoveredComment.author_name || hoveredComment.author || 'User'}
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="font-semibold text-[10px] text-zinc-400 uppercase tracking-wider">
+              {hoveredComment.author_name || hoveredComment.author || 'User'}
+            </span>
+            {hoveredComment.comment_text?.includes('___DRAW:') && (
+              <span className="text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
+                ✏️ Drawing
+              </span>
+            )}
           </div>
-          <div className="text-sm">
-            {hoveredComment.comment_text}
+          <div className="text-xs text-zinc-200 line-clamp-2">
+            {hoveredComment.comment_text
+              ?.replace(/___DRAW:.*?___/s, '')
+              ?.replace(/___VER:\d+___/s, '')
+              ?.replace(/___REPLY:[a-zA-Z0-9-]+___/s, '')
+              || 'Visual annotation on this frame'}
           </div>
-          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-800 rotate-45"></div>
+          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-800 border-b border-r border-white/10 rotate-45"></div>
         </div>
       )}
 
@@ -201,10 +224,16 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
             <div className="absolute inset-0 w-full h-full pointer-events-none">
               {comments.filter(c => c.timestamp !== -1 && !c.comment_text.startsWith('___REPLY:')).map((comment) => {
                 const leftPercent = duration ? (comment.timestamp / duration) * 100 : 0;
+                const hasDrawing = comment.comment_text && comment.comment_text.includes('___DRAW:');
+
                 return (
                   <div
                     key={comment.id}
-                    className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-indigo-400 rounded-full cursor-pointer pointer-events-auto transform -translate-x-1/2 hover:scale-150 transition-transform shadow-[0_0_8px_rgba(99,102,241,0.8)] border-2 border-zinc-900 z-30"
+                    className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full cursor-pointer pointer-events-auto transform -translate-x-1/2 hover:scale-150 transition-transform border-2 z-30 ${
+                      hasDrawing
+                        ? 'bg-amber-400 border-amber-100 shadow-[0_0_10px_rgba(251,191,36,0.9)] ring-2 ring-amber-400/40'
+                        : 'bg-indigo-400 border-zinc-900 shadow-[0_0_8px_rgba(99,102,241,0.8)]'
+                    }`}
                     style={{ left: `${leftPercent}%` }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -268,8 +297,24 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
                 onChange={handleSubtitleUpload}
               />
 
-              {/* MOBILE ONLY: Speed, CC, Fullscreen */}
-              <div className={`${isFullscreen ? 'hidden' : 'flex lg:hidden'} items-center justify-end gap-3`}>
+              {/* MOBILE ONLY: Draw, Eye, Speed, CC, Expand, Fullscreen */}
+              <div className={`${isFullscreen ? 'hidden' : 'flex lg:hidden'} items-center justify-end gap-2`}>
+                <button 
+                  onClick={onToggleDraw} 
+                  className={`p-1.5 rounded-lg transition-all ${isDrawingMode ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/40' : 'text-white hover:text-amber-400'}`}
+                  title={isDrawingMode ? "Exit Drawing Mode" : "Draw on frame"}
+                >
+                  <Pencil size={15} />
+                </button>
+                {onToggleAnnotations && (
+                  <button 
+                    onClick={onToggleAnnotations} 
+                    className={`p-1.5 rounded-lg transition-all ${showAnnotations ? 'text-white hover:text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    title={showAnnotations ? "Hide Annotations" : "Show Annotations"}
+                  >
+                    {showAnnotations ? <Eye size={15} /> : <EyeOff size={15} />}
+                  </button>
+                )}
                 <div className="flex items-center bg-white/10 rounded-full px-2 py-1 border border-white/10">
                   <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 p-0.5"><Minus size={12} /></button>
                   <span className="text-white/90 text-[10px] font-mono font-medium w-6 text-center">{speed}x</span>
@@ -294,16 +339,43 @@ export const PlayerControls = ({ playerRef, comments = [], onMarkerClick, isMous
               </button>
             </div>
 
-            {/* DESKTOP ONLY: Speed, CC, Fullscreen */}
-            <div className={`${isFullscreen ? 'flex' : 'hidden lg:flex'} items-center justify-end gap-2 lg:gap-5 w-[30%]`}>
+            {/* DESKTOP ONLY: Draw, Annotations, Speed, CC, Expand, Fullscreen */}
+            <div className={`${isFullscreen ? 'flex' : 'hidden lg:flex'} items-center justify-end gap-2 lg:gap-3.5 w-[30%]`}>
+              {/* Draw on Frame Button */}
+              <button 
+                onClick={onToggleDraw} 
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  isDrawingMode 
+                    ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/30 scale-105' 
+                    : 'text-zinc-300 hover:text-white bg-white/5 hover:bg-white/15 border border-white/10'
+                }`}
+                title={isDrawingMode ? "Exit Drawing Mode" : "Draw on Video Frame (P)"}
+              >
+                <Pencil size={14} className={isDrawingMode ? "text-black fill-black" : "text-amber-400"} />
+                <span>{isDrawingMode ? 'Drawing' : 'Draw'}</span>
+              </button>
+
+              {/* Toggle Annotations Visibility */}
+              {onToggleAnnotations && (
+                <button 
+                  onClick={onToggleAnnotations} 
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    showAnnotations ? 'text-zinc-300 hover:text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                  title={showAnnotations ? "Hide Annotations on Video" : "Show Annotations on Video"}
+                >
+                  {showAnnotations ? <Eye size={18} /> : <EyeOff size={18} className="text-zinc-500" />}
+                </button>
+              )}
+
               <div className="hidden sm:flex items-center bg-white/10 rounded-full px-2 py-1 lg:py-1.5 border border-white/10 shadow-lg">
                 <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 p-1"><Minus size={14} className="w-3 h-3 lg:w-3.5 lg:h-3.5" /></button>
                 <span className="text-white/90 text-[10px] lg:text-xs font-mono font-medium w-6 lg:w-9 text-center">{speed}x</span>
                 <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 p-1"><Plus size={14} className="w-3 h-3 lg:w-3.5 lg:h-3.5" /></button>
               </div>
-              <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1"><Subtitles size={20} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
-              <button onClick={onToggleExpand} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1"><Expand size={20} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
-              <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1"><Maximize size={20} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
+              <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Subtitles"><Subtitles size={19} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
+              <button onClick={onToggleExpand} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Expand View"><Expand size={19} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
+              <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Fullscreen"><Maximize size={19} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
             </div>
 
           </div>

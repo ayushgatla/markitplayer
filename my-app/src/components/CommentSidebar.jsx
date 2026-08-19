@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Send, Globe, MoreHorizontal, CheckCircle, Search, Menu, ListFilter, Trash2, Image as ImageIcon, X, Loader2 } from 'lucide-react';
+import { Send, Globe, MoreHorizontal, CheckCircle, Search, Menu, ListFilter, Trash2, Image as ImageIcon, X, Loader2, Pencil } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { supabase } from '../supabaseClient';
+import { extractDrawingFromText, injectDrawingIntoText } from '../utils/drawingHelper';
 
 dayjs.extend(relativeTime);
 
@@ -32,6 +33,7 @@ const formatRelativeTime = (dateStr) => {
 
 // Parse markdown image syntax ![alt](url)
 const renderTextWithImages = (text) => {
+  if (!text) return null;
   const parts = text.split(/(!\[.*?\]\(.*?\))/g);
   return parts.map((part, index) => {
     const match = part.match(/^!\[(.*?)\]\((.*?)\)$/);
@@ -55,7 +57,11 @@ export const CommentSidebar = ({
   onDeleteComment,
   onToggleResolve,
   currentVersionNum = 1,
-  rawVideoUrl
+  rawVideoUrl,
+  attachedDrawing = [],
+  onOpenDrawing,
+  onClearAttachedDrawing,
+  activeCommentId = null
 }) => {
   const [newComment, setNewComment] = useState('');
   const [activeTab, setActiveTab] = useState('comments');
@@ -100,7 +106,8 @@ export const CommentSidebar = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newComment.trim() && !mainImageFile) return;
+    const hasDrawing = attachedDrawing && attachedDrawing.length > 0;
+    if (!newComment.trim() && !mainImageFile && !hasDrawing) return;
     
     let finalComment = newComment.trim();
     
@@ -112,9 +119,16 @@ export const CommentSidebar = ({
       finalComment += `\n\n![image](${imageUrl})`;
     }
 
+    if (hasDrawing && activeTab === 'comments') {
+      finalComment = injectDrawingIntoText(finalComment, { v: 1, strokes: attachedDrawing });
+    }
+
     onAddComment(finalComment, activeTab === 'chat');
     setNewComment('');
     setMainImageFile(null);
+    if (onClearAttachedDrawing) {
+      onClearAttachedDrawing();
+    }
   };
 
   const handleInlineReplySubmit = async (e, parentId) => {
@@ -208,6 +222,10 @@ export const CommentSidebar = ({
             let isReply = false;
             let parentId = null;
 
+            // Extract drawing first
+            const { cleanText: textAfterDrawing, drawingData } = extractDrawingFromText(text);
+            text = textAfterDrawing;
+
             // Check reply prefix
             const replyMatch = text.match(/^___REPLY:([a-zA-Z0-9-]+)___(.*)/s);
             if (replyMatch) {
@@ -223,7 +241,7 @@ export const CommentSidebar = ({
               text = verMatch[2];
             }
 
-            return { ...c, isReply, parentId, version, cleanText: text };
+            return { ...c, isReply, parentId, version, drawingData, cleanText: text };
           });
 
           const getReplies = (parentId) => {
@@ -258,7 +276,7 @@ export const CommentSidebar = ({
           if (displayComments.length === 0) {
             return (
               <div className="text-zinc-500 text-sm text-center mt-10 bg-[#1a1b23] p-4 rounded-xl border border-white/5">
-                No {activeTab === 'chat' ? 'messages' : 'comments'} yet. {activeTab === 'comments' && 'Pause the video to add one!'}
+                No {activeTab === 'chat' ? 'messages' : 'comments'} yet. {activeTab === 'comments' && 'Pause the video to add one or draw on the frame!'}
               </div>
             );
           }
@@ -270,6 +288,8 @@ export const CommentSidebar = ({
             
             const avatarInitials = (comment.author_name || comment.author || 'U').substring(0, 2).toUpperCase();
             const replies = getReplies(comment.id);
+            const isSelected = activeCommentId === comment.id;
+            const hasDrawing = comment.drawingData?.strokes?.length > 0;
 
             return (
               <div key={comment.id} className="flex flex-col mb-4">
@@ -285,10 +305,14 @@ export const CommentSidebar = ({
                   {/* Content Box */}
                   <div 
                     onClick={() => activeTab === 'comments' && onCommentClick(comment)}
-                    className={`flex-1 border rounded-xl p-3 ${activeTab === 'comments' ? 'cursor-pointer hover:bg-[#232430]' : ''} transition-colors shadow-sm ${
-                      comment.resolved && activeTab === 'comments'
-                        ? 'bg-[#1b3323] border-[#295c3c] hover:bg-[#213e2b]'
-                        : 'bg-[#1c1d27] border-white/5'
+                    className={`flex-1 border rounded-xl p-3 ${
+                      activeTab === 'comments' ? 'cursor-pointer hover:bg-[#232430]' : ''
+                    } transition-all shadow-sm ${
+                      isSelected
+                        ? 'bg-[#252438] border-indigo-500/60 ring-1 ring-indigo-500/40'
+                        : comment.resolved && activeTab === 'comments'
+                          ? 'bg-[#1b3323] border-[#295c3c] hover:bg-[#213e2b]'
+                          : 'bg-[#1c1d27] border-white/5'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -298,6 +322,15 @@ export const CommentSidebar = ({
                       </div>
                       {activeTab === 'comments' && (
                         <div className="flex items-center gap-1.5 text-zinc-500">
+                          {hasDrawing && (
+                            <span 
+                              className="text-[10px] font-semibold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm"
+                              title={`${comment.drawingData.strokes.length} drawing annotations`}
+                            >
+                              <Pencil className="w-2.5 h-2.5 text-amber-400" />
+                              <span>Drawing</span>
+                            </span>
+                          )}
                           {comment.version && (
                             <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/50 px-1.5 py-0.2 rounded font-mono">
                               v{comment.version}
@@ -315,9 +348,12 @@ export const CommentSidebar = ({
                           {formatTime(comment.timestamp)}
                         </span>
                       )}
-                      <p className="text-[13px] text-zinc-300 leading-snug flex-1 break-words whitespace-pre-wrap">
+                      <div className="text-[13px] text-zinc-300 leading-snug flex-1 break-words whitespace-pre-wrap">
                         {renderTextWithImages(comment.cleanText)}
-                      </p>
+                        {!comment.cleanText && hasDrawing && (
+                          <span className="italic text-zinc-400 text-xs">Visual drawing on this frame</span>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex items-center justify-between mt-3">
@@ -489,29 +525,65 @@ export const CommentSidebar = ({
       <div className="p-4 border-t border-white/5 bg-[#14151b]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
           {activeTab === 'comments' && (
-            <div className="text-[11px] text-zinc-400 flex justify-between px-1 mb-1 font-medium">
+            <div className="text-[11px] text-zinc-400 flex justify-between px-1 mb-1 font-medium items-center">
               <span>Adding comment at:</span>
               <span className="font-mono text-indigo-400">{formatTime(currentTime)}</span>
             </div>
           )}
+
+          {/* Attached Drawing Indicator Chip */}
+          {activeTab === 'comments' && attachedDrawing && attachedDrawing.length > 0 && (
+            <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded-xl text-xs mb-1 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <Pencil className="w-3 h-3 text-amber-400" />
+                </div>
+                <span className="font-medium">
+                  Drawing attached ({attachedDrawing.length} {attachedDrawing.length === 1 ? 'shape' : 'shapes'})
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {onOpenDrawing && (
+                  <button 
+                    type="button" 
+                    onClick={onOpenDrawing} 
+                    className="text-[11px] font-semibold text-amber-300 hover:text-white underline transition-colors cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                )}
+                {onClearAttachedDrawing && (
+                  <button 
+                    type="button" 
+                    onClick={onClearAttachedDrawing} 
+                    className="text-zinc-400 hover:text-red-400 p-0.5 rounded transition-colors"
+                    title="Remove drawing"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           <input 
-            type="file"
-            accept="image/*"
-            className="hidden"
-            ref={mainFileInputRef}
+            type="file" 
+            accept="image/*" 
+            className="hidden" 
+            ref={mainFileInputRef} 
             onChange={(e) => {
               if (e.target.files && e.target.files[0]) {
                 setMainImageFile(e.target.files[0]);
               }
-            }}
+            }} 
           />
           <div className="relative bg-[#1c1d27] border border-white/10 rounded-xl shadow-inner focus-within:border-indigo-500/50 transition-colors overflow-hidden">
             {mainImageFile && (
               <div className="p-3 border-b border-white/5 relative bg-[#14151b]">
                 <img src={URL.createObjectURL(mainImageFile)} alt="preview" className="h-24 rounded-lg object-cover" />
                 <button 
-                  type="button"
-                  onClick={() => setMainImageFile(null)}
+                  type="button" 
+                  onClick={() => setMainImageFile(null)} 
                   className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full text-zinc-300 hover:text-white"
                 >
                   <X className="w-4 h-4" />
@@ -519,9 +591,9 @@ export const CommentSidebar = ({
               </div>
             )}
             <textarea
-              className="w-full bg-transparent p-3 pr-20 text-[13px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none"
+              className="w-full bg-transparent p-3 pr-24 text-[13px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none"
               rows={2}
-              placeholder={`Type your ${activeTab === 'chat' ? 'message' : 'comment'}...`}
+              placeholder={activeTab === 'chat' ? 'Type a chat message...' : (attachedDrawing?.length > 0 ? 'Add a note to your drawing (optional)...' : 'Type a comment or draw on frame...')}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               onKeyDown={(e) => {
@@ -532,6 +604,22 @@ export const CommentSidebar = ({
               }}
             />
             <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-white/5 p-1 rounded-lg">
+              {/* Draw on Frame Button */}
+              {activeTab === 'comments' && onOpenDrawing && (
+                <button
+                  type="button"
+                  onClick={onOpenDrawing}
+                  className={`p-1.5 rounded-md transition-colors ${
+                    attachedDrawing?.length > 0 
+                      ? 'text-amber-400 bg-amber-500/20 hover:bg-amber-500/30' 
+                      : 'text-zinc-400 hover:text-amber-400 hover:bg-white/10'
+                  }`}
+                  title="Draw on frame (P)"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => mainFileInputRef.current?.click()}
@@ -542,7 +630,7 @@ export const CommentSidebar = ({
               </button>
               <button
                 type="submit"
-                disabled={(!newComment.trim() && !mainImageFile) || isUploadingMain}
+                disabled={(!newComment.trim() && !mainImageFile && (!attachedDrawing || attachedDrawing.length === 0)) || isUploadingMain}
                 className="text-zinc-400 hover:text-indigo-400 disabled:opacity-50 disabled:hover:text-zinc-500 hover:bg-white/10 p-1.5 rounded-md transition-colors"
               >
                 {isUploadingMain ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
