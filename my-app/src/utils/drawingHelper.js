@@ -1,8 +1,10 @@
-// Drawing Helper Utilities for MarkitPlayer
+// Drawing & Timeline Range Helper Utilities for MarkitPlayer
 // Handles serialization, deserialization, parsing from comment strings, and vector canvas rendering.
 
 export const DRAWING_PREFIX = '___DRAW:';
 export const DRAWING_SUFFIX = '___';
+export const RANGE_PREFIX = '___RANGE:';
+export const RANGE_SUFFIX = '___';
 
 /**
  * Extracts drawing data from a raw comment string.
@@ -45,6 +47,61 @@ export function injectDrawingIntoText(text, drawingData) {
   }
   const serialized = encodeURIComponent(JSON.stringify(drawingData));
   return `${DRAWING_PREFIX}${serialized}${DRAWING_SUFFIX}${text ? ' ' + text : ''}`;
+}
+
+/**
+ * Extracts range end timestamp from a comment text string.
+ * Returns { cleanText, endTime: number | null }
+ */
+export function extractRangeFromText(rawText) {
+  if (!rawText || typeof rawText !== 'string') {
+    return { cleanText: rawText || '', endTime: null };
+  }
+
+  const regex = new RegExp(`${RANGE_PREFIX}(.*?)${RANGE_SUFFIX}`, 's');
+  const match = rawText.match(regex);
+
+  if (!match) {
+    return { cleanText: rawText, endTime: null };
+  }
+
+  let endTime = null;
+  const parsed = parseFloat(match[1]);
+  if (!isNaN(parsed) && parsed >= 0) {
+    endTime = parsed;
+  }
+
+  const cleanText = rawText.replace(match[0], '').trim();
+  return { cleanText, endTime };
+}
+
+/**
+ * Injects range end timestamp into a comment text string.
+ */
+export function injectRangeIntoText(text, endTime) {
+  if (endTime === null || endTime === undefined || isNaN(endTime) || endTime < 0) {
+    return text;
+  }
+  return `${RANGE_PREFIX}${endTime}${RANGE_SUFFIX}${text ? ' ' + text : ''}`;
+}
+
+/**
+ * Format a time range string with duration (e.g. "00:01:10 - 00:01:15 (5.0s)")
+ */
+export function formatRangeTime(startTime, endTime) {
+  const formatSingle = (seconds) => {
+    if (!seconds || seconds < 0 || isNaN(seconds)) return '00:00:00';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 10);
+    return `${m}:${s < 10 ? '0' : ''}${s}.${ms}`;
+  };
+
+  if (endTime !== null && endTime !== undefined && endTime > startTime) {
+    const duration = (endTime - startTime).toFixed(1);
+    return `${formatSingle(startTime)} - ${formatSingle(endTime)} (${duration}s)`;
+  }
+  return formatSingle(startTime);
 }
 
 /**

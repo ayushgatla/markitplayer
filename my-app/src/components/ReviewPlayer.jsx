@@ -7,8 +7,17 @@ import AnnotationCanvas from './AnnotationCanvas';
 import DrawingToolbar from './DrawingToolbar';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { extractDrawingFromText } from '../utils/drawingHelper';
+import { extractDrawingFromText, extractRangeFromText } from '../utils/drawingHelper';
 import { Pencil, Eye, X } from 'lucide-react';
+
+const formatTime = (seconds) => {
+  if (!seconds || seconds === -1 || isNaN(seconds)) return '00:00:00:00';
+  const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+  const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+  const frames = Math.floor((seconds % 1) * 30).toString().padStart(2, '0');
+  return `${h}:${m}:${s}:${frames}`;
+};
 
 export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestName, currentVersionNum = 1 }) => {
   const playerRef = useRef(null);
@@ -36,6 +45,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
   const [activeCommentId, setActiveCommentId] = useState(null);
   const [activeCommentDrawing, setActiveCommentDrawing] = useState(null);
   const [showAnnotations, setShowAnnotations] = useState(true);
+  const [activeRangePreview, setActiveRangePreview] = useState(null);
   const [strokeHistoryState, setStrokeHistoryState] = useState({ canUndo: false, canRedo: false, count: 0 });
 
   const [sidebarWidth, setSidebarWidth] = useState(384);
@@ -173,10 +183,8 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
 
     player.on('play', () => {
       setIsPlaying(true);
-      // Auto-exit drawing mode when playing
+      // Exit active drawing editing mode when playback starts
       setIsDrawingMode(false);
-      setActiveCommentDrawing(null);
-      setActiveCommentId(null);
     });
 
     player.on('pause', () => {
@@ -184,16 +192,22 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     });
   };
 
+  // Manage timeline range and drawing annotations on time update
   const handleTimeUpdate = (time) => {
     setCurrentTime(time);
 
-    // If paused and not drawing, check if there's a comment with drawings at this timestamp
     if (!isDrawingMode && showAnnotations) {
-      const matchingComment = comments.find(c => 
-        c.timestamp !== -1 && 
-        Math.abs(c.timestamp - time) <= 0.3 && 
-        c.comment_text?.includes('___DRAW:')
-      );
+      // Find comment whose range covers the current time
+      const matchingComment = comments.find(c => {
+        if (c.timestamp === -1) return false;
+        const { endTime } = extractRangeFromText(c.comment_text);
+        if (endTime !== null && endTime > c.timestamp) {
+          // Range comment: active throughout [start - 0.05, end + 0.05]
+          return time >= (c.timestamp - 0.05) && time <= (endTime + 0.05);
+        }
+        // Single frame comment: active within 0.3s when paused or scrubbing
+        return Math.abs(c.timestamp - time) <= 0.3;
+      });
 
       if (matchingComment) {
         const { drawingData } = extractDrawingFromText(matchingComment.comment_text);
@@ -204,12 +218,20 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
         }
       }
 
-      // If we seek away from the active comment's timestamp, clear drawing view
+      // If we seek away from the active comment's span, clear drawing view
       if (activeCommentDrawing && activeCommentId) {
         const activeC = comments.find(c => c.id === activeCommentId);
-        if (activeC && Math.abs(activeC.timestamp - time) > 0.3) {
-          setActiveCommentDrawing(null);
-          setActiveCommentId(null);
+        if (activeC) {
+          const { endTime } = extractRangeFromText(activeC.comment_text);
+          if (endTime !== null && endTime > activeC.timestamp) {
+            if (time < (activeC.timestamp - 0.05) || time > (endTime + 0.05)) {
+              setActiveCommentDrawing(null);
+              setActiveCommentId(null);
+            }
+          } else if (Math.abs(activeC.timestamp - time) > 0.3) {
+            setActiveCommentDrawing(null);
+            setActiveCommentId(null);
+          }
         }
       }
     }
@@ -267,7 +289,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     }
   }, []);
 
-  // Keyboard shortcuts for drawing
+  // Keyboard shortcuts for drawing & range In/Out points
   useEffect(() => {
     const handleKeyDown = (e) => {
       const target = e.target;
@@ -308,7 +330,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isDrawingMode, handleToggleDraw, handleCloseDrawing]);
 
-  const handleAddComment = async (text, isChat = false, parentId = null) => {
+  const handleAddComment = async (text, isChat = false, parentId = null, customTimestamp = null) => {
     if (playerRef.current && !isChat) {
       playerRef.current.pause();
     }
@@ -332,7 +354,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
       userId = user.id;
     }
 
-    let finalTimestamp = isChat ? -1 : currentTime;
+    let finalTimestamp = isChat ? -1 : (customTimestamp !== null && customTimestamp !== undefined ? customTimestamp : currentTime);
     let finalCommentText = text;
 
     if (parentId) {
@@ -465,6 +487,8 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
 
   const isControlsActive = isFullscreen ? !isIdle : (isMouseInside && !isIdle);
   const activeCommentObj = comments.find(c => c.id === activeCommentId);
+  const activeRange = activeCommentObj ? extractRangeFromText(activeCommentObj.comment_text) : { endTime: null };
+  const isRangeComment = activeRange.endTime && activeRange.endTime > activeCommentObj?.timestamp;
 
   return (
     <div
@@ -511,7 +535,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
               onStrokesChange={handleStrokesChange}
               initialStrokes={attachedDrawingStrokes}
               readOnlyStrokes={activeCommentDrawing}
-              showAnnotations={showAnnotations && !isPlaying}
+              showAnnotations={showAnnotations}
             />
 
             {/* Floating Glassmorphic Drawing Toolbar */}
@@ -535,12 +559,17 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
             )}
 
             {/* Read-Only Annotation Indicator Pill */}
-            {!isDrawingMode && activeCommentDrawing && showAnnotations && !isPlaying && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-1.5 bg-black/75 backdrop-blur-xl border border-amber-500/40 rounded-full shadow-2xl animate-in fade-in duration-200">
-                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-xs font-semibold text-amber-200 flex items-center gap-1">
-                  <Pencil className="w-3 h-3 text-amber-400" />
-                  Annotation by {activeCommentObj?.author_name || activeCommentObj?.author || 'User'}
+            {!isDrawingMode && activeCommentDrawing && showAnnotations && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-1.5 bg-black/80 backdrop-blur-xl border border-white/20 rounded-full shadow-2xl animate-in fade-in duration-200">
+                <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <Pencil className="w-3 h-3 text-white" />
+                  <span>Annotation by {activeCommentObj?.author_name || activeCommentObj?.author || 'User'}</span>
+                  {isRangeComment && (
+                    <span className="text-[10px] font-mono text-white bg-white/10 px-1.5 py-0.2 rounded border border-white/20">
+                      ↔ {formatTime(activeCommentObj.timestamp)} - {formatTime(activeRange.endTime)}
+                    </span>
+                  )}
                 </span>
                 <button
                   type="button"
@@ -576,6 +605,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
               isDrawingMode={isDrawingMode}
               showAnnotations={showAnnotations}
               onToggleAnnotations={() => setShowAnnotations(!showAnnotations)}
+              activeRangePreview={activeRangePreview}
             />
           </div>
         </div>
@@ -598,6 +628,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
         <CommentSidebar
           comments={comments}
           currentTime={currentTime}
+          duration={duration}
           onAddComment={handleAddComment}
           onCommentClick={handleCommentClick}
           onDeleteComment={handleDeleteComment}
@@ -609,6 +640,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
           onOpenDrawing={handleOpenDrawing}
           onClearAttachedDrawing={handleClearDrawing}
           activeCommentId={activeCommentId}
+          onRangePreviewChange={setActiveRangePreview}
         />
       </div>
     </div>

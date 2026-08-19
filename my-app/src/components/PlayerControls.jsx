@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Subtitles, Volume2, VolumeX, Maximize, Plus, Minus, Expand, Pencil, Eye, EyeOff } from 'lucide-react';
 import LiquidGlass from 'liquid-glass-react';
+import { extractRangeFromText, formatRangeTime } from '../utils/drawingHelper';
 
 export const PlayerControls = ({ 
   playerRef, 
@@ -13,7 +14,8 @@ export const PlayerControls = ({
   onToggleDraw,
   isDrawingMode = false,
   showAnnotations = true,
-  onToggleAnnotations
+  onToggleAnnotations,
+  activeRangePreview = null
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -119,7 +121,6 @@ export const PlayerControls = ({
     if (player) {
       const url = URL.createObjectURL(file);
       
-      // Clean up previous tracks to prevent duplicates
       const tracks = player.textTracks();
       for (let i = tracks.length - 1; i >= 0; i--) {
         if (tracks[i].kind === 'subtitles' || tracks[i].kind === 'captions') {
@@ -135,7 +136,6 @@ export const PlayerControls = ({
         default: true
       }, false);
 
-      // Force track to showing mode, video.js requires this specifically for dynamically added blobs
       trackEl.track.mode = 'showing';
     }
   };
@@ -177,31 +177,53 @@ export const PlayerControls = ({
   return (
     <div className={`w-full transition-all duration-500 ease-in-out mx-auto ${showControls ? (isFullscreen ? 'w-[calc(100%-1rem)] lg:w-[calc(100%-3rem)]' : 'lg:w-[calc(100%-3rem)]') : (isFullscreen ? 'w-[60%] max-w-2xl' : 'lg:w-[60%] lg:max-w-2xl')}`}>
       {/* Hovered Comment Tooltip */}
-      {hoveredComment && duration > 0 && (
-        <div 
-          className="absolute bottom-full mb-4 bg-zinc-800 text-zinc-100 text-xs py-2 px-3 rounded-xl border border-white/10 shadow-2xl z-[60] break-words pointer-events-none text-left transform -translate-x-1/2 transition-opacity duration-200 min-w-[140px] max-w-xs"
-          style={{ left: `${(hoveredComment.timestamp / duration) * 100}%` }}
-        >
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="font-semibold text-[10px] text-zinc-400 uppercase tracking-wider">
-              {hoveredComment.author_name || hoveredComment.author || 'User'}
-            </span>
-            {hoveredComment.comment_text?.includes('___DRAW:') && (
-              <span className="text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
-                ✏️ Drawing
+      {hoveredComment && duration > 0 && (() => {
+        const { endTime } = extractRangeFromText(hoveredComment.comment_text);
+        const hasDrawing = hoveredComment.comment_text?.includes('___DRAW:');
+        const isRange = endTime && endTime > hoveredComment.timestamp;
+
+        return (
+          <div 
+            className="absolute bottom-full mb-4 bg-zinc-850 bg-zinc-900 text-zinc-100 text-xs py-2 px-3 rounded-xl border border-white/15 shadow-2xl z-[70] break-words pointer-events-none text-left transform -translate-x-1/2 transition-opacity duration-200 min-w-[160px] max-w-xs backdrop-blur-md"
+            style={{ left: `${(hoveredComment.timestamp / duration) * 100}%` }}
+          >
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="font-semibold text-[10px] text-zinc-400 uppercase tracking-wider">
+                {hoveredComment.author_name || hoveredComment.author || 'User'}
               </span>
+              <div className="flex items-center gap-1">
+                {isRange && (
+                  <span className="text-[9px] font-bold bg-white/10 text-white border border-white/20 px-1.5 py-0.2 rounded-full">
+                    ↔ Range
+                  </span>
+                )}
+                {hasDrawing && (
+                  <span className="text-[9px] font-bold bg-white/10 text-white border border-white/20 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
+                    <Pencil className="w-2.5 h-2.5 text-white" />
+                    <span>Drawing</span>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {isRange && (
+              <div className="text-[11px] font-mono text-white font-medium mb-1">
+                {formatRangeTime(hoveredComment.timestamp, endTime)}
+              </div>
             )}
+
+            <div className="text-xs text-zinc-200 line-clamp-2">
+              {hoveredComment.comment_text
+                ?.replace(/___RANGE:.*?___/s, '')
+                ?.replace(/___DRAW:.*?___/s, '')
+                ?.replace(/___VER:\d+___/s, '')
+                ?.replace(/___REPLY:[a-zA-Z0-9-]+___/s, '')
+                || (hasDrawing ? 'Visual drawing across range' : 'Comment')}
+            </div>
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-900 border-b border-r border-white/15 rotate-45"></div>
           </div>
-          <div className="text-xs text-zinc-200 line-clamp-2">
-            {hoveredComment.comment_text
-              ?.replace(/___DRAW:.*?___/s, '')
-              ?.replace(/___VER:\d+___/s, '')
-              ?.replace(/___REPLY:[a-zA-Z0-9-]+___/s, '')
-              || 'Visual annotation on this frame'}
-          </div>
-          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-800 border-b border-r border-white/10 rotate-45"></div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Control Bar Container */}
       <div className="relative w-full rounded-[20px] lg:rounded-[24px]">
@@ -210,29 +232,64 @@ export const PlayerControls = ({
 
         {/* Content Wrapper */}
         <div className={`w-full flex flex-col relative z-10 px-4 lg:px-6 transition-all duration-500 ease-in-out ${showControls ? (isFullscreen ? 'gap-2 py-2' : 'gap-4 lg:gap-3 py-4 lg:py-4') : (isFullscreen ? 'gap-2 py-2' : 'gap-4 lg:gap-0 py-4 lg:py-3')}`}>
-          {/* Progress Bar & Timeline Markers (Always visible) */}
-          <div className="w-full relative h-4 flex items-center group pointer-events-auto">
+          {/* Progress Bar & Timeline Markers & Range Spans */}
+          <div className="w-full relative h-6 flex items-center group pointer-events-auto">
             {/* Base Track */}
-            <div className="absolute w-full h-1.5 bg-white/20 rounded-full overflow-hidden pointer-events-none shadow-inner">
+            <div className="absolute w-full h-2 bg-white/20 rounded-full overflow-hidden pointer-events-none shadow-inner">
               <div 
                 className="h-full bg-indigo-500 rounded-full transition-all duration-100"
                 style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
               />
             </div>
 
-            {/* Markers */}
+            {/* In-Progress Range Creation Preview */}
+            {activeRangePreview && activeRangePreview.end > activeRangePreview.start && duration > 0 && (
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 h-2.5 rounded-full pointer-events-none z-20 bg-amber-400/40 border border-dashed border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.8)] animate-pulse"
+                style={{
+                  left: `${(activeRangePreview.start / duration) * 100}%`,
+                  width: `${Math.max(1, ((activeRangePreview.end - activeRangePreview.start) / duration) * 100)}%`
+                }}
+              />
+            )}
+
+            {/* Completed Markers and Range Spans */}
             <div className="absolute inset-0 w-full h-full pointer-events-none">
               {comments.filter(c => c.timestamp !== -1 && !c.comment_text.startsWith('___REPLY:')).map((comment) => {
                 const leftPercent = duration ? (comment.timestamp / duration) * 100 : 0;
                 const hasDrawing = comment.comment_text && comment.comment_text.includes('___DRAW:');
+                const { endTime } = extractRangeFromText(comment.comment_text);
+                const isRange = endTime && endTime > comment.timestamp;
 
+                if (isRange && duration > 0) {
+                  const widthPercent = ((endTime - comment.timestamp) / duration) * 100;
+                  return (
+                    <div
+                      key={`range-${comment.id}`}
+                      className={`absolute top-1/2 -translate-y-1/2 h-2.5 rounded-full cursor-pointer pointer-events-auto transition-all z-25 border hover:scale-y-150 hover:z-30 shadow-md ${
+                        hasDrawing
+                          ? 'bg-amber-400/90 border-amber-200 shadow-[0_0_8px_rgba(251,191,36,0.8)] hover:bg-amber-300'
+                          : 'bg-indigo-500/90 border-indigo-200 shadow-[0_0_8px_rgba(99,102,241,0.8)] hover:bg-indigo-400'
+                      }`}
+                      style={{ left: `${leftPercent}%`, width: `${Math.max(1, widthPercent)}%` }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onMarkerClick) onMarkerClick(comment);
+                      }}
+                      onMouseEnter={() => setHoveredComment(comment)}
+                      onMouseLeave={() => setHoveredComment(null)}
+                    />
+                  );
+                }
+
+                // Single frame point marker
                 return (
                   <div
                     key={comment.id}
-                    className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full cursor-pointer pointer-events-auto transform -translate-x-1/2 hover:scale-150 transition-transform border-2 z-30 ${
+                    className={`absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full cursor-pointer pointer-events-auto transform -translate-x-1/2 hover:scale-150 transition-transform border z-30 ${
                       hasDrawing
-                        ? 'bg-amber-400 border-amber-100 shadow-[0_0_10px_rgba(251,191,36,0.9)] ring-2 ring-amber-400/40'
-                        : 'bg-indigo-400 border-zinc-900 shadow-[0_0_8px_rgba(99,102,241,0.8)]'
+                        ? 'bg-amber-400 border-white shadow-[0_0_8px_rgba(251,191,36,0.9)]'
+                        : 'bg-indigo-400 border-white shadow-[0_0_6px_rgba(99,102,241,0.8)]'
                     }`}
                     style={{ left: `${leftPercent}%` }}
                     onClick={(e) => {

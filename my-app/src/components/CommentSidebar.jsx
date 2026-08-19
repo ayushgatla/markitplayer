@@ -1,14 +1,14 @@
-import React, { useState, useRef } from 'react';
-import { Send, Globe, MoreHorizontal, CheckCircle, Search, Menu, ListFilter, Trash2, Image as ImageIcon, X, Loader2, Pencil } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Globe, MoreHorizontal, CheckCircle, Search, Menu, ListFilter, Trash2, Image as ImageIcon, X, Loader2, Pencil, Clock, Plus, Minus, RotateCcw } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { supabase } from '../supabaseClient';
-import { extractDrawingFromText, injectDrawingIntoText } from '../utils/drawingHelper';
+import { extractDrawingFromText, injectDrawingIntoText, extractRangeFromText, injectRangeIntoText, formatRangeTime } from '../utils/drawingHelper';
 
 dayjs.extend(relativeTime);
 
 const formatTime = (seconds) => {
-  if (!seconds || seconds === -1) return '00:00:00:00';
+  if (!seconds || seconds === -1 || isNaN(seconds)) return '00:00:00:00';
   const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
   const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
   const s = Math.floor(seconds % 60).toString().padStart(2, '0');
@@ -51,6 +51,7 @@ const renderTextWithImages = (text) => {
 export const CommentSidebar = ({
   comments,
   currentTime,
+  duration = 0,
   onAddComment,
   onCommentClick,
   currentUserIdentity,
@@ -61,7 +62,8 @@ export const CommentSidebar = ({
   attachedDrawing = [],
   onOpenDrawing,
   onClearAttachedDrawing,
-  activeCommentId = null
+  activeCommentId = null,
+  onRangePreviewChange
 }) => {
   const [newComment, setNewComment] = useState('');
   const [activeTab, setActiveTab] = useState('comments');
@@ -70,6 +72,11 @@ export const CommentSidebar = ({
   const [versionFilter, setVersionFilter] = useState('all'); // 'all' | 'current' | number
   const [showVersionFilterMenu, setShowVersionFilterMenu] = useState(false);
 
+  // Range Mode States
+  const [isRangeMode, setIsRangeMode] = useState(false);
+  const [rangeStart, setRangeStart] = useState(0);
+  const [rangeEnd, setRangeEnd] = useState(3);
+
   const [mainImageFile, setMainImageFile] = useState(null);
   const [inlineImageFile, setInlineImageFile] = useState(null);
   const [isUploadingMain, setIsUploadingMain] = useState(false);
@@ -77,6 +84,59 @@ export const CommentSidebar = ({
 
   const mainFileInputRef = useRef(null);
   const inlineFileInputRef = useRef(null);
+
+  // Sync range preview to parent
+  useEffect(() => {
+    if (onRangePreviewChange) {
+      if (isRangeMode && activeTab === 'comments' && rangeEnd > rangeStart) {
+        onRangePreviewChange({ start: rangeStart, end: rangeEnd });
+      } else {
+        onRangePreviewChange(null);
+      }
+    }
+  }, [isRangeMode, rangeStart, rangeEnd, activeTab, onRangePreviewChange]);
+
+  const handleToggleRangeMode = (enable) => {
+    setIsRangeMode(enable);
+    if (enable) {
+      const start = Number((currentTime || 0).toFixed(2));
+      const end = Number((duration ? Math.min(duration, start + 3) : start + 3).toFixed(2));
+      setRangeStart(start);
+      setRangeEnd(end);
+    }
+  };
+
+  const handleSetInToPlayhead = () => {
+    const newStart = Number((currentTime || 0).toFixed(2));
+    setRangeStart(newStart);
+    if (rangeEnd <= newStart) {
+      setRangeEnd(Number((duration ? Math.min(duration, newStart + 2) : newStart + 2).toFixed(2)));
+    }
+  };
+
+  const handleSetOutToPlayhead = () => {
+    const newEnd = Number((currentTime || 0).toFixed(2));
+    if (newEnd > rangeStart) {
+      setRangeEnd(newEnd);
+    } else {
+      setRangeEnd(Number((rangeStart + 1).toFixed(2)));
+    }
+  };
+
+  // Nudge In point
+  const handleNudgeIn = (delta = 1) => {
+    const newStart = Math.max(0, Number((rangeStart + delta).toFixed(2)));
+    setRangeStart(newStart);
+    if (rangeEnd <= newStart) {
+      setRangeEnd(Number((newStart + 0.5).toFixed(2)));
+    }
+  };
+
+  // Nudge Out point
+  const handleNudgeOut = (delta = 1) => {
+    const newEnd = Math.max(rangeStart + 0.1, Number((rangeEnd + delta).toFixed(2)));
+    setRangeEnd(duration ? Math.min(duration, newEnd) : newEnd);
+  };
 
   const uploadImage = async (file) => {
     try {
@@ -115,15 +175,22 @@ export const CommentSidebar = ({
       setIsUploadingMain(true);
       const imageUrl = await uploadImage(mainImageFile);
       setIsUploadingMain(false);
-      if (!imageUrl) return; // Stop if upload failed
+      if (!imageUrl) return;
       finalComment += `\n\n![image](${imageUrl})`;
     }
 
-    if (hasDrawing && activeTab === 'comments') {
-      finalComment = injectDrawingIntoText(finalComment, { v: 1, strokes: attachedDrawing });
+    if (activeTab === 'comments') {
+      if (isRangeMode && rangeEnd > rangeStart) {
+        finalComment = injectRangeIntoText(finalComment, rangeEnd);
+      }
+      if (hasDrawing) {
+        finalComment = injectDrawingIntoText(finalComment, { v: 1, strokes: attachedDrawing });
+      }
     }
 
-    onAddComment(finalComment, activeTab === 'chat');
+    const commentTimestamp = (activeTab === 'comments' && isRangeMode) ? rangeStart : currentTime;
+
+    onAddComment(finalComment, activeTab === 'chat', null, commentTimestamp);
     setNewComment('');
     setMainImageFile(null);
     if (onClearAttachedDrawing) {
@@ -222,7 +289,12 @@ export const CommentSidebar = ({
             let isReply = false;
             let parentId = null;
 
-            // Extract drawing first
+            // Extract range first
+            const { cleanText: textAfterRange, endTime } = extractRangeFromText(text);
+            text = textAfterRange;
+            const isRange = endTime !== null && endTime > c.timestamp;
+
+            // Extract drawing
             const { cleanText: textAfterDrawing, drawingData } = extractDrawingFromText(text);
             text = textAfterDrawing;
 
@@ -241,7 +313,7 @@ export const CommentSidebar = ({
               text = verMatch[2];
             }
 
-            return { ...c, isReply, parentId, version, drawingData, cleanText: text };
+            return { ...c, isReply, parentId, version, drawingData, isRange, endTime, cleanText: text };
           });
 
           const getReplies = (parentId) => {
@@ -276,7 +348,7 @@ export const CommentSidebar = ({
           if (displayComments.length === 0) {
             return (
               <div className="text-zinc-500 text-sm text-center mt-10 bg-[#1a1b23] p-4 rounded-xl border border-white/5">
-                No {activeTab === 'chat' ? 'messages' : 'comments'} yet. {activeTab === 'comments' && 'Pause the video to add one or draw on the frame!'}
+                No {activeTab === 'chat' ? 'messages' : 'comments'} yet. {activeTab === 'comments' && 'Pause the video or set a range to add one!'}
               </div>
             );
           }
@@ -324,10 +396,10 @@ export const CommentSidebar = ({
                         <div className="flex items-center gap-1.5 text-zinc-500">
                           {hasDrawing && (
                             <span 
-                              className="text-[10px] font-semibold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm"
+                              className="text-[10px] font-semibold text-white bg-white/10 border border-white/20 px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm"
                               title={`${comment.drawingData.strokes.length} drawing annotations`}
                             >
-                              <Pencil className="w-2.5 h-2.5 text-amber-400" />
+                              <Pencil className="w-2.5 h-2.5 text-white" />
                               <span>Drawing</span>
                             </span>
                           )}
@@ -344,14 +416,23 @@ export const CommentSidebar = ({
                     
                     <div className="flex items-start gap-2.5 mb-3">
                       {activeTab === 'comments' && (
-                        <span className="text-[11px] font-mono bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-medium tracking-tight mt-0.5 whitespace-nowrap">
-                          {formatTime(comment.timestamp)}
-                        </span>
+                        comment.isRange ? (
+                          <span className="text-[10.5px] font-mono bg-white/10 text-white border border-white/20 px-1.5 py-0.5 rounded font-medium tracking-tight mt-0.5 whitespace-nowrap flex items-center gap-1">
+                            <span>↔</span>
+                            <span>{formatTime(comment.timestamp)} - {formatTime(comment.endTime)}</span>
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-mono bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-medium tracking-tight mt-0.5 whitespace-nowrap">
+                            {formatTime(comment.timestamp)}
+                          </span>
+                        )
                       )}
                       <div className="text-[13px] text-zinc-300 leading-snug flex-1 break-words whitespace-pre-wrap">
                         {renderTextWithImages(comment.cleanText)}
                         {!comment.cleanText && hasDrawing && (
-                          <span className="italic text-zinc-400 text-xs">Visual drawing on this frame</span>
+                          <span className="italic text-zinc-400 text-xs">
+                            {comment.isRange ? 'Visual drawing applied across timeline range' : 'Visual drawing on this frame'}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -447,23 +528,23 @@ export const CommentSidebar = ({
                     </div>
                     <form onSubmit={(e) => handleInlineReplySubmit(e, comment.id)} className="flex-1 relative">
                       <input 
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        ref={inlineFileInputRef}
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        ref={inlineFileInputRef} 
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             setInlineImageFile(e.target.files[0]);
                           }
-                        }}
+                        }} 
                       />
                       <div className="w-full bg-[#1c1d27] border border-white/10 rounded-lg shadow-inner overflow-hidden focus-within:border-indigo-500/50 transition-colors">
                         {inlineImageFile && (
                           <div className="p-2 border-b border-white/5 relative bg-[#14151b]">
                             <img src={URL.createObjectURL(inlineImageFile)} alt="preview" className="h-16 rounded object-cover" />
                             <button 
-                              type="button"
-                              onClick={() => setInlineImageFile(null)}
+                              type="button" 
+                              onClick={() => setInlineImageFile(null)} 
                               className="absolute top-1 right-1 bg-black/50 p-1 rounded-full text-zinc-300 hover:text-white"
                             >
                               <X className="w-3 h-3" />
@@ -521,25 +602,144 @@ export const CommentSidebar = ({
         })()}
       </div>
 
-      {/* Input Area */}
-      <div className="p-4 border-t border-white/5 bg-[#14151b]">
+      {/* Input Area with Enhanced Timeline Range and Custom +/- s Controls */}
+      <div className="p-3.5 border-t border-white/5 bg-[#14151b]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
           {activeTab === 'comments' && (
-            <div className="text-[11px] text-zinc-400 flex justify-between px-1 mb-1 font-medium items-center">
-              <span>Adding comment at:</span>
-              <span className="font-mono text-indigo-400">{formatTime(currentTime)}</span>
+            <div className="flex flex-col gap-2 mb-1">
+              {/* Single Frame vs Range Segmented Toggle */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/5 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleRangeMode(false)}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                      !isRangeMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    • Point
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleRangeMode(true)}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-all flex items-center gap-1 ${
+                      isRangeMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    <span>↔</span>
+                    <span>Range</span>
+                  </button>
+                </div>
+
+                {!isRangeMode ? (
+                  <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 font-medium">
+                    <span>At:</span>
+                    <span className="font-mono text-white font-bold">{formatTime(currentTime)}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-zinc-400 font-mono">
+                      Playhead: <span className="text-zinc-200">{formatTime(currentTime)}</span>
+                    </span>
+                    <span className="text-[11px] font-mono text-white font-bold bg-white/10 px-2 py-0.5 rounded-md border border-white/20 shadow-sm">
+                      {(rangeEnd - rangeStart).toFixed(1)}s span
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Comprehensive Range Controls */}
+              {isRangeMode && (
+                <div className="flex flex-col gap-2 p-2.5 bg-[#1a1b24] border border-white/15 rounded-xl animate-in fade-in duration-200 text-xs shadow-inner">
+                  {/* In & Out Point Boxes */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* In Point Box */}
+                    <div className="flex flex-col gap-1.5 bg-black/50 p-2 rounded-xl border border-white/10 overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">In Point</span>
+                        <button
+                          type="button"
+                          onClick={handleSetInToPlayhead}
+                          className="text-[9px] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                          title="Snap In point to current playhead"
+                        >
+                          Snap
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between gap-1 bg-white/5 p-1 rounded-lg border border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => handleNudgeIn(-1)}
+                          className="w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/15 text-zinc-300 hover:text-white rounded transition-colors shrink-0"
+                          title="Decrease In by 1s"
+                        >
+                          <Minus size={11} />
+                        </button>
+                        <span className="font-mono text-[11px] font-semibold text-zinc-100 flex-1 text-center truncate">
+                          {formatTime(rangeStart)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleNudgeIn(1)}
+                          className="w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/15 text-zinc-300 hover:text-white rounded transition-colors shrink-0"
+                          title="Increase In by 1s"
+                        >
+                          <Plus size={11} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Out Point Box */}
+                    <div className="flex flex-col gap-1.5 bg-black/50 p-2 rounded-xl border border-white/10 overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">Out Point</span>
+                        <button
+                          type="button"
+                          onClick={handleSetOutToPlayhead}
+                          className="text-[9px] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                          title="Snap Out point to current playhead"
+                        >
+                          Snap
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between gap-1 bg-white/5 p-1 rounded-lg border border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => handleNudgeOut(-1)}
+                          className="w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/15 text-zinc-300 hover:text-white rounded transition-colors shrink-0"
+                          title="Decrease Out by 1s"
+                        >
+                          <Minus size={11} />
+                        </button>
+                        <span className="font-mono text-[11px] font-semibold text-zinc-100 flex-1 text-center truncate">
+                          {formatTime(rangeEnd)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleNudgeOut(1)}
+                          className="w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/15 text-zinc-300 hover:text-white rounded transition-colors shrink-0"
+                          title="Increase Out by 1s"
+                        >
+                          <Plus size={11} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* Attached Drawing Indicator Chip */}
           {activeTab === 'comments' && attachedDrawing && attachedDrawing.length > 0 && (
-            <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded-xl text-xs mb-1 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between bg-white/10 border border-white/20 text-white px-3 py-1.5 rounded-xl text-xs mb-1 animate-in fade-in duration-200">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center">
-                  <Pencil className="w-3 h-3 text-amber-400" />
+                <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
+                  <Pencil className="w-3 h-3 text-white" />
                 </div>
-                <span className="font-medium">
+                <span className="font-medium text-white">
                   Drawing attached ({attachedDrawing.length} {attachedDrawing.length === 1 ? 'shape' : 'shapes'})
+                  {isRangeMode ? ' • spans entire range' : ''}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -547,7 +747,7 @@ export const CommentSidebar = ({
                   <button 
                     type="button" 
                     onClick={onOpenDrawing} 
-                    className="text-[11px] font-semibold text-amber-300 hover:text-white underline transition-colors cursor-pointer"
+                    className="text-[11px] font-semibold text-white hover:text-zinc-200 underline transition-colors cursor-pointer"
                   >
                     Edit
                   </button>
@@ -593,7 +793,7 @@ export const CommentSidebar = ({
             <textarea
               className="w-full bg-transparent p-3 pr-24 text-[13px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none"
               rows={2}
-              placeholder={activeTab === 'chat' ? 'Type a chat message...' : (attachedDrawing?.length > 0 ? 'Add a note to your drawing (optional)...' : 'Type a comment or draw on frame...')}
+              placeholder={activeTab === 'chat' ? 'Type a chat message...' : (attachedDrawing?.length > 0 ? (isRangeMode ? 'Add a note to your range drawing...' : 'Add a note to your drawing...') : (isRangeMode ? 'Type a note for this timeline range...' : 'Type a comment or draw on frame...'))}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               onKeyDown={(e) => {
