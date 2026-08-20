@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { getActiveVideoUrl, parseVideoData, getActiveVersionObj } from '../utils/versionHelper';
-import { isAdmin, getAdminEmails, syncAdminEmailsWithDatabase } from '../utils/adminHelper';
+import { isAdmin, getAdminEmails, syncAdminEmailsWithDatabase, normalizeEmail } from '../utils/adminHelper';
 
 dayjs.extend(relativeTime);
 
@@ -66,7 +66,12 @@ export default function Dashboard() {
     return saved ? JSON.parse(saved) : ['Marketing Assets', 'Internal Reviews'];
   });
 
-  const userIsAdmin = user?.email ? (isAdmin(user.email) || adminEmails.includes(user.email.toLowerCase().trim())) : false;
+  const userEmail = user?.email || user?.user_metadata?.email || user?.raw_user_meta_data?.email || '';
+  const userIsAdmin = React.useMemo(() => {
+    if (!userEmail) return false;
+    const clean = normalizeEmail(userEmail);
+    return isAdmin(clean) || adminEmails.map(normalizeEmail).includes(clean);
+  }, [userEmail, adminEmails]);
 
   useEffect(() => {
     syncAdminEmailsWithDatabase().then(list => {
@@ -285,6 +290,24 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* Admin Navigation Quick Link */}
+        {userIsAdmin && (
+          <div className="p-3 pb-0">
+            <button
+              onClick={() => { navigate('/admin'); setIsSidebarOpen(false); }}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:text-white transition-all text-xs font-semibold group cursor-pointer shadow-sm"
+            >
+              <div className="flex items-center gap-2.5">
+                <Shield className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
+                <span>Admin Console</span>
+              </div>
+              <span className="text-[10px] bg-indigo-500/30 border border-indigo-500/40 text-indigo-200 px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+                Admin
+              </span>
+            </button>
+          </div>
+        )}
+
         <div className="p-4 flex items-center justify-between">
           <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Folders</h2>
           <Plus className="w-4 h-4 text-zinc-500 cursor-pointer hover:text-white" onClick={handleCreateFolder} />
@@ -361,6 +384,16 @@ export default function Dashboard() {
             <ChevronDown className="w-4 h-4 ml-1 cursor-pointer hidden sm:inline" />
           </div>
           <div className="flex items-center gap-4">
+            {userIsAdmin && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+                title="Open Admin Console"
+              >
+                <Shield className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Admin Console</span>
+              </button>
+            )}
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs text-white font-medium border border-white/10">A</div>
               <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-xs text-white font-medium border border-white/10 -ml-4">B</div>

@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { isAdmin, isPrimaryAdmin, getAdminEmails, addAdminEmail, removeAdminEmail, syncAdminEmailsWithDatabase, PRIMARY_ADMIN_EMAIL } from '../utils/adminHelper';
+import { isAdmin, isPrimaryAdmin, getAdminEmails, addAdminEmail, removeAdminEmail, syncAdminEmailsWithDatabase, normalizeEmail, PRIMARY_ADMIN_EMAIL } from '../utils/adminHelper';
 import { parseVideoData, getActiveVideoUrl, detectPlatform } from '../utils/versionHelper';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -44,8 +44,13 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
 
-  const userEmail = user?.email || user?.user_metadata?.email || '';
-  const userIsAdmin = isAdmin(userEmail);
+  const userEmail = user?.email || user?.user_metadata?.email || user?.raw_user_meta_data?.email || '';
+  
+  const userIsAdmin = useMemo(() => {
+    if (!userEmail) return false;
+    const cleanUser = normalizeEmail(userEmail);
+    return isAdmin(cleanUser) || adminList.map(normalizeEmail).includes(cleanUser);
+  }, [userEmail, adminList]);
 
   const fetchData = async () => {
     setRefreshing(true);
@@ -72,13 +77,31 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    syncAdminEmailsWithDatabase().then(list => setAdminList(list));
-    if (userIsAdmin) {
-      fetchData();
-    } else {
-      setLoading(false);
-    }
-  }, [userIsAdmin]);
+    let isMounted = true;
+    const initialize = async () => {
+      setLoading(true);
+      try {
+        const syncedAdmins = await syncAdminEmailsWithDatabase();
+        if (isMounted && syncedAdmins) {
+          setAdminList(syncedAdmins);
+        }
+        const cleanUser = normalizeEmail(userEmail);
+        const hasAccess = isAdmin(cleanUser) || (syncedAdmins || []).map(normalizeEmail).includes(cleanUser);
+        if (hasAccess) {
+          await fetchData();
+        }
+      } catch (err) {
+        console.error('Admin init error:', err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initialize();
+    return () => { isMounted = false; };
+  }, [user, userEmail]);
 
   // Derive all unique users and statistics from rooms & comments
   const stats = useMemo(() => {
@@ -247,14 +270,32 @@ export default function AdminDashboard() {
           </div>
           <h2 className="text-lg font-bold mb-2">Access Restricted</h2>
           <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-            The Admin Dashboard is only accessible by designated administrators ({PRIMARY_ADMIN_EMAIL}). Current account: <span className="font-mono text-zinc-200">{userEmail || 'Guest'}</span>.
+            The Admin Console is restricted to designated administrators. Current signed-in account: <span className="font-mono text-indigo-300 font-semibold">{userEmail || 'Guest'}</span>.
           </p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white rounded-lg text-xs font-medium transition-colors"
-          >
-            Return to Dashboard
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={async () => {
+                setLoading(true);
+                const synced = await syncAdminEmailsWithDatabase();
+                if (synced) setAdminList(synced);
+                const clean = normalizeEmail(userEmail);
+                if (isAdmin(clean) || (synced || []).map(normalizeEmail).includes(clean)) {
+                  await fetchData();
+                }
+                setLoading(false);
+              }}
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <RefreshCw size={13} />
+              <span>Check Admin Permissions</span>
+            </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg text-xs font-medium transition-colors"
+            >
+              Return to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );

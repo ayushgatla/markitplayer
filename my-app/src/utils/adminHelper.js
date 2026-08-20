@@ -8,11 +8,26 @@ export const PRIMARY_ADMIN_EMAIL = 'ayushgatla@gmail.com';
 
 export const INITIAL_ADMIN_EMAILS = [
   'ayushgatla@gmail.com',
-  'harshitkhare607@gmail.com'
+  'harshitkhare607@gmail.com',
+  'bajikeisuke8117@gmail.com',
+  'bajikeisuke8117@gamil.com'
 ];
 
 const STORAGE_KEY = 'markit_admin_emails';
 const CONFIG_FOLDER = '__system_admin_config__';
+
+/**
+ * Normalize an email address (trims, converts to lowercase, fixes common Gmail domain typos).
+ * @param {string | null | undefined} email 
+ * @returns {string}
+ */
+export const normalizeEmail = (email) => {
+  if (!email || typeof email !== 'string') return '';
+  let clean = email.toLowerCase().trim();
+  // Auto-correct common Gmail typo variations (e.g., @gamil.com -> @gmail.com)
+  clean = clean.replace(/@(gamil|gmai|gmaill|gmial|gmaii|googlemail)\.com$/i, '@gmail.com');
+  return clean;
+};
 
 /**
  * Get all current administrator emails (syncs local storage + defaults).
@@ -27,40 +42,50 @@ export const getAdminEmails = () => {
     }
     const all = [
       ...INITIAL_ADMIN_EMAILS,
-      ...customAdmins.map(e => (e || '').toLowerCase().trim())
+      ...(Array.isArray(customAdmins) ? customAdmins : []).map(normalizeEmail)
     ];
-    return Array.from(new Set(all.map(e => e.toLowerCase()).filter(Boolean)));
+    return Array.from(new Set(all.map(normalizeEmail).filter(Boolean)));
   } catch (e) {
     console.warn('Error reading admin emails:', e);
-    return INITIAL_ADMIN_EMAILS;
+    return INITIAL_ADMIN_EMAILS.map(normalizeEmail);
   }
 };
 
 /**
- * Fetch and sync admin emails from Supabase so all devices share the same admin list.
+ * Fetch and sync admin emails from Supabase so all devices and admins share the exact same admin list.
  * @returns {Promise<string[]>}
  */
 export const syncAdminEmailsWithDatabase = async () => {
   try {
     const { data, error } = await supabase
       .from('rooms')
-      .select('video_url')
-      .eq('folder', CONFIG_FOLDER)
-      .limit(1);
+      .select('id, video_url')
+      .eq('folder', CONFIG_FOLDER);
 
-    if (!error && data && data.length > 0 && data[0].video_url) {
-      const remoteAdmins = JSON.parse(data[0].video_url);
-      if (Array.isArray(remoteAdmins)) {
-        const merged = Array.from(new Set([
-          ...INITIAL_ADMIN_EMAILS,
-          ...remoteAdmins.map(e => (e || '').toLowerCase().trim())
-        ].filter(Boolean)));
-
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    if (!error && data && data.length > 0) {
+      const extractedAdmins = [];
+      data.forEach(row => {
+        if (row.video_url) {
+          try {
+            const parsed = JSON.parse(row.video_url);
+            if (Array.isArray(parsed)) {
+              extractedAdmins.push(...parsed.map(normalizeEmail));
+            }
+          } catch {
+            // Ignore non-JSON strings
+          }
         }
-        return merged;
+      });
+
+      const merged = Array.from(new Set([
+        ...INITIAL_ADMIN_EMAILS.map(normalizeEmail),
+        ...extractedAdmins
+      ].filter(Boolean)));
+
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       }
+      return merged;
     }
   } catch (e) {
     console.warn('Could not sync admins from database:', e);
@@ -75,8 +100,9 @@ export const syncAdminEmailsWithDatabase = async () => {
  */
 export const isAdmin = (email) => {
   if (!email || typeof email !== 'string') return false;
-  const cleanEmail = email.toLowerCase().trim();
-  const admins = getAdminEmails();
+  const cleanEmail = normalizeEmail(email);
+  if (!cleanEmail) return false;
+  const admins = getAdminEmails().map(normalizeEmail);
   return admins.includes(cleanEmail);
 };
 
@@ -87,31 +113,36 @@ export const isAdmin = (email) => {
  */
 export const isPrimaryAdmin = (email) => {
   if (!email || typeof email !== 'string') return false;
-  return email.toLowerCase().trim() === PRIMARY_ADMIN_EMAIL.toLowerCase();
+  return normalizeEmail(email) === normalizeEmail(PRIMARY_ADMIN_EMAIL);
 };
 
 /**
  * Add a new administrator email and sync to Supabase.
  * @param {string} newEmail 
  * @param {string} [userId]
- * @returns {Promise<{ success: boolean, message: string, admins: string[] }>}
+ * @returns {Promise<{ success: boolean, message: string, admins: string[], corrected?: boolean }>}
  */
 export const addAdminEmail = async (newEmail, userId = null) => {
   if (!newEmail || typeof newEmail !== 'string') {
     return { success: false, message: 'Invalid email address', admins: getAdminEmails() };
   }
-  const clean = newEmail.toLowerCase().trim();
+  
+  const rawClean = newEmail.toLowerCase().trim();
+  const clean = normalizeEmail(rawClean);
+  const wasCorrected = rawClean !== clean;
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(clean)) {
     return { success: false, message: 'Please enter a valid email format', admins: getAdminEmails() };
   }
 
   const current = getAdminEmails();
-  if (current.includes(clean)) {
+  if (current.map(normalizeEmail).includes(clean)) {
     return { success: false, message: 'This user is already an administrator', admins: current };
   }
 
-  const updated = Array.from(new Set([...current, clean]));
+  // Include both normalized email and raw clean (if slightly different) for safety
+  const updated = Array.from(new Set([...current, clean, rawClean].filter(Boolean)));
 
   // Save to local storage
   if (typeof window !== 'undefined' && window.localStorage) {
@@ -122,15 +153,17 @@ export const addAdminEmail = async (newEmail, userId = null) => {
   try {
     const { data: existing } = await supabase
       .from('rooms')
-      .select('id')
-      .eq('folder', CONFIG_FOLDER)
-      .limit(1);
+      .select('id, user_id')
+      .eq('folder', CONFIG_FOLDER);
 
     if (existing && existing.length > 0) {
-      await supabase
-        .from('rooms')
-        .update({ video_url: JSON.stringify(updated) })
-        .eq('id', existing[0].id);
+      // Update existing records
+      for (const row of existing) {
+        await supabase
+          .from('rooms')
+          .update({ video_url: JSON.stringify(updated) })
+          .eq('id', row.id);
+      }
     } else if (userId) {
       await supabase
         .from('rooms')
@@ -145,7 +178,11 @@ export const addAdminEmail = async (newEmail, userId = null) => {
     console.warn('Failed to persist admin list to DB:', e);
   }
 
-  return { success: true, message: `Granted admin access to ${clean}`, admins: updated };
+  const message = wasCorrected 
+    ? `Granted admin access to ${clean} (auto-corrected domain typo)`
+    : `Granted admin access to ${clean}`;
+
+  return { success: true, message, admins: updated, corrected: wasCorrected };
 };
 
 /**
@@ -157,13 +194,13 @@ export const removeAdminEmail = async (emailToRemove) => {
   if (!emailToRemove || typeof emailToRemove !== 'string') {
     return { success: false, message: 'Invalid email address', admins: getAdminEmails() };
   }
-  const clean = emailToRemove.toLowerCase().trim();
-  if (clean === PRIMARY_ADMIN_EMAIL.toLowerCase()) {
+  const clean = normalizeEmail(emailToRemove);
+  if (clean === normalizeEmail(PRIMARY_ADMIN_EMAIL)) {
     return { success: false, message: 'Cannot remove primary super admin', admins: getAdminEmails() };
   }
 
   const current = getAdminEmails();
-  const updated = current.filter(e => e.toLowerCase().trim() !== clean);
+  const updated = current.filter(e => normalizeEmail(e) !== clean);
 
   // Save to local storage
   if (typeof window !== 'undefined' && window.localStorage) {
@@ -175,14 +212,15 @@ export const removeAdminEmail = async (emailToRemove) => {
     const { data: existing } = await supabase
       .from('rooms')
       .select('id')
-      .eq('folder', CONFIG_FOLDER)
-      .limit(1);
+      .eq('folder', CONFIG_FOLDER);
 
     if (existing && existing.length > 0) {
-      await supabase
-        .from('rooms')
-        .update({ video_url: JSON.stringify(updated) })
-        .eq('id', existing[0].id);
+      for (const row of existing) {
+        await supabase
+          .from('rooms')
+          .update({ video_url: JSON.stringify(updated) })
+          .eq('id', row.id);
+      }
     }
   } catch (e) {
     console.warn('Failed to update admin list in DB:', e);
