@@ -19,7 +19,13 @@ import {
   AlertCircle,
   Crown,
   ChevronRight,
-  TrendingUp
+  TrendingUp,
+  EyeOff,
+  Eye,
+  UserMinus,
+  UserPlus,
+  Check,
+  Filter
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,7 +34,13 @@ import { parseVideoData, getActiveVideoUrl, detectPlatform } from '../utils/vers
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { AnalyticsCharts } from '../components/AnalyticsCharts';
-import { fetchAllRegisteredUsers, getCachedUserProfiles } from '../utils/userRegistry';
+import {
+  fetchAllRegisteredUsers,
+  getCachedUserProfiles,
+  syncExcludedUsersWithDatabase,
+  saveExcludedUsers,
+  getCachedExcludedUserIds
+} from '../utils/userRegistry';
 
 dayjs.extend(relativeTime);
 
@@ -41,6 +53,8 @@ export default function AdminDashboard() {
   const [rooms, setRooms] = useState([]);
   const [comments, setComments] = useState([]);
   const [registeredUsers, setRegisteredUsers] = useState(getCachedUserProfiles());
+  const [excludedUserIds, setExcludedUserIds] = useState(() => new Set(getCachedExcludedUserIds()));
+  const [userFilterTab, setUserFilterTab] = useState('all'); // 'all' | 'active' | 'excluded'
   const [adminList, setAdminList] = useState(getAdminEmails());
   const [newAdminInput, setNewAdminInput] = useState('');
   const [adminMessage, setAdminMessage] = useState(null); // { type: 'success' | 'error', text: '' }
@@ -59,21 +73,27 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setRefreshing(true);
     try {
-      const [roomsRes, commentsRes, syncedAdmins, syncedUsers] = await Promise.all([
+      const [roomsRes, commentsRes, syncedAdmins, syncedUsers, syncedExcluded] = await Promise.all([
         supabase.from('rooms').select('*').order('created_at', { ascending: false }),
         supabase.from('comments').select('*').order('created_at', { ascending: false }),
         syncAdminEmailsWithDatabase(),
-        fetchAllRegisteredUsers()
+        fetchAllRegisteredUsers(),
+        syncExcludedUsersWithDatabase()
       ]);
 
       if (roomsRes.data) {
         // Filter out internal system configuration rows from normal rooms stats
-        const realRooms = roomsRes.data.filter(r => r.folder !== '__system_admin_config__' && r.folder !== '__system_user_registry__');
+        const realRooms = roomsRes.data.filter(
+          r => r.folder !== '__system_admin_config__' && 
+               r.folder !== '__system_user_registry__' &&
+               r.folder !== '__system_excluded_users__'
+        );
         setRooms(realRooms);
       }
       if (commentsRes.data) setComments(commentsRes.data);
       if (syncedAdmins) setAdminList(syncedAdmins);
       if (syncedUsers) setRegisteredUsers(syncedUsers);
+      if (syncedExcluded) setExcludedUserIds(new Set(syncedExcluded));
     } catch (e) {
       console.error('Error fetching admin data:', e);
     } finally {
@@ -87,11 +107,15 @@ export default function AdminDashboard() {
     const initialize = async () => {
       setLoading(true);
       try {
-        const syncedAdmins = await syncAdminEmailsWithDatabase();
-        const initialUsers = await fetchAllRegisteredUsers();
+        const [syncedAdmins, initialUsers, syncedExcluded] = await Promise.all([
+          syncAdminEmailsWithDatabase(),
+          fetchAllRegisteredUsers(),
+          syncExcludedUsersWithDatabase()
+        ]);
         if (isMounted) {
           if (syncedAdmins) setAdminList(syncedAdmins);
           if (initialUsers) setRegisteredUsers(initialUsers);
+          if (syncedExcluded) setExcludedUserIds(new Set(syncedExcluded));
         }
         const cleanUser = normalizeEmail(userEmail);
         const hasAccess = isAdmin(cleanUser) || (syncedAdmins || []).map(normalizeEmail).includes(cleanUser);
@@ -130,12 +154,31 @@ export default function AdminDashboard() {
     };
   }, [userIsAdmin]);
 
-  // Derive all unique users and statistics from Supabase Auth directory, rooms & comments
+  const handleToggleUserExclusion = async (userId, uEmail) => {
+    const next = new Set(excludedUserIds);
+    const idKey = userId;
+    const emailKey = uEmail ? normalizeEmail(uEmail) : null;
+
+    const isExcluded = next.has(idKey) || (emailKey && next.has(emailKey));
+    if (isExcluded) {
+      next.delete(idKey);
+      if (emailKey) next.delete(emailKey);
+    } else {
+      next.add(idKey);
+      if (emailKey) next.add(emailKey);
+    }
+
+    setExcludedUserIds(next);
+    await saveExcludedUsers(Array.from(next), user?.id);
+  };
+
+  // Derive registered users and statistics (clients/unauthenticated guests are NOT included)
   const stats = useMemo(() => {
     const userMap = new Map();
 
-    // 1. Initialize userMap with all registered Supabase Auth users
+    // 1. Initialize userMap ONLY with verified Supabase Auth accounts (clients not included)
     registeredUsers.forEach(u => {
+      const isExcluded = excludedUserIds.has(u.id) || (u.email && excludedUserIds.has(normalizeEmail(u.email)));
       userMap.set(u.id, {
         id: u.id,
         name: u.name || (u.email ? u.email.split('@')[0] : `User_${u.id.slice(0, 6)}`),
@@ -145,36 +188,26 @@ export default function AdminDashboard() {
         commentsCount: 0,
         firstSeen: u.created_at || '2026-06-01T00:00:00.000Z',
         lastActive: u.last_sign_in_at || u.created_at || '2026-06-01T00:00:00.000Z',
-        rooms: []
+        rooms: [],
+        isExcluded
       });
     });
 
-    // 2. Process room creators
+    // 2. Attach room counts to registered user accounts
     rooms.forEach(room => {
       const uId = room.user_id;
       if (!uId) return;
 
-      if (!userMap.has(uId)) {
-        userMap.set(uId, {
-          id: uId,
-          name: uId === user?.id ? (user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You') : `User_${uId.slice(0, 6)}`,
-          email: uId === user?.id ? user?.email : null,
-          provider: 'Supabase Auth',
-          roomsCount: 0,
-          commentsCount: 0,
-          firstSeen: room.created_at,
-          lastActive: room.created_at,
-          rooms: []
-        });
+      if (userMap.has(uId)) {
+        const u = userMap.get(uId);
+        u.roomsCount += 1;
+        u.rooms.push(room);
+        if (new Date(room.created_at) < new Date(u.firstSeen)) u.firstSeen = room.created_at;
+        if (new Date(room.created_at) > new Date(u.lastActive)) u.lastActive = room.created_at;
       }
-      const u = userMap.get(uId);
-      u.roomsCount += 1;
-      u.rooms.push(room);
-      if (new Date(room.created_at) < new Date(u.firstSeen)) u.firstSeen = room.created_at;
-      if (new Date(room.created_at) > new Date(u.lastActive)) u.lastActive = room.created_at;
     });
 
-    // 3. Process comment authors
+    // 3. Attach comments count to registered accounts only (clients are not added as user entries)
     comments.forEach(comment => {
       const uId = comment.user_id;
       if (uId && userMap.has(uId)) {
@@ -182,7 +215,6 @@ export default function AdminDashboard() {
         u.commentsCount += 1;
         if (new Date(comment.created_at) > new Date(u.lastActive)) u.lastActive = comment.created_at;
       } else if (comment.author_name) {
-        // Check if author_name matches an existing user's display name
         const existingByName = Array.from(userMap.values()).find(
           u => u.name && u.name.toLowerCase() === comment.author_name.toLowerCase()
         );
@@ -191,30 +223,14 @@ export default function AdminDashboard() {
           if (new Date(comment.created_at) > new Date(existingByName.lastActive)) {
             existingByName.lastActive = comment.created_at;
           }
-        } else {
-          const guestId = uId || `guest_${comment.author_name}`;
-          if (!userMap.has(guestId)) {
-            userMap.set(guestId, {
-              id: guestId,
-              name: comment.author_name,
-              email: null,
-              provider: 'Collaborator',
-              roomsCount: 0,
-              commentsCount: 0,
-              firstSeen: comment.created_at,
-              lastActive: comment.created_at,
-              rooms: []
-            });
-          }
-          const u = userMap.get(guestId);
-          u.commentsCount += 1;
-          if (new Date(comment.created_at) > new Date(u.lastActive)) u.lastActive = comment.created_at;
         }
       }
     });
 
     // Sort list of all users in descending order of who joined latest (newest joined first)
-    const userList = Array.from(userMap.values()).sort((a, b) => new Date(b.firstSeen) - new Date(a.firstSeen));
+    const allUsersList = Array.from(userMap.values()).sort((a, b) => new Date(b.firstSeen) - new Date(a.firstSeen));
+    const activeUsersList = allUsersList.filter(u => !u.isExcluded);
+    const excludedUsersList = allUsersList.filter(u => u.isExcluded);
 
     // Platform distribution
     let driveCount = 0;
@@ -240,8 +256,12 @@ export default function AdminDashboard() {
     const rejectedCount = rooms.filter(r => (r.state || 'In Progress') === 'Rejected').length;
 
     return {
-      totalUsers: userList.length,
-      users: userList,
+      totalUsers: activeUsersList.length, // Only active included accounts count towards total!
+      totalRegistered: allUsersList.length,
+      totalExcluded: excludedUsersList.length,
+      users: allUsersList,
+      activeUsers: activeUsersList,
+      excludedUsers: excludedUsersList,
       totalRooms: rooms.length,
       totalComments: comments.length,
       totalVersions,
@@ -258,7 +278,7 @@ export default function AdminDashboard() {
         rejected: rejectedCount
       }
     };
-  }, [rooms, comments, user]);
+  }, [rooms, comments, registeredUsers, excludedUserIds, user]);
 
   const handleAddAdmin = async (e) => {
     e.preventDefault();
@@ -302,15 +322,24 @@ export default function AdminDashboard() {
     });
   }, [rooms, searchQuery, selectedStatusFilter]);
 
-  // Filtered and sorted users (Sorted in desc order of who joined latest by default)
+  // Filtered and sorted users (with inclusion filter + search + sort)
   const filteredUsers = useMemo(() => {
-    const list = stats.users.filter(u => {
-      if (!searchQuery) return true;
+    let list = stats.users;
+
+    if (userFilterTab === 'active') {
+      list = list.filter(u => !u.isExcluded);
+    } else if (userFilterTab === 'excluded') {
+      list = list.filter(u => u.isExcluded);
+    }
+
+    if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      return (u.name && u.name.toLowerCase().includes(q)) ||
-             (u.id && u.id.toLowerCase().includes(q)) ||
-             (u.email && u.email.toLowerCase().includes(q));
-    });
+      list = list.filter(u => 
+        (u.name && u.name.toLowerCase().includes(q)) ||
+        (u.id && u.id.toLowerCase().includes(q)) ||
+        (u.email && u.email.toLowerCase().includes(q))
+      );
+    }
 
     return list.sort((a, b) => {
       if (userSortBy === 'joined-desc') return new Date(b.firstSeen) - new Date(a.firstSeen);
@@ -320,7 +349,7 @@ export default function AdminDashboard() {
       if (userSortBy === 'comments-desc') return b.commentsCount - a.commentsCount;
       return new Date(b.firstSeen) - new Date(a.firstSeen);
     });
-  }, [stats.users, searchQuery, userSortBy]);
+  }, [stats.users, searchQuery, userSortBy, userFilterTab]);
 
   if (loading) {
     return (
@@ -440,6 +469,11 @@ export default function AdminDashboard() {
         >
           <Users size={14} />
           <span>User Directory ({stats.totalUsers})</span>
+          {stats.totalExcluded > 0 && (
+            <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded-full font-mono">
+              {stats.totalExcluded} excluded
+            </span>
+          )}
         </button>
 
         <button
@@ -480,9 +514,18 @@ export default function AdminDashboard() {
                   <Users size={16} className="text-indigo-400" />
                 </div>
                 <div className="text-2xl font-bold text-white">{stats.totalUsers}</div>
-                <div className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
-                  <TrendingUp size={11} />
-                  <span>Platform accounts & collaborators</span>
+                <div className="text-[11px] mt-1 flex items-center justify-between">
+                  <span className={stats.totalExcluded > 0 ? 'text-amber-400 font-medium' : 'text-emerald-400'}>
+                    {stats.totalExcluded > 0 ? `${stats.totalExcluded} accounts excluded` : `${stats.totalRegistered} registered platform accounts`}
+                  </span>
+                  {stats.totalExcluded > 0 && (
+                    <button
+                      onClick={() => { setActiveTab('users'); setUserFilterTab('excluded'); }}
+                      className="text-[10px] text-indigo-400 hover:underline cursor-pointer"
+                    >
+                      Manage
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -539,7 +582,7 @@ export default function AdminDashboard() {
               </div>
 
               <div className="divide-y divide-zinc-800/60">
-                {stats.users.slice(0, 5).map((u) => (
+                {stats.activeUsers.slice(0, 5).map((u) => (
                   <div key={u.id} className="py-2.5 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-3">
                       <div className="w-7 h-7 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center font-bold text-[10px] border border-zinc-700/60">
@@ -562,43 +605,83 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB 2: USERS DIRECTORY (Sorted by newest joined descending by default) */}
+        {/* TAB 2: USERS DIRECTORY (With Account Exclusion Options) */}
         {activeTab === 'users' && (
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              <div className="relative flex-1 max-w-md">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                <input
-                  type="text"
-                  placeholder="Search users by name, email or ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700"
-                />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-400 whitespace-nowrap">Sort by:</span>
-                  <select
-                    value={userSortBy}
-                    onChange={(e) => setUserSortBy(e.target.value)}
-                    className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+            {/* Filter Pills, Search, and Sort Controls */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Account Inclusion Filter Tabs */}
+                <div className="inline-flex p-1 bg-zinc-900 border border-zinc-800 rounded-lg text-xs">
+                  <button
+                    onClick={() => setUserFilterTab('all')}
+                    className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                      userFilterTab === 'all'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
                   >
-                    <option value="joined-desc">Joined: Newest First (Latest)</option>
-                    <option value="joined-asc">Joined: Oldest First</option>
-                    <option value="active-desc">Last Active</option>
-                    <option value="rooms-desc">Most Sessions Created</option>
-                    <option value="comments-desc">Most Comments Left</option>
-                  </select>
+                    All Accounts ({stats.totalRegistered})
+                  </button>
+                  <button
+                    onClick={() => setUserFilterTab('active')}
+                    className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                      userFilterTab === 'active'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Active in Totals ({stats.totalUsers})
+                  </button>
+                  <button
+                    onClick={() => setUserFilterTab('excluded')}
+                    className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                      userFilterTab === 'excluded'
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Excluded ({stats.totalExcluded})
+                  </button>
                 </div>
 
-                <div className="text-xs text-zinc-400 font-mono whitespace-nowrap px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded-lg">
-                  {filteredUsers.length} users
+                <div className="text-xs text-zinc-400 font-mono">
+                  Showing {filteredUsers.length} of {stats.totalRegistered} registered users
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <input
+                    type="text"
+                    placeholder="Search accounts by name, email or ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-zinc-400 whitespace-nowrap">Sort by:</span>
+                    <select
+                      value={userSortBy}
+                      onChange={(e) => setUserSortBy(e.target.value)}
+                      className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    >
+                      <option value="joined-desc">Joined: Newest First (Latest)</option>
+                      <option value="joined-asc">Joined: Oldest First</option>
+                      <option value="active-desc">Last Active</option>
+                      <option value="rooms-desc">Most Sessions Created</option>
+                      <option value="comments-desc">Most Comments Left</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Users Directory Table */}
             <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden shadow-lg">
               <table className="w-full text-left text-xs">
                 <thead className="bg-zinc-950/60 border-b border-zinc-800 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
@@ -609,69 +692,123 @@ export default function AdminDashboard() {
                     <th className="px-4 py-3">Sessions</th>
                     <th className="px-4 py-3">Comments</th>
                     <th className="px-4 py-3">Last Active</th>
+                    <th className="px-4 py-3">Inclusion in Total</th>
                     <th className="px-4 py-3">Role</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800/50">
-                  {filteredUsers.map((u) => {
-                    const isUserAdmin = u.email && isAdmin(u.email);
-                    const provider = u.provider || (u.email?.includes('gmail') ? 'Google' : 'Email');
-                    return (
-                      <tr key={u.id} className="hover:bg-zinc-800/30 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-300 flex items-center justify-center font-bold text-xs border border-indigo-500/30 shrink-0">
-                              {(u.name || u.email || 'U').slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="font-semibold text-zinc-100 flex items-center gap-1.5 truncate">
-                                <span>{u.name}</span>
-                                {isUserAdmin && <Crown size={11} className="text-amber-400 shrink-0" />}
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
+                        No registered users match the current filter or search criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((u) => {
+                      const isUserAdmin = u.email && isAdmin(u.email);
+                      const provider = u.provider || (u.email?.includes('gmail') ? 'Google' : 'Email');
+                      return (
+                        <tr
+                          key={u.id}
+                          className={`transition-colors ${
+                            u.isExcluded
+                              ? 'bg-amber-950/10 hover:bg-amber-950/20 text-zinc-400'
+                              : 'hover:bg-zinc-800/30'
+                          }`}
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border ${
+                                u.isExcluded
+                                  ? 'bg-zinc-800/60 text-zinc-500 border-zinc-700/40'
+                                  : 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-300 border-indigo-500/30'
+                              }`}>
+                                {(u.name || u.email || 'U').slice(0, 2).toUpperCase()}
                               </div>
-                              <div className="text-[11px] text-zinc-400 truncate">{u.email || 'No email associated'}</div>
-                              <div className="text-[9px] font-mono text-zinc-600 truncate" title={`UID: ${u.id}`}>ID: {u.id.slice(0, 16)}...</div>
+                              <div className="min-w-0">
+                                <div className="font-semibold flex items-center gap-1.5 truncate">
+                                  <span className={u.isExcluded ? 'text-zinc-400 line-through' : 'text-zinc-100'}>
+                                    {u.name}
+                                  </span>
+                                  {isUserAdmin && <Crown size={11} className="text-amber-400 shrink-0" />}
+                                  {u.isExcluded && (
+                                    <span className="text-[9px] bg-amber-500/15 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded font-mono font-normal">
+                                      Excluded
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-zinc-400 truncate">{u.email || 'No email associated'}</div>
+                                <div className="text-[9px] font-mono text-zinc-600 truncate" title={`UID: ${u.id}`}>ID: {u.id.slice(0, 16)}...</div>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium border ${
-                            provider.includes('Google') ? 'bg-red-500/10 text-red-300 border-red-500/20' :
-                            provider.includes('Email') ? 'bg-blue-500/10 text-blue-300 border-blue-500/20' :
-                            'bg-zinc-800 text-zinc-300 border-zinc-700/50'
-                          }`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                            {provider}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-zinc-200 font-medium">{dayjs(u.firstSeen).fromNow()}</div>
-                          <div className="text-[10px] text-zinc-500 font-mono">{dayjs(u.firstSeen).format('MMM D, YYYY')}</div>
-                        </td>
-                        <td className="px-4 py-3 text-zinc-300 font-mono">
-                          <span className={u.roomsCount > 0 ? 'text-indigo-400 font-bold' : 'text-zinc-500'}>
-                            {u.roomsCount}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-zinc-300 font-mono">
-                          <span className={u.commentsCount > 0 ? 'text-purple-400 font-bold' : 'text-zinc-500'}>
-                            {u.commentsCount}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-zinc-400">{dayjs(u.lastActive).fromNow()}</td>
-                        <td className="px-4 py-3">
-                          {isUserAdmin ? (
-                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono font-medium">
-                              Admin
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium border ${
+                              provider.includes('Google') ? 'bg-red-500/10 text-red-300 border-red-500/20' :
+                              provider.includes('Email') ? 'bg-blue-500/10 text-blue-300 border-blue-500/20' :
+                              'bg-zinc-800 text-zinc-300 border-zinc-700/50'
+                            }`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                              {provider}
                             </span>
-                          ) : (
-                            <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/40 px-2 py-0.5 rounded-full">
-                              Member
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-zinc-200 font-medium">{dayjs(u.firstSeen).fromNow()}</div>
+                            <div className="text-[10px] text-zinc-500 font-mono">{dayjs(u.firstSeen).format('MMM D, YYYY')}</div>
+                          </td>
+                          <td className="px-4 py-3 text-zinc-300 font-mono">
+                            <span className={u.roomsCount > 0 ? 'text-indigo-400 font-bold' : 'text-zinc-500'}>
+                              {u.roomsCount}
                             </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                          <td className="px-4 py-3 text-zinc-300 font-mono">
+                            <span className={u.commentsCount > 0 ? 'text-purple-400 font-bold' : 'text-zinc-500'}>
+                              {u.commentsCount}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-zinc-400">{dayjs(u.lastActive).fromNow()}</td>
+                          
+                          {/* Option to select/toggle which accounts are included/excluded from total */}
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => handleToggleUserExclusion(u.id, u.email)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
+                                u.isExcluded
+                                  ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
+                                  : 'bg-emerald-500/10 hover:bg-zinc-800 text-emerald-300 hover:text-zinc-200 border-emerald-500/20 hover:border-zinc-700'
+                              }`}
+                              title={u.isExcluded ? "Click to include account in total count" : "Click to exclude account from total count"}
+                            >
+                              {u.isExcluded ? (
+                                <>
+                                  <UserPlus size={12} />
+                                  <span>Include in Total</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Check size={12} className="text-emerald-400" />
+                                  <span>Included</span>
+                                  <span className="text-[9px] text-zinc-500 hover:text-zinc-300 ml-1">· Exclude</span>
+                                </>
+                              )}
+                            </button>
+                          </td>
+
+                          <td className="px-4 py-3">
+                            {isUserAdmin ? (
+                              <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono font-medium">
+                                Admin
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/40 px-2 py-0.5 rounded-full">
+                                Member
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>

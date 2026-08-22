@@ -375,3 +375,84 @@ export const fetchAllRegisteredUsers = async () => {
   }
   return getCachedUserProfiles();
 };
+
+const EXCLUDED_FOLDER = '__system_excluded_users__';
+const EXCLUDED_STORAGE_KEY = 'markit_excluded_user_ids';
+
+/**
+ * Get locally cached excluded user IDs.
+ * @returns {string[]}
+ */
+export const getCachedExcludedUserIds = () => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = window.localStorage.getItem(EXCLUDED_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading excluded user IDs:', e);
+  }
+  return [];
+};
+
+/**
+ * Sync excluded user IDs from Supabase and cache.
+ * @returns {Promise<string[]>}
+ */
+export const syncExcludedUsersWithDatabase = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('id, video_url')
+      .eq('folder', EXCLUDED_FOLDER)
+      .limit(1);
+
+    if (!error && data && data.length > 0 && data[0].video_url) {
+      try {
+        const parsed = JSON.parse(data[0].video_url);
+        if (Array.isArray(parsed)) {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(EXCLUDED_STORAGE_KEY, JSON.stringify(parsed));
+          }
+          return parsed;
+        }
+      } catch {
+        // Ignore JSON error
+      }
+    }
+  } catch (e) {
+    console.warn('Could not sync excluded users from database:', e);
+  }
+  return getCachedExcludedUserIds();
+};
+
+/**
+ * Save excluded user IDs to both localStorage and Supabase.
+ * @param {string[]} ids 
+ * @param {string} [adminUserId]
+ */
+export const saveExcludedUsers = async (ids, adminUserId) => {
+  const cleanIds = Array.from(new Set(ids.filter(Boolean)));
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(EXCLUDED_STORAGE_KEY, JSON.stringify(cleanIds));
+    }
+
+    await supabase.from('rooms').upsert([
+      {
+        id: 'cfg_excluded_users',
+        title: 'System Config: Excluded Users',
+        user_id: adminUserId || 'system',
+        folder: EXCLUDED_FOLDER,
+        video_url: JSON.stringify(cleanIds)
+      }
+    ], { onConflict: 'id' });
+  } catch (e) {
+    console.warn('Could not persist excluded users to database:', e);
+  }
+  return cleanIds;
+};
+
