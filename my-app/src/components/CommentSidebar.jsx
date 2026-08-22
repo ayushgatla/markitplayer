@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { supabase } from '../supabaseClient';
 import { extractDrawingFromText, injectDrawingIntoText, extractRangeFromText, injectRangeIntoText, formatRangeTime } from '../utils/drawingHelper';
+import { parseComment } from '../utils/commentHelper';
 
 dayjs.extend(relativeTime);
 
@@ -283,38 +284,7 @@ export const CommentSidebar = ({
       {/* Comments/Chat List */}
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {(() => {
-          const parsedComments = comments.map(c => {
-            let text = c.comment_text || '';
-            let version = null;
-            let isReply = false;
-            let parentId = null;
-
-            // Extract range first
-            const { cleanText: textAfterRange, endTime } = extractRangeFromText(text);
-            text = textAfterRange;
-            const isRange = endTime !== null && endTime > c.timestamp;
-
-            // Extract drawing
-            const { cleanText: textAfterDrawing, drawingData } = extractDrawingFromText(text);
-            text = textAfterDrawing;
-
-            // Check reply prefix
-            const replyMatch = text.match(/^___REPLY:([a-zA-Z0-9-]+)___(.*)/s);
-            if (replyMatch) {
-              isReply = true;
-              parentId = replyMatch[1];
-              text = replyMatch[2];
-            }
-
-            // Check version prefix
-            const verMatch = text.match(/^___VER:(\d+)___(.*)/s);
-            if (verMatch) {
-              version = parseInt(verMatch[1], 10);
-              text = verMatch[2];
-            }
-
-            return { ...c, isReply, parentId, version, drawingData, isRange, endTime, cleanText: text };
-          });
+          const parsedComments = comments.map(c => parseComment(c));
 
           const getReplies = (parentId) => {
             return parsedComments.filter(c => c.isReply && c.parentId === parentId)

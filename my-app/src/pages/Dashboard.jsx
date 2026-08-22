@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Video, Clock, Users, ArrowRight, LogOut, User as UserIcon, Trash2, Home, Search, Bell, Settings, HelpCircle, Folder, LayoutGrid, MonitorPlay, Image as ImageIcon, Music, CheckCircle, ListFilter, MessageSquare, ChevronDown, Check, XCircle, MoreVertical, Edit2, Menu, X, Shield } from 'lucide-react';
+import { Plus, Video, Clock, Users, ArrowRight, LogOut, User as UserIcon, Trash2, Home, Search, Bell, Settings, HelpCircle, Folder, LayoutGrid, MonitorPlay, Image as ImageIcon, Music, CheckCircle, ListFilter, MessageSquare, ChevronDown, Check, XCircle, MoreVertical, Edit2, Menu, X, Shield, Pencil } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { getActiveVideoUrl, parseVideoData, getActiveVersionObj } from '../utils/versionHelper';
 import { isAdmin, getAdminEmails, syncAdminEmailsWithDatabase, normalizeEmail } from '../utils/adminHelper';
+import { parseComment } from '../utils/commentHelper';
 
 dayjs.extend(relativeTime);
 
@@ -939,35 +940,93 @@ export default function Dashboard() {
                     <div className="text-xs text-zinc-400 text-center py-6">You have no new client messages.</div>
                   ) : (
                     <div className="space-y-2">
-                      {notifications.map((notif) => (
-                        <div 
-                          key={notif.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowNotifications(false);
-                            if (notif.room_id) {
-                              navigate(`/room/${notif.room_id}`);
-                            }
-                          }}
-                          className="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer border border-white/5 group text-left relative z-10"
-                        >
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <span className="text-xs font-semibold text-indigo-300 truncate">
-                              {notif.author_name || 'Client'}
-                            </span>
-                            <span className="text-[10px] text-zinc-500 whitespace-nowrap">
-                              {dayjs(notif.created_at).fromNow()}
-                            </span>
+                      {notifications.map((notif) => {
+                        const parsed = parseComment(notif);
+                        return (
+                          <div 
+                            key={notif.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowNotifications(false);
+                              if (notif.room_id) {
+                                navigate(`/room/${notif.room_id}`);
+                              }
+                            }}
+                            className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] transition-all cursor-pointer border border-white/5 hover:border-indigo-500/30 group text-left relative z-10 space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div className="w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-bold text-indigo-300 shrink-0 uppercase">
+                                  {(notif.author_name || 'C').substring(0, 1)}
+                                </div>
+                                <span className="text-xs font-semibold text-zinc-200 group-hover:text-white truncate">
+                                  {notif.author_name || 'Client'}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-zinc-500 whitespace-nowrap shrink-0">
+                                {dayjs(notif.created_at).fromNow()}
+                              </span>
+                            </div>
+
+                            {/* Metadata Badges */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {parsed.version && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 font-mono font-medium">
+                                  V{parsed.version}
+                                </span>
+                              )}
+                              {parsed.hasDrawing && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25 font-medium flex items-center gap-1">
+                                  <Pencil className="w-2.5 h-2.5" /> Drawing
+                                </span>
+                              )}
+                              {parsed.isRange && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/25 font-mono font-medium flex items-center gap-1">
+                                  <Clock className="w-2.5 h-2.5" /> {parsed.formattedTime}
+                                </span>
+                              )}
+                              {!parsed.isRange && !parsed.isChat && parsed.timestamp >= 0 && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/25 font-mono font-medium flex items-center gap-1">
+                                  <Clock className="w-2.5 h-2.5" /> {parsed.formattedTime}
+                                </span>
+                              )}
+                              {parsed.isChat && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/25 font-medium flex items-center gap-1">
+                                  <MessageSquare className="w-2.5 h-2.5" /> Chat
+                                </span>
+                              )}
+                              {parsed.hasImage && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 font-medium flex items-center gap-1">
+                                  <ImageIcon className="w-2.5 h-2.5" /> Image
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Clean Text Preview */}
+                            <p className={`text-xs line-clamp-2 font-normal leading-relaxed ${parsed.plainText ? 'text-zinc-300 group-hover:text-zinc-200' : 'text-zinc-400 italic'}`}>
+                              {parsed.plainText ? `"${parsed.plainText}"` : parsed.previewText}
+                            </p>
+
+                            {/* Attached Image Thumbnail Preview if available */}
+                            {parsed.hasImage && parsed.imageUrl && (
+                              <div className="mt-1 relative w-full h-16 rounded-md overflow-hidden bg-black/40 border border-white/10">
+                                <img 
+                                  src={parsed.imageUrl} 
+                                  alt="Attachment" 
+                                  className="w-full h-full object-cover" 
+                                  loading="lazy"
+                                />
+                              </div>
+                            )}
+
+                            {/* Room Info */}
+                            <div className="text-[10px] text-zinc-400 flex items-center gap-1 bg-white/[0.04] px-2 py-0.5 rounded border border-white/5 w-fit">
+                              <span className="text-zinc-500">Room:</span>
+                              <span className="font-medium text-zinc-300 truncate max-w-[190px]">{notif.roomTitle}</span>
+                            </div>
                           </div>
-                          <p className="text-xs text-zinc-300 line-clamp-2 mb-1.5 font-normal">
-                            "{notif.comment_text}"
-                          </p>
-                          <div className="text-[10px] text-zinc-400 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded w-fit">
-                            <span className="text-zinc-500">Room:</span>
-                            <span className="font-medium text-zinc-300 truncate max-w-[180px]">{notif.roomTitle}</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

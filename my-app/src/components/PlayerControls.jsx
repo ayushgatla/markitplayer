@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Subtitles, Volume2, VolumeX, Maximize, Plus, Minus, Expand, Pencil, Eye, EyeOff } from 'lucide-react';
 import LiquidGlass from 'liquid-glass-react';
 import { extractRangeFromText, formatRangeTime } from '../utils/drawingHelper';
+import { parseComment } from '../utils/commentHelper';
 
 export const PlayerControls = ({ 
   playerRef, 
@@ -178,13 +179,11 @@ export const PlayerControls = ({
     <div className={`w-full transition-all duration-500 ease-in-out mx-auto ${showControls ? (isFullscreen ? 'w-[calc(100%-1rem)] lg:w-[calc(100%-3rem)]' : 'lg:w-[calc(100%-3rem)]') : (isFullscreen ? 'w-[60%] max-w-2xl' : 'lg:w-[60%] lg:max-w-2xl')}`}>
       {/* Hovered Comment Tooltip */}
       {hoveredComment && duration > 0 && (() => {
-        const { endTime } = extractRangeFromText(hoveredComment.comment_text);
-        const hasDrawing = hoveredComment.comment_text?.includes('___DRAW:');
-        const isRange = endTime && endTime > hoveredComment.timestamp;
+        const parsed = parseComment(hoveredComment);
 
         return (
           <div 
-            className="absolute bottom-full mb-4 bg-zinc-850 bg-zinc-900 text-zinc-100 text-xs py-2 px-3 rounded-xl border border-white/15 shadow-2xl z-[70] break-words pointer-events-none text-left transform -translate-x-1/2 transition-opacity duration-200 min-w-[160px] max-w-xs backdrop-blur-md"
+            className="absolute bottom-full mb-4 bg-zinc-900 text-zinc-100 text-xs py-2 px-3 rounded-xl border border-white/15 shadow-2xl z-[70] break-words pointer-events-none text-left transform -translate-x-1/2 transition-opacity duration-200 min-w-[160px] max-w-xs backdrop-blur-md"
             style={{ left: `${(hoveredComment.timestamp / duration) * 100}%` }}
           >
             <div className="flex items-center justify-between gap-2 mb-1">
@@ -192,33 +191,33 @@ export const PlayerControls = ({
                 {hoveredComment.author_name || hoveredComment.author || 'User'}
               </span>
               <div className="flex items-center gap-1">
-                {isRange && (
-                  <span className="text-[9px] font-bold bg-white/10 text-white border border-white/20 px-1.5 py-0.2 rounded-full">
+                {parsed.version && (
+                  <span className="text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.2 rounded-full font-mono">
+                    v{parsed.version}
+                  </span>
+                )}
+                {parsed.isRange && (
+                  <span className="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.2 rounded-full">
                     ↔ Range
                   </span>
                 )}
-                {hasDrawing && (
-                  <span className="text-[9px] font-bold bg-white/10 text-white border border-white/20 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
-                    <Pencil className="w-2.5 h-2.5 text-white" />
+                {parsed.hasDrawing && (
+                  <span className="text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
+                    <Pencil className="w-2.5 h-2.5 text-amber-300" />
                     <span>Drawing</span>
                   </span>
                 )}
               </div>
             </div>
 
-            {isRange && (
-              <div className="text-[11px] font-mono text-white font-medium mb-1">
-                {formatRangeTime(hoveredComment.timestamp, endTime)}
+            {parsed.isRange && (
+              <div className="text-[11px] font-mono text-purple-200 font-medium mb-1">
+                {parsed.formattedTime}
               </div>
             )}
 
             <div className="text-xs text-zinc-200 line-clamp-2">
-              {hoveredComment.comment_text
-                ?.replace(/___RANGE:.*?___/s, '')
-                ?.replace(/___DRAW:.*?___/s, '')
-                ?.replace(/___VER:\d+___/s, '')
-                ?.replace(/___REPLY:[a-zA-Z0-9-]+___/s, '')
-                || (hasDrawing ? 'Visual drawing across range' : 'Comment')}
+              {parsed.plainText || parsed.previewText}
             </div>
             <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-900 border-b border-r border-white/15 rotate-45"></div>
           </div>
