@@ -19,6 +19,10 @@ const formatTime = (seconds) => {
   return `${h}:${m}:${s}:${frames}`;
 };
 
+// Module-level cache to remember files where direct Google Drive streaming failed in the current session
+// (e.g., files requiring virus scan confirmation or hitting quotas), avoiding redundant failed attempts
+const failedDirectFileIds = new Set();
+
 export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestName, currentVersionNum = 1 }) => {
   const playerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -131,15 +135,39 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     ? 'https://markitplayer-production.up.railway.app'
     : 'http://localhost:3001';
 
-  let processedUrl = videoUrl;
+  let initialUrl = videoUrl;
+  let fallbackProxyUrl = null;
+  let driveFileId = null;
+
   if (isDrive) {
     const match = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|uc\?.*id=)([-\w]+)/);
     if (match && match[1]) {
-      processedUrl = `${baseUrl}/api/video/${match[1]}`;
+      driveFileId = match[1];
+      fallbackProxyUrl = `${baseUrl}/api/video/${driveFileId}`;
+
+      // If we already know direct Google streaming fails for this file in the current session,
+      // route directly to the Railway proxy without waiting for direct stream timeout
+      if (failedDirectFileIds.has(driveFileId)) {
+        initialUrl = fallbackProxyUrl;
+      } else {
+        // Direct Google CDN endpoint (0 MB Railway egress)
+        initialUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
+      }
     }
   } else if (isInstagram) {
-    processedUrl = `${baseUrl}/api/instagram?url=${encodeURIComponent(videoUrl)}`;
+    initialUrl = `${baseUrl}/api/instagram?url=${encodeURIComponent(videoUrl)}`;
   }
+
+  const fallbackProxyUrlRef = useRef(fallbackProxyUrl);
+  fallbackProxyUrlRef.current = fallbackProxyUrl;
+
+  const driveFileIdRef = useRef(driveFileId);
+  driveFileIdRef.current = driveFileId;
+
+  const hasFallenBackRef = useRef(false);
+  useEffect(() => {
+    hasFallenBackRef.current = false;
+  }, [videoUrl]);
 
   const videoOptions = {
     autoplay: false,
@@ -148,7 +176,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     fill: true,
     techOrder: isYouTube ? ['youtube'] : ['html5'],
     sources: [{
-      src: processedUrl,
+      src: initialUrl,
       type: isYouTube ? 'video/youtube' : 'video/mp4'
     }],
     youtube: {
@@ -189,6 +217,46 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
 
     player.on('pause', () => {
       setIsPlaying(false);
+    });
+
+    // Smart Fallback: If direct Google Drive streaming fails (e.g. virus scan gate >100MB, quota exceeded, or CORS),
+    // seamlessly switch to Railway proxy stream without disrupting the user
+    player.on('error', () => {
+      const err = player.error();
+      console.warn('Player error encountered on direct stream:', err);
+
+      const targetFallbackUrl = fallbackProxyUrlRef.current;
+      const targetFileId = driveFileIdRef.current;
+
+      if (targetFallbackUrl && !hasFallenBackRef.current) {
+        console.log('Switching from Direct Google Drive stream to Railway Proxy fallback...');
+        hasFallenBackRef.current = true;
+        if (targetFileId) {
+          failedDirectFileIds.add(targetFileId);
+        }
+
+        const savedTime = player.currentTime() || 0;
+
+        // Clear error modal on Video.js
+        player.error(null);
+        if (player.errorDisplay) {
+          player.errorDisplay.close();
+        }
+
+        // Change source to Railway proxy
+        player.src({
+          src: targetFallbackUrl,
+          type: 'video/mp4'
+        });
+
+        player.load();
+        if (savedTime > 0) {
+          player.one('loadedmetadata', () => {
+            player.currentTime(savedTime);
+          });
+        }
+        player.play().catch(() => {});
+      }
     });
   };
 
@@ -518,7 +586,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
           {/* Video Container + Drawing Canvas Overlay */}
           <div className={`w-full relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto ${isExpanded ? 'aspect-video lg:h-full lg:aspect-auto' : 'aspect-video'}`}>
             <VideoPlayer
-              key={processedUrl}
+              key={initialUrl}
               ref={playerRef}
               options={videoOptions}
               onReady={handlePlayerReady}
