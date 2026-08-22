@@ -28,6 +28,7 @@ import { parseVideoData, getActiveVideoUrl, detectPlatform } from '../utils/vers
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { AnalyticsCharts } from '../components/AnalyticsCharts';
+import { fetchAllRegisteredUsers, getCachedUserProfiles } from '../utils/userRegistry';
 
 dayjs.extend(relativeTime);
 
@@ -39,6 +40,7 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [rooms, setRooms] = useState([]);
   const [comments, setComments] = useState([]);
+  const [registeredUsers, setRegisteredUsers] = useState(getCachedUserProfiles());
   const [adminList, setAdminList] = useState(getAdminEmails());
   const [newAdminInput, setNewAdminInput] = useState('');
   const [adminMessage, setAdminMessage] = useState(null); // { type: 'success' | 'error', text: '' }
@@ -57,19 +59,21 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setRefreshing(true);
     try {
-      const [roomsRes, commentsRes, syncedAdmins] = await Promise.all([
+      const [roomsRes, commentsRes, syncedAdmins, syncedUsers] = await Promise.all([
         supabase.from('rooms').select('*').order('created_at', { ascending: false }),
         supabase.from('comments').select('*').order('created_at', { ascending: false }),
-        syncAdminEmailsWithDatabase()
+        syncAdminEmailsWithDatabase(),
+        fetchAllRegisteredUsers()
       ]);
 
       if (roomsRes.data) {
         // Filter out internal system configuration rows from normal rooms stats
-        const realRooms = roomsRes.data.filter(r => r.folder !== '__system_admin_config__');
+        const realRooms = roomsRes.data.filter(r => r.folder !== '__system_admin_config__' && r.folder !== '__system_user_registry__');
         setRooms(realRooms);
       }
       if (commentsRes.data) setComments(commentsRes.data);
       if (syncedAdmins) setAdminList(syncedAdmins);
+      if (syncedUsers) setRegisteredUsers(syncedUsers);
     } catch (e) {
       console.error('Error fetching admin data:', e);
     } finally {
@@ -84,8 +88,10 @@ export default function AdminDashboard() {
       setLoading(true);
       try {
         const syncedAdmins = await syncAdminEmailsWithDatabase();
-        if (isMounted && syncedAdmins) {
-          setAdminList(syncedAdmins);
+        const initialUsers = await fetchAllRegisteredUsers();
+        if (isMounted) {
+          if (syncedAdmins) setAdminList(syncedAdmins);
+          if (initialUsers) setRegisteredUsers(initialUsers);
         }
         const cleanUser = normalizeEmail(userEmail);
         const hasAccess = isAdmin(cleanUser) || (syncedAdmins || []).map(normalizeEmail).includes(cleanUser);
@@ -124,18 +130,36 @@ export default function AdminDashboard() {
     };
   }, [userIsAdmin]);
 
-  // Derive all unique users and statistics from rooms & comments
+  // Derive all unique users and statistics from Supabase Auth directory, rooms & comments
   const stats = useMemo(() => {
     const userMap = new Map();
 
-    // Process room creators
+    // 1. Initialize userMap with all registered Supabase Auth users
+    registeredUsers.forEach(u => {
+      userMap.set(u.id, {
+        id: u.id,
+        name: u.name || (u.email ? u.email.split('@')[0] : `User_${u.id.slice(0, 6)}`),
+        email: u.email || null,
+        provider: u.provider || 'Google',
+        roomsCount: 0,
+        commentsCount: 0,
+        firstSeen: u.created_at || '2026-06-01T00:00:00.000Z',
+        lastActive: u.last_sign_in_at || u.created_at || '2026-06-01T00:00:00.000Z',
+        rooms: []
+      });
+    });
+
+    // 2. Process room creators
     rooms.forEach(room => {
-      const uId = room.user_id || 'anonymous';
+      const uId = room.user_id;
+      if (!uId) return;
+
       if (!userMap.has(uId)) {
         userMap.set(uId, {
           id: uId,
           name: uId === user?.id ? (user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You') : `User_${uId.slice(0, 6)}`,
           email: uId === user?.id ? user?.email : null,
+          provider: 'Supabase Auth',
           roomsCount: 0,
           commentsCount: 0,
           firstSeen: room.created_at,
@@ -150,28 +174,43 @@ export default function AdminDashboard() {
       if (new Date(room.created_at) > new Date(u.lastActive)) u.lastActive = room.created_at;
     });
 
-    // Process comment authors
+    // 3. Process comment authors
     comments.forEach(comment => {
-      const uId = comment.user_id || `author_${comment.author_name || 'anon'}`;
-      if (!userMap.has(uId)) {
-        userMap.set(uId, {
-          id: uId,
-          name: comment.author_name || `User_${uId.slice(0, 6)}`,
-          email: null,
-          roomsCount: 0,
-          commentsCount: 0,
-          firstSeen: comment.created_at,
-          lastActive: comment.created_at,
-          rooms: []
-        });
+      const uId = comment.user_id;
+      if (uId && userMap.has(uId)) {
+        const u = userMap.get(uId);
+        u.commentsCount += 1;
+        if (new Date(comment.created_at) > new Date(u.lastActive)) u.lastActive = comment.created_at;
+      } else if (comment.author_name) {
+        // Check if author_name matches an existing user's display name
+        const existingByName = Array.from(userMap.values()).find(
+          u => u.name && u.name.toLowerCase() === comment.author_name.toLowerCase()
+        );
+        if (existingByName) {
+          existingByName.commentsCount += 1;
+          if (new Date(comment.created_at) > new Date(existingByName.lastActive)) {
+            existingByName.lastActive = comment.created_at;
+          }
+        } else {
+          const guestId = uId || `guest_${comment.author_name}`;
+          if (!userMap.has(guestId)) {
+            userMap.set(guestId, {
+              id: guestId,
+              name: comment.author_name,
+              email: null,
+              provider: 'Collaborator',
+              roomsCount: 0,
+              commentsCount: 0,
+              firstSeen: comment.created_at,
+              lastActive: comment.created_at,
+              rooms: []
+            });
+          }
+          const u = userMap.get(guestId);
+          u.commentsCount += 1;
+          if (new Date(comment.created_at) > new Date(u.lastActive)) u.lastActive = comment.created_at;
+        }
       }
-      const u = userMap.get(uId);
-      u.commentsCount += 1;
-      if (comment.author_name && u.name.startsWith('User_')) {
-        u.name = comment.author_name;
-      }
-      if (new Date(comment.created_at) < new Date(u.firstSeen)) u.firstSeen = comment.created_at;
-      if (new Date(comment.created_at) > new Date(u.lastActive)) u.lastActive = comment.created_at;
     });
 
     // Sort list of all users in descending order of who joined latest (newest joined first)
@@ -564,7 +603,8 @@ export default function AdminDashboard() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-zinc-950/60 border-b border-zinc-800 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
                   <tr>
-                    <th className="px-4 py-3">User</th>
+                    <th className="px-4 py-3">User & Account</th>
+                    <th className="px-4 py-3">Provider</th>
                     <th className="px-4 py-3">Joined Date</th>
                     <th className="px-4 py-3">Sessions</th>
                     <th className="px-4 py-3">Comments</th>
@@ -575,33 +615,56 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-zinc-800/50">
                   {filteredUsers.map((u) => {
                     const isUserAdmin = u.email && isAdmin(u.email);
+                    const provider = u.provider || (u.email?.includes('gmail') ? 'Google' : 'Email');
                     return (
                       <tr key={u.id} className="hover:bg-zinc-800/30 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-300 flex items-center justify-center font-bold text-[10px] border border-indigo-500/30 shrink-0">
-                              {u.name.slice(0, 2).toUpperCase()}
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-300 flex items-center justify-center font-bold text-xs border border-indigo-500/30 shrink-0">
+                              {(u.name || u.email || 'U').slice(0, 2).toUpperCase()}
                             </div>
-                            <div>
-                              <div className="font-medium text-zinc-200">{u.name}</div>
-                              <div className="text-[10px] font-mono text-zinc-500">{u.email || u.id}</div>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-zinc-100 flex items-center gap-1.5 truncate">
+                                <span>{u.name}</span>
+                                {isUserAdmin && <Crown size={11} className="text-amber-400 shrink-0" />}
+                              </div>
+                              <div className="text-[11px] text-zinc-400 truncate">{u.email || 'No email associated'}</div>
+                              <div className="text-[9px] font-mono text-zinc-600 truncate" title={`UID: ${u.id}`}>ID: {u.id.slice(0, 16)}...</div>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium border ${
+                            provider.includes('Google') ? 'bg-red-500/10 text-red-300 border-red-500/20' :
+                            provider.includes('Email') ? 'bg-blue-500/10 text-blue-300 border-blue-500/20' :
+                            'bg-zinc-800 text-zinc-300 border-zinc-700/50'
+                          }`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                            {provider}
+                          </span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-zinc-200 font-medium">{dayjs(u.firstSeen).fromNow()}</div>
                           <div className="text-[10px] text-zinc-500 font-mono">{dayjs(u.firstSeen).format('MMM D, YYYY')}</div>
                         </td>
-                        <td className="px-4 py-3 text-zinc-300 font-mono">{u.roomsCount}</td>
-                        <td className="px-4 py-3 text-zinc-300 font-mono">{u.commentsCount}</td>
+                        <td className="px-4 py-3 text-zinc-300 font-mono">
+                          <span className={u.roomsCount > 0 ? 'text-indigo-400 font-bold' : 'text-zinc-500'}>
+                            {u.roomsCount}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-zinc-300 font-mono">
+                          <span className={u.commentsCount > 0 ? 'text-purple-400 font-bold' : 'text-zinc-500'}>
+                            {u.commentsCount}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 text-zinc-400">{dayjs(u.lastActive).fromNow()}</td>
                         <td className="px-4 py-3">
                           {isUserAdmin ? (
-                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded font-mono">
+                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono font-medium">
                               Admin
                             </span>
                           ) : (
-                            <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/40 px-2 py-0.5 rounded">
+                            <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/40 px-2 py-0.5 rounded-full">
                               Member
                             </span>
                           )}

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { syncCurrentUserProfile } from '../utils/userRegistry';
 
 const AuthContext = createContext({});
 
@@ -13,14 +14,22 @@ export const AuthProvider = ({ children }) => {
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       console.log("Initial session:", session, "Error:", error);
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        syncCurrentUserProfile(currentUser);
+      }
       setLoading(false);
     });
 
     // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log("Auth state changed:", _event, session);
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        syncCurrentUserProfile(currentUser);
+      }
       setLoading(false);
       
       // Clear the URL hash if it contains an access token to prevent accidental sharing
