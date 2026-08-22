@@ -131,9 +131,9 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
   const isDrive = videoUrl.includes('drive.google.com');
   const isInstagram = videoUrl.includes('instagram.com');
 
-  const baseUrl = import.meta.env.PROD
-    ? 'https://markitplayer-production.up.railway.app'
-    : 'http://localhost:3001';
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.PROD
+    ? 'https://markitplayer-production-80fd.up.railway.app'
+    : 'http://localhost:3001');
 
   let initialUrl = videoUrl;
   let fallbackProxyUrl = null;

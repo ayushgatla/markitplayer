@@ -31,9 +31,9 @@ const formatRelativeTime = (dateStr) => {
     .replace(' months', 'mo');
 };
 
-const baseUrl = import.meta.env.PROD
-  ? 'https://markitplayer-production.up.railway.app'
-  : 'http://localhost:3001';
+const baseUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.PROD
+  ? 'https://markitplayer-production-80fd.up.railway.app'
+  : 'http://localhost:3001');
 
 // Parse markdown image syntax ![alt](url)
 const renderTextWithImages = (text) => {

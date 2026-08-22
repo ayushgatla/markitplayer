@@ -14,7 +14,6 @@ func isUserScriptSandboxingEnabled(project: PBXProj) -> Bool {
         }
     }
 
-    // If the value is absent, assume it is the default "YES"
     return true
 }
 
