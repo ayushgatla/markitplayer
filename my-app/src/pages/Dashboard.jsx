@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Video, Clock, Users, ArrowRight, LogOut, User as UserIcon, Trash2, Home, Search, Bell, Settings, HelpCircle, Folder, LayoutGrid, MonitorPlay, Image as ImageIcon, Music, CheckCircle, ListFilter, MessageSquare, ChevronDown, Check, XCircle, MoreVertical, Edit2, Menu, X, Shield, Pencil } from 'lucide-react';
+import { Plus, Video, Clock, Users, ArrowRight, LogOut, User as UserIcon, Trash2, Home, Search, Bell, Settings, HelpCircle, Folder, LayoutGrid, MonitorPlay, Image as ImageIcon, Music, CheckCircle, ListFilter, MessageSquare, ChevronDown, Check, XCircle, MoreVertical, Edit2, Menu, X, Shield, Pencil, RefreshCw } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import dayjs from 'dayjs';
@@ -45,6 +45,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedRooms, setSelectedRooms] = useState([]);
   const [activeFolder, setActiveFolder] = useState('All Rooms');
   const [activeState, setActiveState] = useState(null);
@@ -113,9 +114,51 @@ export default function Dashboard() {
     }
   };
 
+  // Fetch rooms whenever user becomes available
   useEffect(() => {
-    fetchRooms();
-  }, []);
+    if (user) {
+      fetchRooms(true);
+    } else {
+      setRooms([]);
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Real-time live synchronization with Supabase
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`dashboard-realtime-sync-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rooms',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          fetchRooms(false);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comments'
+        },
+        () => {
+          fetchRooms(false);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   useEffect(() => {
     if (rooms.length > 0) {
@@ -130,36 +173,61 @@ export default function Dashboard() {
     const roomMap = {};
     userRooms.forEach(r => { roomMap[r.id] = r.title || 'Untitled Session'; });
 
-    const { data, error } = await supabase
-      .from('comments')
-      .select('*')
-      .in('room_id', roomIds)
-      .order('created_at', { ascending: false })
-      .limit(15);
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .in('room_id', roomIds)
+        .order('created_at', { ascending: false })
+        .limit(15);
 
-    if (!error && data) {
-      const formatted = data.map(c => ({
-        ...c,
-        roomTitle: roomMap[c.room_id] || 'Room'
-      }));
-      setNotifications(formatted);
+      if (!error && data) {
+        const formatted = data.map(c => ({
+          ...c,
+          roomTitle: roomMap[c.room_id] || 'Room'
+        }));
+        setNotifications(formatted);
+      }
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
     }
   };
 
-  const fetchRooms = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('rooms')
-      .select('*, comments(count)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-      
-    if (error) {
-      console.error('Error fetching rooms:', error);
-    } else {
-      setRooms(data || []);
+  const fetchRooms = async (showFullLoading = true) => {
+    if (!user) return;
+    if (showFullLoading) setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*, comments(count)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error('Error fetching rooms:', error);
+      } else {
+        setRooms(data || []);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching rooms:', err);
+    } finally {
+      if (showFullLoading) setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const handleManualRefresh = async () => {
+    if (refreshing || !user) return;
+    setRefreshing(true);
+    try {
+      await fetchRooms(false);
+      if (rooms.length > 0) {
+        await fetchNotifications(rooms);
+      }
+    } catch (err) {
+      console.error('Error during manual refresh:', err);
+    } finally {
+      setTimeout(() => setRefreshing(false), 500);
+    }
   };
 
   const handleCreateRoom = async () => {
@@ -266,13 +334,16 @@ export default function Dashboard() {
           <button onClick={() => setIsSidebarOpen(false)} className="p-1.5 hover:bg-white/10 rounded text-zinc-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
-        {/* Mobile Quick Action Tools (Home, Search, Notifications, Help, Logout) for responsive UI */}
+        {/* Mobile Quick Action Tools (Home, Search, Notifications, Refresh, Help, Logout) for responsive UI */}
         <div className="md:hidden p-3 border-b border-white/5 bg-white/[0.02] flex items-center justify-around">
           <button onClick={() => { setActiveFolder('All Rooms'); setActiveState(null); setSearchQuery(''); setIsSidebarOpen(false); }} className="p-2 text-zinc-400 hover:text-white transition-colors" title="Home">
             <Home className="w-5 h-5" />
           </button>
           <button onClick={() => { document.getElementById('search-input')?.focus(); setIsSidebarOpen(false); }} className="p-2 text-zinc-400 hover:text-white transition-colors" title="Search">
             <Search className="w-5 h-5" />
+          </button>
+          <button onClick={() => { handleManualRefresh(); setIsSidebarOpen(false); }} className="p-2 text-zinc-400 hover:text-white transition-colors" title="Refresh">
+            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin text-indigo-400' : ''}`} />
           </button>
           <button onClick={() => { navigate('/notifications'); setIsSidebarOpen(false); }} className="p-2 text-zinc-400 hover:text-white transition-colors relative" title="Notifications">
             <Bell className="w-5 h-5" />
@@ -502,16 +573,25 @@ export default function Dashboard() {
               />
             </div>
             <button 
+              onClick={handleManualRefresh}
+              disabled={refreshing}
+              className="bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap cursor-pointer shadow-sm"
+              title="Refresh database records"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <button 
               onClick={handleCreateRoom}
-              className="bg-white hover:bg-zinc-200 text-black px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap"
+              className="bg-white hover:bg-zinc-200 text-black px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap cursor-pointer shadow-sm"
             >
               <Plus className="w-4 h-4" /> New
             </button>
           </div>
         </div>
 
-        <div className="px-4 md:px-6 pb-2 relative z-10 text-xs text-zinc-500">
-          {rooms.length} Assets · {loading ? 'Loading...' : 'Ready'}
+        <div className="px-4 md:px-6 pb-2 relative z-10 text-xs text-zinc-500 flex items-center justify-between">
+          <span>{rooms.length} Assets · {loading ? 'Loading...' : refreshing ? 'Syncing...' : 'Realtime Sync Active'}</span>
         </div>
 
         {/* Grid and Right Sidebar */}
@@ -908,8 +988,9 @@ export default function Dashboard() {
             );
           })()}
           <div className="flex flex-col gap-6 w-full items-center flex-1 relative">
-            <button onClick={() => { setActiveFolder('All Rooms'); setActiveState(null); setSearchQuery(''); }} className="p-2 text-zinc-500 hover:text-white transition-colors group relative"><Home className="w-5 h-5" /><span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">Home</span></button>
-            <button onClick={() => document.getElementById('search-input')?.focus()} className="p-2 text-zinc-500 hover:text-white transition-colors group relative"><Search className="w-5 h-5" /><span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">Search</span></button>
+            <button onClick={() => { setActiveFolder('All Rooms'); setActiveState(null); setSearchQuery(''); }} className="p-2 text-zinc-500 hover:text-white transition-colors group relative"><Home className="w-5 h-5" /><span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Home</span></button>
+            <button onClick={() => document.getElementById('search-input')?.focus()} className="p-2 text-zinc-500 hover:text-white transition-colors group relative"><Search className="w-5 h-5" /><span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Search</span></button>
+            <button onClick={handleManualRefresh} disabled={refreshing} className={`p-2 transition-colors group relative ${refreshing ? 'text-indigo-400' : 'text-zinc-500 hover:text-white'}`} title="Refresh data"><RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} /><span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Refresh Data</span></button>
             
             <div className="relative flex justify-center">
               <button 

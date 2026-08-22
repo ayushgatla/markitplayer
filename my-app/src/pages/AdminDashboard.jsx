@@ -27,6 +27,7 @@ import { isAdmin, isPrimaryAdmin, getAdminEmails, addAdminEmail, removeAdminEmai
 import { parseVideoData, getActiveVideoUrl, detectPlatform } from '../utils/versionHelper';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { AnalyticsCharts } from '../components/AnalyticsCharts';
 
 dayjs.extend(relativeTime);
 
@@ -43,6 +44,7 @@ export default function AdminDashboard() {
   const [adminMessage, setAdminMessage] = useState(null); // { type: 'success' | 'error', text: '' }
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
+  const [userSortBy, setUserSortBy] = useState('joined-desc'); // 'joined-desc' | 'joined-asc' | 'active-desc' | 'rooms-desc' | 'comments-desc'
 
   const userEmail = user?.email || user?.user_metadata?.email || user?.raw_user_meta_data?.email || '';
   
@@ -103,6 +105,25 @@ export default function AdminDashboard() {
     return () => { isMounted = false; };
   }, [user, userEmail]);
 
+  // Real-time synchronization for Admin Console
+  useEffect(() => {
+    if (!userIsAdmin) return;
+
+    const channel = supabase
+      .channel('admin-dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
+        fetchData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userIsAdmin]);
+
   // Derive all unique users and statistics from rooms & comments
   const stats = useMemo(() => {
     const userMap = new Map();
@@ -153,7 +174,8 @@ export default function AdminDashboard() {
       if (new Date(comment.created_at) > new Date(u.lastActive)) u.lastActive = comment.created_at;
     });
 
-    const userList = Array.from(userMap.values()).sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive));
+    // Sort list of all users in descending order of who joined latest (newest joined first)
+    const userList = Array.from(userMap.values()).sort((a, b) => new Date(b.firstSeen) - new Date(a.firstSeen));
 
     // Platform distribution
     let driveCount = 0;
@@ -241,16 +263,25 @@ export default function AdminDashboard() {
     });
   }, [rooms, searchQuery, selectedStatusFilter]);
 
-  // Filtered users
+  // Filtered and sorted users (Sorted in desc order of who joined latest by default)
   const filteredUsers = useMemo(() => {
-    return stats.users.filter(u => {
+    const list = stats.users.filter(u => {
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
       return (u.name && u.name.toLowerCase().includes(q)) ||
              (u.id && u.id.toLowerCase().includes(q)) ||
              (u.email && u.email.toLowerCase().includes(q));
     });
-  }, [stats.users, searchQuery]);
+
+    return list.sort((a, b) => {
+      if (userSortBy === 'joined-desc') return new Date(b.firstSeen) - new Date(a.firstSeen);
+      if (userSortBy === 'joined-asc') return new Date(a.firstSeen) - new Date(b.firstSeen);
+      if (userSortBy === 'active-desc') return new Date(b.lastActive) - new Date(a.lastActive);
+      if (userSortBy === 'rooms-desc') return b.roomsCount - a.roomsCount;
+      if (userSortBy === 'comments-desc') return b.commentsCount - a.commentsCount;
+      return new Date(b.firstSeen) - new Date(a.firstSeen);
+    });
+  }, [stats.users, searchQuery, userSortBy]);
 
   if (loading) {
     return (
@@ -450,117 +481,8 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Platform & Status Breakdown Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Platform Distribution */}
-              <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5">
-                <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-4">
-                  Video Platform Distribution
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="flex items-center gap-1.5 text-zinc-300">
-                        <img src="/drive.png" alt="Drive" className="w-3.5 h-3.5 object-contain" />
-                        Google Drive
-                      </span>
-                      <span className="font-mono text-zinc-400">
-                        {stats.platforms.drive} ({Math.round((stats.platforms.drive / (stats.platforms.totalWithVideo || 1)) * 100)}%)
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full"
-                        style={{ width: `${(stats.platforms.drive / (stats.platforms.totalWithVideo || 1)) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="flex items-center gap-1.5 text-zinc-300">
-                        <img src="/youtube.png" alt="YouTube" className="w-3.5 h-3.5 object-contain" />
-                        YouTube
-                      </span>
-                      <span className="font-mono text-zinc-400">
-                        {stats.platforms.youtube} ({Math.round((stats.platforms.youtube / (stats.platforms.totalWithVideo || 1)) * 100)}%)
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-red-500 rounded-full"
-                        style={{ width: `${(stats.platforms.youtube / (stats.platforms.totalWithVideo || 1)) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="flex items-center gap-1.5 text-zinc-300">
-                        <img src="/instagram.png" alt="Instagram" className="w-3.5 h-3.5 object-contain" />
-                        Instagram / Direct Link
-                      </span>
-                      <span className="font-mono text-zinc-400">
-                        {stats.platforms.instagram + stats.platforms.other} ({Math.round(((stats.platforms.instagram + stats.platforms.other) / (stats.platforms.totalWithVideo || 1)) * 100)}%)
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-purple-500 rounded-full"
-                        style={{ width: `${((stats.platforms.instagram + stats.platforms.other) / (stats.platforms.totalWithVideo || 1)) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Breakdown */}
-              <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5">
-                <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-4">
-                  Review Status Breakdown
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-amber-300 font-medium">In Progress</span>
-                      <span className="font-mono text-zinc-400">{stats.states.inProgress}</span>
-                    </div>
-                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500 rounded-full"
-                        style={{ width: `${(stats.states.inProgress / (stats.totalRooms || 1)) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-emerald-400 font-medium">Approved</span>
-                      <span className="font-mono text-zinc-400">{stats.states.approved}</span>
-                    </div>
-                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full"
-                        style={{ width: `${(stats.states.approved / (stats.totalRooms || 1)) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-red-400 font-medium">Rejected / Revisions</span>
-                      <span className="font-mono text-zinc-400">{stats.states.rejected}</span>
-                    </div>
-                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-red-500 rounded-full"
-                        style={{ width: `${(stats.states.rejected / (stats.totalRooms || 1)) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Bespoke Interactive Analytics & Velocity Charts */}
+            <AnalyticsCharts rooms={rooms} comments={comments} />
 
             {/* Top Active Creators List */}
             <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5">
@@ -570,7 +492,7 @@ export default function AdminDashboard() {
                 </h3>
                 <button
                   onClick={() => setActiveTab('users')}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                  className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
                 >
                   <span>View full directory</span>
                   <ChevronRight size={12} />
@@ -578,7 +500,7 @@ export default function AdminDashboard() {
               </div>
 
               <div className="divide-y divide-zinc-800/60">
-                {stats.users.slice(0, 5).map((u, idx) => (
+                {stats.users.slice(0, 5).map((u) => (
                   <div key={u.id} className="py-2.5 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-3">
                       <div className="w-7 h-7 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center font-bold text-[10px] border border-zinc-700/60">
@@ -586,13 +508,13 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <div className="font-medium text-zinc-200">{u.name}</div>
-                        <div className="text-[10px] font-mono text-zinc-500">ID: {u.id.slice(0, 8)}...</div>
+                        <div className="text-[10px] font-mono text-zinc-500">Joined {dayjs(u.firstSeen).fromNow()}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-zinc-400">
                       <span>{u.roomsCount} sessions</span>
                       <span>{u.commentsCount} comments</span>
-                      <span className="text-[11px] text-zinc-500">{dayjs(u.lastActive).fromNow()}</span>
+                      <span className="text-[11px] text-zinc-500">Active {dayjs(u.lastActive).fromNow()}</span>
                     </div>
                   </div>
                 ))}
@@ -601,33 +523,51 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB 2: USERS DIRECTORY */}
+        {/* TAB 2: USERS DIRECTORY (Sorted by newest joined descending by default) */}
         {activeTab === 'users' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="relative flex-1 max-w-md">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                 <input
                   type="text"
-                  placeholder="Search users by name or ID..."
+                  placeholder="Search users by name, email or ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700"
                 />
               </div>
-              <div className="text-xs text-zinc-400 font-mono">
-                {filteredUsers.length} users
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-400 whitespace-nowrap">Sort by:</span>
+                  <select
+                    value={userSortBy}
+                    onChange={(e) => setUserSortBy(e.target.value)}
+                    className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  >
+                    <option value="joined-desc">Joined: Newest First (Latest)</option>
+                    <option value="joined-asc">Joined: Oldest First</option>
+                    <option value="active-desc">Last Active</option>
+                    <option value="rooms-desc">Most Sessions Created</option>
+                    <option value="comments-desc">Most Comments Left</option>
+                  </select>
+                </div>
+
+                <div className="text-xs text-zinc-400 font-mono whitespace-nowrap px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded-lg">
+                  {filteredUsers.length} users
+                </div>
               </div>
             </div>
 
-            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden shadow-lg">
               <table className="w-full text-left text-xs">
                 <thead className="bg-zinc-950/60 border-b border-zinc-800 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
                   <tr>
                     <th className="px-4 py-3">User</th>
+                    <th className="px-4 py-3">Joined Date</th>
                     <th className="px-4 py-3">Sessions</th>
                     <th className="px-4 py-3">Comments</th>
-                    <th className="px-4 py-3">First Seen</th>
                     <th className="px-4 py-3">Last Active</th>
                     <th className="px-4 py-3">Role</th>
                   </tr>
@@ -639,18 +579,21 @@ export default function AdminDashboard() {
                       <tr key={u.id} className="hover:bg-zinc-800/30 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center font-bold text-[10px] border border-zinc-700/60 shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-300 flex items-center justify-center font-bold text-[10px] border border-indigo-500/30 shrink-0">
                               {u.name.slice(0, 2).toUpperCase()}
                             </div>
                             <div>
                               <div className="font-medium text-zinc-200">{u.name}</div>
-                              <div className="text-[10px] font-mono text-zinc-500">{u.id}</div>
+                              <div className="text-[10px] font-mono text-zinc-500">{u.email || u.id}</div>
                             </div>
                           </div>
                         </td>
+                        <td className="px-4 py-3">
+                          <div className="text-zinc-200 font-medium">{dayjs(u.firstSeen).fromNow()}</div>
+                          <div className="text-[10px] text-zinc-500 font-mono">{dayjs(u.firstSeen).format('MMM D, YYYY')}</div>
+                        </td>
                         <td className="px-4 py-3 text-zinc-300 font-mono">{u.roomsCount}</td>
                         <td className="px-4 py-3 text-zinc-300 font-mono">{u.commentsCount}</td>
-                        <td className="px-4 py-3 text-zinc-400">{dayjs(u.firstSeen).format('MMM D, YYYY')}</td>
                         <td className="px-4 py-3 text-zinc-400">{dayjs(u.lastActive).fromNow()}</td>
                         <td className="px-4 py-3">
                           {isUserAdmin ? (
@@ -658,7 +601,7 @@ export default function AdminDashboard() {
                               Admin
                             </span>
                           ) : (
-                            <span className="text-[10px] text-zinc-500 bg-zinc-800/80 px-2 py-0.5 rounded">
+                            <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/40 px-2 py-0.5 rounded">
                               Member
                             </span>
                           )}
