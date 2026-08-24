@@ -200,7 +200,7 @@ export default function Landing() {
                 className="relative z-10"
               >
                 <img
-                  src="/3_page_images/Screenshot-2026-08-09_11:16:02.png"
+                  src="/3_page_images/Screenshot-2026-08-09_11-16-02.png"
                   alt="Video Player"
                   loading="lazy"
                   className="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10"
@@ -215,7 +215,7 @@ export default function Landing() {
                 className="relative z-10"
               >
                 <img
-                  src="/3_page_images/Screenshot-2026-08-09_11:15:17.png"
+                  src="/3_page_images/Screenshot-2026-08-09_11-15-17.png"
                   alt="Projects Dashboard"
                   loading="lazy"
                   className="w-full h-auto rounded-2xl shadow-2xl border border-white/10"
