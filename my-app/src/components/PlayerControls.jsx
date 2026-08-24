@@ -64,8 +64,13 @@ export const PlayerControls = ({
   const togglePlay = () => {
     const player = playerRef.current?.getRawPlayer?.();
     if (player) {
-      if (player.paused()) player.play();
-      else player.pause();
+      if (player.paused()) {
+        player.muted(false);
+        if (player.volume() === 0) player.volume(1);
+        player.play();
+      } else {
+        player.pause();
+      }
     }
   };
 
@@ -79,7 +84,11 @@ export const PlayerControls = ({
   const toggleMute = () => {
     const player = playerRef.current?.getRawPlayer?.();
     if (player) {
-      player.muted(!player.muted());
+      const nextMuted = !player.muted();
+      player.muted(nextMuted);
+      if (!nextMuted && player.volume() === 0) {
+        player.volume(1);
+      }
     }
   };
 

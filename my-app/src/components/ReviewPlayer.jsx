@@ -204,6 +204,12 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
       setIsPlaying(true);
       // Exit active drawing editing mode when playback starts
       setIsDrawingMode(false);
+      if (player.muted()) {
+        player.muted(false);
+      }
+      if (player.volume() === 0) {
+        player.volume(1);
+      }
     });
 
     player.on('pause', () => {
