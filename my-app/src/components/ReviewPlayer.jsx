@@ -132,7 +132,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
   const isInstagram = videoUrl.includes('instagram.com');
 
   const baseUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.PROD
-    ? 'https://markitplayer-production-80fd.up.railway.app'
+    ? 'https://markitplayer-back-dqawbzbvc4dpbugn.centralindia-01.azurewebsites.net'
     : 'http://localhost:3001');
 
   let initialUrl = videoUrl;
