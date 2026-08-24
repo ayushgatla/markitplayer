@@ -20,12 +20,9 @@ const getThumbnailUrl = (rawUrl) => {
     return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
   }
   
-  const gdMatch = url.match(/(?:drive\.google\.com\/(?:file\/d\/|open\?id=))([a-zA-Z0-9_-]+)/);
+  const gdMatch = url.match(/(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?.*id=))([a-zA-Z0-9_-]+)/);
   if (gdMatch && gdMatch[1]) {
-    const baseUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.PROD 
-      ? 'https://markitplayer-back-dqawbzbvc4dpbugn.centralindia-01.azurewebsites.net' 
-      : 'http://localhost:3001');
-    return `${baseUrl}/api/thumbnail/${gdMatch[1]}`;
+    return `https://lh3.googleusercontent.com/d/${gdMatch[1]}=w800-h600`;
   }
   
   return null;

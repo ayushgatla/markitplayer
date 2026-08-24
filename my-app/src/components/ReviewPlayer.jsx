@@ -140,19 +140,10 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
   let driveFileId = null;
 
   if (isDrive) {
-    const match = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|uc\?.*id=)([-\w]+)/);
+    const match = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?.*id=)([-\w]+)/);
     if (match && match[1]) {
       driveFileId = match[1];
-      fallbackProxyUrl = `${baseUrl}/api/video/${driveFileId}`;
-
-      // If we already know direct Google streaming fails for this file in the current session,
-      // route directly to the Railway proxy without waiting for direct stream timeout
-      if (failedDirectFileIds.has(driveFileId)) {
-        initialUrl = fallbackProxyUrl;
-      } else {
-        // Direct Google CDN endpoint (0 MB Railway egress)
-        initialUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
-      }
+      initialUrl = `${baseUrl}/api/video/${driveFileId}`;
     }
   } else if (isInstagram) {
     initialUrl = `${baseUrl}/api/instagram?url=${encodeURIComponent(videoUrl)}`;
