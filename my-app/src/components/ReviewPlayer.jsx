@@ -165,6 +165,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     controls: false,
     responsive: true,
     fill: true,
+    preload: 'auto',
     techOrder: isYouTube ? ['youtube'] : ['html5'],
     sources: [{
       src: initialUrl,
@@ -542,13 +543,46 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     }
   };
 
-  const handleMouseMove = () => {
+  const resetIdleTimer = useCallback(() => {
     setIsIdle(false);
     if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
     idleTimeoutRef.current = setTimeout(() => {
       setIsIdle(true);
-    }, 2500);
-  };
+    }, 3500);
+  }, []);
+
+  const handleMouseMove = useCallback(() => {
+    setIsMouseInside(true);
+    resetIdleTimer();
+  }, [resetIdleTimer]);
+
+  const handleScreenTap = useCallback((e) => {
+    if (isDrawingMode) return;
+
+    // If the tap/click was on an interactive control, button, or input, keep controls active
+    if (e.target.closest('button, input, textarea, a, select, [role="button"], .sidebar-container')) {
+      resetIdleTimer();
+      return;
+    }
+
+    // Tapping the screen toggles / expands controls
+    setIsIdle((prevIdle) => {
+      if (prevIdle) {
+        // Was collapsed -> expand options!
+        return false;
+      }
+      // If already expanded in fullscreen, toggle collapse
+      if (isFullscreen) {
+        return true;
+      }
+      return false;
+    });
+
+    if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
+    idleTimeoutRef.current = setTimeout(() => {
+      setIsIdle(true);
+    }, 3500);
+  }, [isDrawingMode, isFullscreen, resetIdleTimer]);
 
   const isControlsActive = isFullscreen ? !isIdle : (isMouseInside && !isIdle);
   const activeCommentObj = comments.find(c => c.id === activeCommentId);
@@ -569,7 +603,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
       <div className={`w-full lg:flex-1 flex flex-col items-center justify-start lg:justify-center relative z-10 min-h-[40vh] lg:min-h-0 gap-6 lg:gap-0 ${isExpanded ? 'p-4 lg:p-0' : 'p-4 lg:p-6'}`}>
         <div
           ref={wrapperRef}
-          className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-6 lg:gap-0 ${isFullscreen
+          className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-6 lg:gap-0 select-none ${isFullscreen
             ? 'w-screen h-screen bg-black z-50'
             : isExpanded
               ? 'w-full lg:h-full bg-black'
@@ -578,6 +612,11 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
           onMouseEnter={() => setIsMouseInside(true)}
           onMouseLeave={() => setIsMouseInside(false)}
           onMouseMove={handleMouseMove}
+          onClick={handleScreenTap}
+          onTouchStart={() => {
+            setIsMouseInside(true);
+            resetIdleTimer();
+          }}
           onDoubleClick={isDrawingMode ? undefined : handleToggleFullscreen}
         >
           {/* Video Container + Drawing Canvas Overlay */}
@@ -652,8 +691,8 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
           </div>
 
           {/* Player Controls Bar */}
-          <div className={`w-full z-50 flex justify-center ${isFullscreen
-            ? 'absolute bottom-6 left-0 right-0 px-4'
+          <div className={`w-full z-50 flex justify-center pointer-events-none ${isFullscreen
+            ? 'absolute bottom-3 sm:bottom-6 left-0 right-0 px-2 sm:px-4'
             : isExpanded
               ? 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-4 pb-6 lg:pb-0'
               : 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-0 pb-6 lg:pb-0'

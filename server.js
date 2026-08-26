@@ -74,6 +74,10 @@ app.post('/api/upload-image', upload.single('image'), async (req, res) => {
   }
 });
 
+// In-memory cache for resolved Google Drive direct download URLs and cookies
+// Avoids repeatedly scraping the >100MB virus scan confirmation page for every range request
+const directUrlCache = new Map();
+
 app.get('/api/video/:id', async (req, res) => {
   const videoId = req.params.id;
 
@@ -107,78 +111,106 @@ app.get('/api/video/:id', async (req, res) => {
       return;
     } catch (error) {
       console.error('Drive API Video Stream Error:', error.message);
-      // Fallback to scraping
+      // Fallback to scraping/direct stream cache
     }
   }
 
-  let driveUrl = `https://drive.google.com/uc?export=download&id=${videoId}`;
-  let cookies = [];
-
   try {
-    let response = await axios({
+    const cached = directUrlCache.get(videoId);
+    let targetUrl;
+    let requestCookies = [];
+
+    // Check if we have a valid cached direct URL (valid for 3 hours)
+    if (cached && cached.expiresAt > Date.now()) {
+      targetUrl = cached.directUrl;
+      requestCookies = cached.cookies || [];
+    } else {
+      let initialDriveUrl = `https://drive.google.com/uc?export=download&id=${videoId}`;
+      let cookies = [];
+
+      let response = await axios({
+        method: 'get',
+        url: initialDriveUrl,
+        responseType: 'stream',
+        headers: {
+          Range: req.headers.range || 'bytes=0-',
+        },
+        maxRedirects: 5,
+        validateStatus: () => true 
+      });
+
+      if (response.headers['set-cookie']) {
+        cookies = response.headers['set-cookie'];
+      }
+
+      // Check if Google Drive returned the virus scan warning HTML page (>100MB files)
+      if (response.headers['content-type'] && response.headers['content-type'].includes('text/html')) {
+        let html = '';
+        for await (const chunk of response.data) {
+          html += chunk;
+        }
+
+        let confirmToken = 't';
+        const confirmMatch = html.match(/confirm=([0-9A-Za-z_-]+)/i) || html.match(/name="confirm"\s+value="([^"]+)"/i);
+        if (confirmMatch) {
+          confirmToken = confirmMatch[1] || confirmMatch[2];
+        }
+
+        const uuidMatch = html.match(/name="uuid"\s+value="([^"]+)"/i);
+        const actionMatch = html.match(/<form[^>]*action="([^"]+)"/i);
+        const baseUrl = actionMatch ? actionMatch[1] : 'https://drive.usercontent.google.com/download';
+        
+        targetUrl = `${baseUrl}?id=${videoId}&export=download&confirm=${confirmToken}`;
+        if (uuidMatch && uuidMatch[1]) {
+           targetUrl += `&uuid=${uuidMatch[1]}`;
+        }
+        requestCookies = cookies;
+
+        // Cache the resolved direct stream URL for 3 hours so subsequent range requests are instant
+        directUrlCache.set(videoId, {
+          directUrl: targetUrl,
+          cookies: requestCookies,
+          expiresAt: Date.now() + 3 * 60 * 60 * 1000
+        });
+      } else {
+        // Direct stream already returned without virus confirmation page
+        res.status(response.status);
+        ['content-type', 'content-length', 'accept-ranges', 'content-range'].forEach(header => {
+          if (response.headers[header]) {
+            res.setHeader(header, response.headers[header]);
+          }
+        });
+        response.data.pipe(res);
+        response.data.on('error', () => res.end());
+        return;
+      }
+    }
+
+    // Fast single-hop stream using the cached or newly resolved direct URL
+    const streamResponse = await axios({
       method: 'get',
-      url: driveUrl,
+      url: targetUrl,
       responseType: 'stream',
       headers: {
-        Range: req.headers.range,
+        Range: req.headers.range || 'bytes=0-',
+        Cookie: requestCookies.map(c => c.split(';')[0]).join('; ')
       },
       maxRedirects: 5,
       validateStatus: () => true 
     });
 
-    if (response.headers['set-cookie']) {
-      cookies = response.headers['set-cookie'];
-    }
-
-    // Check if Google Drive returned the virus scan warning HTML page
-    if (response.headers['content-type'] && response.headers['content-type'].includes('text/html')) {
-      let html = '';
-      for await (const chunk of response.data) {
-        html += chunk;
-      }
-
-      let confirmToken = 't';
-      const confirmMatch = html.match(/confirm=([0-9A-Za-z_-]+)/i) || html.match(/name="confirm"\s+value="([^"]+)"/i);
-      if (confirmMatch) {
-        confirmToken = confirmMatch[1] || confirmMatch[2];
-      }
-
-      const uuidMatch = html.match(/name="uuid"\s+value="([^"]+)"/i);
-      
-      const actionMatch = html.match(/<form[^>]*action="([^"]+)"/i);
-      const baseUrl = actionMatch ? actionMatch[1] : 'https://drive.usercontent.google.com/download';
-      
-      driveUrl = `${baseUrl}?id=${videoId}&export=download&confirm=${confirmToken}`;
-      if (uuidMatch && uuidMatch[1]) {
-         driveUrl += `&uuid=${uuidMatch[1]}`;
-      }
-      
-      // Make the second request bypassing the warning
-      response = await axios({
-        method: 'get',
-        url: driveUrl,
-        responseType: 'stream',
-        headers: {
-          Range: req.headers.range,
-          Cookie: cookies.map(c => c.split(';')[0]).join('; ')
-        },
-        maxRedirects: 5,
-        validateStatus: () => true 
-      });
-    }
-
-    res.status(response.status);
+    res.status(streamResponse.status);
     
     ['content-type', 'content-length', 'accept-ranges', 'content-range'].forEach(header => {
-      if (response.headers[header]) {
-        res.setHeader(header, response.headers[header]);
+      if (streamResponse.headers[header]) {
+        res.setHeader(header, streamResponse.headers[header]);
       }
     });
 
-    response.data.pipe(res);
+    streamResponse.data.pipe(res);
 
-    response.data.on('error', (err) => {
-      console.error('Stream error:', err);
+    streamResponse.data.on('error', (err) => {
+      console.error('Stream error:', err.message);
       res.end();
     });
 

@@ -332,12 +332,12 @@ export const PlayerControls = ({
           {/* Controls Row */}
           <div className={`flex items-center justify-between pointer-events-auto w-full drop-shadow-md transition-all duration-500 ease-in-out overflow-hidden ${
             isFullscreen 
-              ? `flex-row gap-0 ${showControls ? 'opacity-100 max-h-16 py-1' : 'opacity-0 max-h-0 py-0'}`
+              ? `flex-col md:flex-row gap-2.5 md:gap-0 ${showControls ? 'opacity-100 max-h-48 md:max-h-16 py-1.5 md:py-1' : 'opacity-0 max-h-0 py-0'}`
               : `flex-col lg:flex-row gap-4 lg:gap-0 ${showControls ? 'opacity-100 lg:max-h-16 pt-2 pb-2 lg:py-1' : 'opacity-100 lg:opacity-0 lg:max-h-0 pt-2 lg:pt-0 pb-2 lg:pb-0'}`
           }`}>
             
-            {/* MOBILE: Top Row | DESKTOP: Left Side */}
-            <div className={`flex items-center justify-between ${isFullscreen ? 'w-[30%] lg:w-[30%]' : 'w-full lg:w-[30%]'}`}>
+            {/* MOBILE / COMPACT: Top Row | DESKTOP: Left Side */}
+            <div className={`flex items-center justify-between ${isFullscreen ? 'w-full md:w-[30%]' : 'w-full lg:w-[30%]'}`}>
               
               {/* Left: Time & Volume */}
               <div className="flex items-center justify-start gap-2 lg:gap-3">
@@ -369,50 +369,49 @@ export const PlayerControls = ({
                 onChange={handleSubtitleUpload}
               />
 
-              {/* MOBILE ONLY: Draw, Eye, Speed, CC, Expand, Fullscreen */}
-              <div className={`${isFullscreen ? 'hidden' : 'flex lg:hidden'} items-center justify-end gap-2`}>
+              {/* MOBILE ONLY / COMPACT RESPONSIVE: Draw, Eye, Speed, CC, Expand, Fullscreen */}
+              <div className={`${isFullscreen ? 'flex md:hidden' : 'flex lg:hidden'} items-center justify-end gap-1.5 sm:gap-2`}>
                 <button 
                   onClick={onToggleDraw} 
-                  className={`p-1.5 rounded-lg transition-all ${isDrawingMode ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/40' : 'text-white hover:text-white'}`}
+                  className={`p-1.5 rounded-lg transition-all ${isDrawingMode ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/40' : 'text-white hover:text-white bg-white/5 border border-white/10'}`}
                   title={isDrawingMode ? "Exit Drawing Mode" : "Draw on frame"}
                 >
-                  <Pencil size={15} />
+                  <Pencil size={15} className={isDrawingMode ? "text-black fill-black" : "text-white"} />
                 </button>
                 {onToggleAnnotations && (
                   <button 
                     onClick={onToggleAnnotations} 
-                    className={`p-1.5 rounded-lg transition-all ${showAnnotations ? 'text-white hover:text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    className={`p-1.5 rounded-lg transition-all ${showAnnotations ? 'text-white hover:text-indigo-400 bg-white/5 border border-white/10' : 'text-zinc-500 hover:text-zinc-300 bg-white/5 border border-white/10'}`}
                     title={showAnnotations ? "Hide Annotations" : "Show Annotations"}
                   >
                     {showAnnotations ? <Eye size={15} /> : <EyeOff size={15} />}
                   </button>
                 )}
-                <div className="flex items-center bg-white/10 rounded-full px-2 py-1 border border-white/10">
-                  <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 p-0.5"><Minus size={12} /></button>
-                  <span className="text-white/90 text-[10px] font-mono font-medium w-6 text-center">{speed}x</span>
-                  <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 p-0.5"><Plus size={12} /></button>
+                <div className="flex items-center bg-white/10 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 border border-white/10">
+                  <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 p-0.5"><Minus size={11} /></button>
+                  <span className="text-white/90 text-[10px] font-mono font-medium w-5 sm:w-6 text-center">{speed}x</span>
+                  <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 p-0.5"><Plus size={11} /></button>
                 </div>
-                <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 p-1"><Subtitles size={16} /></button>
-                <button onClick={onToggleExpand} className="text-white hover:text-indigo-400 p-1"><Expand size={16} /></button>
-                <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 p-1"><Maximize size={16} /></button>
+                <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 p-1" title="Subtitles"><Subtitles size={16} /></button>
+                <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 p-1" title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}><Maximize size={16} /></button>
               </div>
             </div>
 
             {/* Center: Playback Controls */}
-            <div className={`flex items-center justify-center gap-4 lg:gap-6 flex-shrink-0 ${isFullscreen ? 'w-[40%] lg:w-[40%]' : 'w-full lg:w-[40%]'}`}>
-              <button onClick={() => skip(-5)} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1">
-                <SkipBack size={20} className="w-4 h-4 lg:w-6 lg:h-6" />
+            <div className={`flex items-center justify-center gap-4 lg:gap-6 flex-shrink-0 ${isFullscreen ? 'w-full md:w-[40%]' : 'w-full lg:w-[40%]'}`}>
+              <button onClick={() => skip(-5)} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Rewind 5s">
+                <SkipBack size={20} className="w-5 h-5 lg:w-6 lg:h-6" />
               </button>
-              <button onClick={togglePlay} className={`text-white hover:text-indigo-400 transition-all bg-white/10 hover:bg-white/20 rounded-full border border-white/10 shadow-lg hover:shadow-indigo-500/20 hover:scale-105 ${isFullscreen ? 'p-2 lg:p-3' : 'p-3 lg:p-3'}`}>
-                {isPlaying ? <Pause size={20} className="w-4 h-4 lg:w-6 lg:h-6" /> : <Play size={20} className="ml-1 w-4 h-4 lg:w-6 lg:h-6" />}
+              <button onClick={togglePlay} className={`text-white hover:text-indigo-400 transition-all bg-white/10 hover:bg-white/20 rounded-full border border-white/10 shadow-lg hover:shadow-indigo-500/20 hover:scale-105 ${isFullscreen ? 'p-2.5 lg:p-3' : 'p-3 lg:p-3'}`} title={isPlaying ? "Pause" : "Play"}>
+                {isPlaying ? <Pause size={20} className="w-5 h-5 lg:w-6 lg:h-6" /> : <Play size={20} className="ml-0.5 w-5 h-5 lg:w-6 lg:h-6" />}
               </button>
-              <button onClick={() => skip(5)} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1">
-                <SkipForward size={20} className="w-4 h-4 lg:w-6 lg:h-6" />
+              <button onClick={() => skip(5)} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Forward 5s">
+                <SkipForward size={20} className="w-5 h-5 lg:w-6 lg:h-6" />
               </button>
             </div>
 
-            {/* DESKTOP ONLY: Draw, Annotations, Speed, CC, Expand, Fullscreen */}
-            <div className={`${isFullscreen ? 'flex' : 'hidden lg:flex'} items-center justify-end gap-2 lg:gap-3.5 w-[30%]`}>
+            {/* DESKTOP / WIDE: Draw, Annotations, Speed, CC, Expand, Fullscreen */}
+            <div className={`${isFullscreen ? 'hidden md:flex' : 'hidden lg:flex'} items-center justify-end gap-2 lg:gap-3.5 md:w-[30%]`}>
               {/* Draw on Frame Button */}
               <button 
                 onClick={onToggleDraw} 
@@ -440,14 +439,16 @@ export const PlayerControls = ({
                 </button>
               )}
 
-              <div className="hidden sm:flex items-center bg-white/10 rounded-full px-2 py-1 lg:py-1.5 border border-white/10 shadow-lg">
+              <div className="flex items-center bg-white/10 rounded-full px-2 py-1 lg:py-1.5 border border-white/10 shadow-lg">
                 <button onClick={() => changeSpeed(-0.25)} className="text-white hover:text-indigo-400 p-1"><Minus size={14} className="w-3 h-3 lg:w-3.5 lg:h-3.5" /></button>
                 <span className="text-white/90 text-[10px] lg:text-xs font-mono font-medium w-6 lg:w-9 text-center">{speed}x</span>
                 <button onClick={() => changeSpeed(0.25)} className="text-white hover:text-indigo-400 p-1"><Plus size={14} className="w-3 h-3 lg:w-3.5 lg:h-3.5" /></button>
               </div>
               <button onClick={toggleSubtitles} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Subtitles"><Subtitles size={19} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
-              <button onClick={onToggleExpand} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Expand View"><Expand size={19} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
-              <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Fullscreen"><Maximize size={19} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
+              {!isFullscreen && (
+                <button onClick={onToggleExpand} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title="Expand View"><Expand size={19} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
+              )}
+              <button onClick={toggleFullscreen} className="text-white hover:text-indigo-400 transition-transform hover:scale-110 p-1" title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}><Maximize size={19} className="w-4 h-4 lg:w-5 lg:h-5" /></button>
             </div>
 
           </div>
