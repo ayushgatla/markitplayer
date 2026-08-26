@@ -145,12 +145,12 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
   return (
     <div className="space-y-6">
       {/* Chart 1: Interactive Activity & Review Velocity Area Chart */}
-      <div className="bg-[#15161e] border border-white/10 rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 md:p-6 shadow-xl relative overflow-hidden">
         {/* Header with Title & Time Range Switcher */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">
+              <span className="p-1.5 rounded-none bg-purple-500/15 text-purple-400 border border-purple-500/25">
                 <Activity size={15} />
               </span>
               <h3 className="text-sm font-bold text-white tracking-tight">Review Activity & Velocity</h3>
@@ -162,7 +162,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
             {/* Legend */}
             <div className="flex items-center gap-3 text-xs">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 ring-2 ring-indigo-400/20"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-400 ring-2 ring-purple-400/20"></span>
                 <span className="text-zinc-300">Comments</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -172,7 +172,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
             </div>
 
             {/* Time Filter Pills */}
-            <div className="bg-black/30 p-0.5 rounded-xl border border-white/10 flex items-center gap-0.5 text-xs">
+            <div className="bg-[#07050e] p-0.5 rounded-none border border-purple-950/60 flex items-center gap-0.5 text-xs">
               {[
                 { id: '7d', label: '7D' },
                 { id: '14d', label: '14D' },
@@ -181,9 +181,9 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                 <button
                   key={t.id}
                   onClick={() => setTimeRange(t.id)}
-                  className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-none font-medium transition-colors cursor-pointer ${
                     timeRange === t.id
-                      ? 'bg-indigo-600 text-white shadow-sm'
+                      ? 'bg-white text-black shadow-sm font-semibold'
                       : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >

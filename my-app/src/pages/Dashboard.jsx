@@ -1054,7 +1054,7 @@ export default function Dashboard() {
                                 </span>
                               )}
                               {parsed.hasDrawing && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25 font-medium flex items-center gap-1">
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white border border-white/20 font-medium flex items-center gap-1">
                                   <Pencil className="w-2.5 h-2.5" /> Drawing
                                 </span>
                               )}

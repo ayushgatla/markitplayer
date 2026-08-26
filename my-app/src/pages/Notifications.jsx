@@ -256,8 +256,8 @@ export default function Notifications() {
                           </span>
                         )}
                         {notif.hasDrawing && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium flex items-center gap-1">
-                            <Pencil className="w-2.5 h-2.5" /> Drawing
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20 font-medium flex items-center gap-1">
+                            <Pencil className="w-2.5 h-2.5 text-white" /> Drawing
                           </span>
                         )}
                         {notif.isRange && (
@@ -292,7 +292,7 @@ export default function Notifications() {
                       <div className="text-xs text-zinc-400 bg-white/[0.02] p-2.5 rounded-xl border border-white/5 italic flex items-center gap-2">
                         {notif.hasDrawing ? (
                           <>
-                            <Pencil className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <Pencil className="w-3.5 h-3.5 text-white shrink-0" />
                             <span>Visual canvas drawing added at timestamp {notif.formattedTime}</span>
                           </>
                         ) : notif.hasImage ? (

@@ -22,7 +22,7 @@ export const TimelineMarkers = ({ duration, comments, onMarkerClick }) => {
                 comment.resolved 
                   ? 'bg-green-500 hover:bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.8)]' 
                   : parsed.hasDrawing
-                    ? 'bg-amber-400 hover:bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.8)]'
+                    ? 'bg-white hover:bg-zinc-200 shadow-[0_0_8px_rgba(255,255,255,0.8)]'
                     : 'bg-indigo-500 hover:bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]'
               }`}
               style={{ left: `${leftPercent}%` }}
@@ -32,8 +32,15 @@ export const TimelineMarkers = ({ duration, comments, onMarkerClick }) => {
             >
               {hoveredComment?.id === comment.id && (() => {
                 const hParsed = parseComment(hoveredComment);
+                const percent = Math.max(0, Math.min(100, leftPercent));
                 return (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-zinc-900 border border-white/15 text-zinc-100 text-xs py-1.5 px-2.5 rounded-lg w-52 shadow-2xl z-50 break-words pointer-events-none">
+                  <div 
+                    className="absolute bottom-4 bg-zinc-900 border border-white/15 text-zinc-100 text-xs py-1.5 px-2.5 rounded-lg w-52 shadow-2xl z-50 break-words pointer-events-none"
+                    style={{
+                      left: '50%',
+                      transform: `translateX(-${percent}%)`
+                    }}
+                  >
                     <div className="flex items-center justify-between gap-1 mb-1">
                       <div className="font-semibold text-[10px] text-zinc-400 truncate">
                         {hoveredComment.author_name || hoveredComment.author || 'User'}
@@ -45,8 +52,8 @@ export const TimelineMarkers = ({ duration, comments, onMarkerClick }) => {
                           </span>
                         )}
                         {hParsed.hasDrawing && (
-                          <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 flex items-center gap-0.5">
-                            <Pencil className="w-2.5 h-2.5" />
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-white/10 text-white border border-white/20 flex items-center gap-0.5">
+                            <Pencil className="w-2.5 h-2.5 text-white" />
                           </span>
                         )}
                       </div>
@@ -54,7 +61,10 @@ export const TimelineMarkers = ({ duration, comments, onMarkerClick }) => {
                     <div className="text-xs text-zinc-200">
                       {hParsed.plainText || hParsed.previewText}
                     </div>
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-900 border-b border-r border-white/15 rotate-45"></div>
+                    <div 
+                      className="absolute -bottom-1 w-2 h-2 bg-zinc-900 border-b border-r border-white/15 -translate-x-1/2 rotate-45"
+                      style={{ left: `${Math.max(10, Math.min(90, percent))}%` }}
+                    />
                   </div>
                 );
               })()}

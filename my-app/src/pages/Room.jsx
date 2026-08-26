@@ -158,41 +158,36 @@ export default function Room() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center font-sans text-white">
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center font-sans text-white">
         Loading session...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col font-sans text-white">
+    <div className="min-h-screen bg-[#0a0a0f] flex flex-col font-sans text-white">
       {/* Minimal Add New Version Modal */}
       {updateModalConfig?.isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 w-full max-w-md shadow-xl relative">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-                <span>New Version</span>
-                <span className="text-[11px] font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded">
-                  V{nextVersionNum}
-                </span>
-              </h3>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 w-full max-w-md shadow-2xl relative">
+            <div className="flex justify-end mb-2">
               <button 
                 onClick={() => setUpdateModalConfig(null)}
                 className="text-zinc-500 hover:text-zinc-300 transition-colors p-1"
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
             {/* Platform Selector Segmented Control */}
-            <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-800 mb-4">
+            <div className="flex bg-[#07050e] p-1 rounded-none border border-purple-950/50 mb-4">
               <button
                 type="button"
                 onClick={() => setUpdateModalConfig(prev => ({ ...prev, platform: 'drive' }))}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-none text-xs font-medium transition-colors ${
                   updateModalConfig.platform === 'drive'
-                    ? 'bg-zinc-800 text-white shadow-sm'
+                    ? 'bg-[#191328] text-white shadow-sm border border-purple-500/30'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -202,9 +197,9 @@ export default function Room() {
               <button
                 type="button"
                 onClick={() => setUpdateModalConfig(prev => ({ ...prev, platform: 'youtube' }))}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-none text-xs font-medium transition-colors ${
                   updateModalConfig.platform === 'youtube'
-                    ? 'bg-zinc-800 text-white shadow-sm'
+                    ? 'bg-[#191328] text-white shadow-sm border border-purple-500/30'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -225,7 +220,7 @@ export default function Room() {
                   placeholder={updateModalConfig.platform === 'drive' ? "https://drive.google.com/file/d/..." : "https://youtube.com/watch?v=..."}
                   value={newVideoUrl}
                   onChange={(e) => setNewVideoUrl(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700/80 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-zinc-500"
+                  className="w-full bg-[#07050e] border border-purple-950/60 text-white rounded-none px-3 py-2 text-xs focus:outline-none focus:border-purple-500/60"
                 />
               </div>
 
@@ -238,24 +233,17 @@ export default function Room() {
                   placeholder={`V${nextVersionNum}`}
                   value={newVersionTitle}
                   onChange={(e) => setNewVersionTitle(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700/80 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-zinc-500"
+                  className="w-full bg-[#07050e] border border-purple-950/60 text-white rounded-none px-3 py-2 text-xs focus:outline-none focus:border-purple-500/60"
                 />
               </div>
 
-              <div className="flex gap-2 justify-end mt-2 pt-2 border-t border-zinc-800/80">
-                <button
-                  type="button"
-                  onClick={() => setUpdateModalConfig(null)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-                >
-                  Cancel
-                </button>
+              <div className="flex justify-end mt-2 pt-2 border-t border-purple-950/40">
                 <button
                   type="submit"
                   disabled={isUpdatingUrl || !newVideoUrl.trim()}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white rounded-lg text-xs font-medium transition-colors"
+                  className="px-4 py-1.5 bg-white hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-500 text-black rounded-none text-xs font-semibold transition-colors shadow-sm"
                 >
-                  {isUpdatingUrl ? 'Saving...' : `Add Version`}
+                  {isUpdatingUrl ? 'Saving...' : 'Add +'}
                 </button>
               </div>
             </form>
@@ -281,19 +269,19 @@ export default function Room() {
             currentVersionNum={videoData.currentVersion}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center p-6 bg-zinc-950">
-            <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center text-center">
+          <div className="flex-1 flex items-center justify-center p-6 bg-[#0a0a0f]">
+            <div className="w-full max-w-xl bg-[#0c0a14] border border-purple-950/50 rounded-none p-8 shadow-2xl flex flex-col items-center text-center">
               <div className="flex items-center justify-center mb-6">
-                <div className="relative w-[104px] h-16 hover:scale-105 transition-transform duration-300">
-                  <div className="absolute left-0 w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-700/50 shadow-2xl flex items-center justify-center z-10 p-3">
+                <div className="flex items-center -space-x-3.5 hover:scale-105 transition-transform duration-300">
+                  <div className="w-14 h-14 rounded-full bg-[#130d22] border-2 border-[#0c0a14] shadow-2xl flex items-center justify-center z-10 p-3 ring-1 ring-purple-500/20">
                     <img src="/drive.png" alt="Google Drive" className="w-full h-full object-contain" />
                   </div>
-                  <div className="absolute left-10 w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-700/50 shadow-xl flex items-center justify-center z-0 p-3">
+                  <div className="w-14 h-14 rounded-full bg-[#130d22] border-2 border-[#0c0a14] shadow-xl flex items-center justify-center z-0 p-3 ring-1 ring-purple-500/20">
                     <img src="/youtube.png" alt="YouTube" className="w-full h-full object-contain" />
                   </div>
                 </div>
               </div>
-              <h2 className="text-2xl font-bold mb-2">Setup Your Session</h2>
+              <h2 className="text-2xl font-bold mb-2 text-white">Setup Your Session</h2>
               <p className="text-zinc-400 mb-8">Paste a Google Drive or YouTube link to start reviewing and collaborating.</p>
               
               <form onSubmit={handleSaveVideoUrl} className="w-full relative">
@@ -305,13 +293,13 @@ export default function Room() {
                   placeholder="https://drive.google.com/file/d/..."
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 text-white rounded-xl pl-12 pr-32 py-4 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                  className="w-full bg-[#07050e] border border-purple-950/60 text-white rounded-none pl-12 pr-32 py-4 focus:outline-none focus:border-purple-500/60 transition-colors"
                   required
                 />
                 <button
                   type="submit"
                   disabled={savingUrl || !urlInput.trim()}
-                  className="absolute inset-y-2 right-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white px-6 rounded-lg font-medium transition-all"
+                  className="absolute inset-y-2 right-2 bg-white hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-500 text-black px-6 rounded-none font-semibold transition-all shadow-sm"
                 >
                   {savingUrl ? 'Saving...' : 'Start'}
                 </button>

@@ -781,8 +781,8 @@ export const CommentSidebar = ({
                   onClick={onOpenDrawing}
                   className={`p-1.5 rounded-md transition-colors ${
                     attachedDrawing?.length > 0 
-                      ? 'text-amber-400 bg-amber-500/20 hover:bg-amber-500/30' 
-                      : 'text-zinc-400 hover:text-amber-400 hover:bg-white/10'
+                      ? 'text-white bg-white/20 hover:bg-white/30' 
+                      : 'text-zinc-400 hover:text-white hover:bg-white/10'
                   }`}
                   title="Draw on frame (P)"
                 >

@@ -186,53 +186,6 @@ export const PlayerControls = ({
 
   return (
     <div className={`w-full transition-all duration-500 ease-in-out mx-auto ${showControls ? (isFullscreen ? 'w-[calc(100%-1rem)] lg:w-[calc(100%-3rem)]' : 'lg:w-[calc(100%-3rem)]') : (isFullscreen ? 'w-[60%] max-w-2xl' : 'lg:w-[60%] lg:max-w-2xl')}`}>
-      {/* Hovered Comment Tooltip */}
-      {hoveredComment && duration > 0 && (() => {
-        const parsed = parseComment(hoveredComment);
-
-        return (
-          <div 
-            className="absolute bottom-full mb-4 bg-zinc-900 text-zinc-100 text-xs py-2 px-3 rounded-xl border border-white/15 shadow-2xl z-[70] break-words pointer-events-none text-left transform -translate-x-1/2 transition-opacity duration-200 min-w-[160px] max-w-xs backdrop-blur-md"
-            style={{ left: `${(hoveredComment.timestamp / duration) * 100}%` }}
-          >
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="font-semibold text-[10px] text-zinc-400 uppercase tracking-wider">
-                {hoveredComment.author_name || hoveredComment.author || 'User'}
-              </span>
-              <div className="flex items-center gap-1">
-                {parsed.version && (
-                  <span className="text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.2 rounded-full font-mono">
-                    v{parsed.version}
-                  </span>
-                )}
-                {parsed.isRange && (
-                  <span className="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.2 rounded-full">
-                    ↔ Range
-                  </span>
-                )}
-                {parsed.hasDrawing && (
-                  <span className="text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
-                    <Pencil className="w-2.5 h-2.5 text-amber-300" />
-                    <span>Drawing</span>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {parsed.isRange && (
-              <div className="text-[11px] font-mono text-purple-200 font-medium mb-1">
-                {parsed.formattedTime}
-              </div>
-            )}
-
-            <div className="text-xs text-zinc-200 line-clamp-2">
-              {parsed.plainText || parsed.previewText}
-            </div>
-            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-900 border-b border-r border-white/15 rotate-45"></div>
-          </div>
-        );
-      })()}
-
       {/* Control Bar Container */}
       <div className="relative w-full rounded-[20px] lg:rounded-[24px]">
         {/* Glass Background for Both Mobile and Desktop */}
@@ -242,6 +195,60 @@ export const PlayerControls = ({
         <div className={`w-full flex flex-col relative z-10 px-4 lg:px-6 transition-all duration-500 ease-in-out ${showControls ? (isFullscreen ? 'gap-2 py-2' : 'gap-4 lg:gap-3 py-4 lg:py-4') : (isFullscreen ? 'gap-2 py-2' : 'gap-4 lg:gap-0 py-4 lg:py-3')}`}>
           {/* Progress Bar & Timeline Markers & Range Spans */}
           <div className="w-full relative h-6 flex items-center group pointer-events-auto">
+            {/* Hovered Comment Tooltip positioned relative to progress bar */}
+            {hoveredComment && duration > 0 && (() => {
+              const parsed = parseComment(hoveredComment);
+              const percent = Math.max(0, Math.min(100, (hoveredComment.timestamp / duration) * 100));
+
+              return (
+                <div 
+                  className="absolute bottom-full mb-3 bg-zinc-900 text-zinc-100 text-xs py-2 px-3 rounded-xl border border-white/15 shadow-2xl z-[70] break-words pointer-events-none text-left backdrop-blur-md min-w-[170px] max-w-xs transition-opacity duration-150"
+                  style={{ 
+                    left: `${percent}%`,
+                    transform: `translateX(-${percent}%)`
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-semibold text-[10px] text-zinc-400 uppercase tracking-wider">
+                      {hoveredComment.author_name || hoveredComment.author || 'User'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {parsed.version && (
+                        <span className="text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.2 rounded-full font-mono">
+                          v{parsed.version}
+                        </span>
+                      )}
+                      {parsed.isRange && (
+                        <span className="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.2 rounded-full">
+                          ↔ Range
+                        </span>
+                      )}
+                      {parsed.hasDrawing && (
+                        <span className="text-[9px] font-bold bg-white/10 text-white border border-white/20 px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
+                          <Pencil className="w-2.5 h-2.5 text-white" />
+                          <span>Drawing</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {parsed.isRange && (
+                    <div className="text-[11px] font-mono text-purple-200 font-medium mb-1">
+                      {parsed.formattedTime}
+                    </div>
+                  )}
+
+                  <div className="text-xs text-zinc-200 line-clamp-2">
+                    {parsed.plainText || parsed.previewText}
+                  </div>
+                  <div 
+                    className="absolute -bottom-1.5 w-3 h-3 bg-zinc-900 border-b border-r border-white/15 -translate-x-1/2 rotate-45"
+                    style={{ left: `${Math.max(8, Math.min(92, percent))}%` }}
+                  />
+                </div>
+              );
+            })()}
+
             {/* Base Track */}
             <div className="absolute w-full h-2 bg-white/20 rounded-full overflow-hidden pointer-events-none shadow-inner">
               <div 
@@ -253,7 +260,7 @@ export const PlayerControls = ({
             {/* In-Progress Range Creation Preview */}
             {activeRangePreview && activeRangePreview.end > activeRangePreview.start && duration > 0 && (
               <div 
-                className="absolute top-1/2 -translate-y-1/2 h-2.5 rounded-full pointer-events-none z-20 bg-amber-400/40 border border-dashed border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.8)] animate-pulse"
+                className="absolute top-1/2 -translate-y-1/2 h-2.5 rounded-full pointer-events-none z-20 bg-white/30 border border-dashed border-white/80 shadow-[0_0_8px_rgba(255,255,255,0.8)] animate-pulse"
                 style={{
                   left: `${(activeRangePreview.start / duration) * 100}%`,
                   width: `${Math.max(1, ((activeRangePreview.end - activeRangePreview.start) / duration) * 100)}%`
@@ -276,7 +283,7 @@ export const PlayerControls = ({
                       key={`range-${comment.id}`}
                       className={`absolute top-1/2 -translate-y-1/2 h-2.5 rounded-full cursor-pointer pointer-events-auto transition-all z-25 border hover:scale-y-150 hover:z-30 shadow-md ${
                         hasDrawing
-                          ? 'bg-amber-400/90 border-amber-200 shadow-[0_0_8px_rgba(251,191,36,0.8)] hover:bg-amber-300'
+                          ? 'bg-white/90 border-white text-black shadow-[0_0_8px_rgba(255,255,255,0.8)] hover:bg-white'
                           : 'bg-indigo-500/90 border-indigo-200 shadow-[0_0_8px_rgba(99,102,241,0.8)] hover:bg-indigo-400'
                       }`}
                       style={{ left: `${leftPercent}%`, width: `${Math.max(1, widthPercent)}%` }}
@@ -296,7 +303,7 @@ export const PlayerControls = ({
                     key={comment.id}
                     className={`absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full cursor-pointer pointer-events-auto transform -translate-x-1/2 hover:scale-150 transition-transform border z-30 ${
                       hasDrawing
-                        ? 'bg-amber-400 border-white shadow-[0_0_8px_rgba(251,191,36,0.9)]'
+                        ? 'bg-white border-zinc-900 shadow-[0_0_8px_rgba(255,255,255,0.9)]'
                         : 'bg-indigo-400 border-white shadow-[0_0_6px_rgba(99,102,241,0.8)]'
                     }`}
                     style={{ left: `${leftPercent}%` }}
@@ -366,7 +373,7 @@ export const PlayerControls = ({
               <div className={`${isFullscreen ? 'hidden' : 'flex lg:hidden'} items-center justify-end gap-2`}>
                 <button 
                   onClick={onToggleDraw} 
-                  className={`p-1.5 rounded-lg transition-all ${isDrawingMode ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/40' : 'text-white hover:text-amber-400'}`}
+                  className={`p-1.5 rounded-lg transition-all ${isDrawingMode ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/40' : 'text-white hover:text-white'}`}
                   title={isDrawingMode ? "Exit Drawing Mode" : "Draw on frame"}
                 >
                   <Pencil size={15} />
@@ -416,7 +423,7 @@ export const PlayerControls = ({
                 }`}
                 title={isDrawingMode ? "Exit Drawing Mode" : "Draw on Video Frame (P)"}
               >
-                <Pencil size={14} className={isDrawingMode ? "text-black fill-black" : "text-amber-400"} />
+                <Pencil size={14} className={isDrawingMode ? "text-black fill-black" : "text-white"} />
                 <span>{isDrawingMode ? 'Drawing' : 'Draw'}</span>
               </button>
 
