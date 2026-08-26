@@ -778,15 +778,6 @@ export default function Dashboard() {
               </div>
 
               <div className="flex items-center gap-3">
-                {userIsAdmin && (
-                  <button 
-                    onClick={() => navigate('/admin')} 
-                    className="flex items-center gap-1.5 bg-purple-950/40 hover:bg-purple-900/40 text-purple-300 border border-purple-500/30 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors cursor-pointer"
-                  >
-                    <Shield className="w-3 h-3 text-purple-400" />
-                    <span>Admin Console</span>
-                  </button>
-                )}
                 <div 
                   onClick={() => setCurrentMode('profile_dashboard')}
                   className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400 text-white flex items-center justify-center text-xs font-bold uppercase shadow-sm cursor-pointer"
@@ -925,10 +916,10 @@ export default function Dashboard() {
 
                 <button 
                   onClick={handleCreateRoom}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black font-semibold transition-colors cursor-pointer shadow-sm"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition-colors cursor-pointer shadow-sm"
                 >
                   <Plus className="w-3.5 h-3.5 text-black font-bold" />
-                  <span>+ New</span>
+                  <span>New</span>
                 </button>
               </div>
             </div>
