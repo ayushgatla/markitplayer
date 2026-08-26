@@ -337,14 +337,14 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
             {/* Floating Tooltip Card */}
             {hoveredPoint && (
               <div 
-                className="absolute -top-3 z-30 pointer-events-none transform -translate-x-1/2 -translate-y-full bg-[#1e202d] border border-indigo-500/40 rounded-xl p-2.5 shadow-2xl backdrop-blur-md min-w-[140px]"
+                className="absolute -top-3 z-30 pointer-events-none transform -translate-x-1/2 -translate-y-full bg-[#07050e] border border-purple-500/40 rounded-none p-2.5 shadow-2xl backdrop-blur-md min-w-[140px]"
                 style={{ left: `${(hoveredPoint.x / chartWidth) * 100}%` }}
               >
-                <div className="text-[11px] font-semibold text-zinc-300 mb-1 border-b border-white/10 pb-1 flex items-center justify-between">
+                <div className="text-[11px] font-semibold text-zinc-300 mb-1 border-b border-purple-950/40 pb-1 flex items-center justify-between">
                   <span>{dayjs(hoveredPoint.data.date).format('MMM D, YYYY')}</span>
                 </div>
                 <div className="space-y-1 text-xs">
-                  <div className="flex items-center justify-between gap-3 text-indigo-300">
+                  <div className="flex items-center justify-between gap-3 text-purple-300">
                     <span className="flex items-center gap-1"><MessageSquare size={11} /> Comments:</span>
                     <span className="font-mono font-bold">{hoveredPoint.data.comments}</span>
                   </div>
@@ -368,17 +368,17 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
       {/* Grid: 2 Side-by-Side Modern Visualizations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Chart 2: Platform Distribution Donut & Analytics */}
-        <div className="bg-[#15161e] border border-white/10 rounded-2xl p-5 md:p-6 shadow-xl flex flex-col justify-between">
+        <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 md:p-6 shadow-xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Layers size={14} className="text-indigo-400" />
+                  <Layers size={14} className="text-purple-400" />
                   <span>Video Storage Ecosystem</span>
                 </h4>
                 <p className="text-[11px] text-zinc-400 mt-0.5">Asset source distribution across review sessions</p>
               </div>
-              <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-white/5 text-zinc-300 border border-white/10">
+              <span className="text-xs font-mono px-2 py-0.5 rounded-none bg-[#07050e] text-zinc-300 border border-purple-950/50">
                 {platformStats.totalCount} Assets
               </span>
             </div>
@@ -472,38 +472,38 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
           </div>
         </div>
 
-        {/* Chart 3: Workflow State & Approval Funnel */}
-        <div className="bg-[#15161e] border border-white/10 rounded-2xl p-5 md:p-6 shadow-xl flex flex-col justify-between">
+        {/* Chart 3: Review Lifecycle Status Funnel */}
+        <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 md:p-6 shadow-xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                   <CheckCircle size={14} className="text-emerald-400" />
-                  <span>Review Approval Pipeline</span>
+                  <span>Review Lifecycle Funnel</span>
                 </h4>
-                <p className="text-[11px] text-zinc-400 mt-0.5">Real-time status conversion across review rooms</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">Real-time status progression of active projects</p>
               </div>
-              <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-semibold">
-                {statusStats.approved.pct}% Approval Rate
+              <span className="text-xs font-mono px-2 py-0.5 rounded-none bg-[#07050e] text-zinc-300 border border-purple-950/50">
+                {statusStats.totalRooms} Projects
               </span>
             </div>
 
-            {/* Horizontal Conversion Funnel Bars */}
-            <div className="space-y-4 my-3">
+            {/* Progress Bars */}
+            <div className="space-y-4 my-2">
               {/* In Progress */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                    <span className="text-zinc-200 font-medium">In Progress (Active Feedback)</span>
+                    <span className="text-zinc-200 font-medium">In Active Review</span>
                   </div>
                   <span className="font-mono text-zinc-400">
                     {statusStats.inProgress.count} ({statusStats.inProgress.pct}%)
                   </span>
                 </div>
-                <div className="h-3 bg-black/40 rounded-full p-0.5 border border-white/5 overflow-hidden">
+                <div className="h-3 bg-[#07050e] rounded-none p-0.5 border border-purple-950/50 overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-none transition-all duration-500"
                     style={{ width: `${Math.max(2, statusStats.inProgress.pct)}%` }}
                   />
                 </div>
@@ -520,9 +520,9 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                     {statusStats.approved.count} ({statusStats.approved.pct}%)
                   </span>
                 </div>
-                <div className="h-3 bg-black/40 rounded-full p-0.5 border border-white/5 overflow-hidden">
+                <div className="h-3 bg-[#07050e] rounded-none p-0.5 border border-purple-950/50 overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-none transition-all duration-500"
                     style={{ width: `${Math.max(2, statusStats.approved.pct)}%` }}
                   />
                 </div>
@@ -539,9 +539,9 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                     {statusStats.rejected.count} ({statusStats.rejected.pct}%)
                   </span>
                 </div>
-                <div className="h-3 bg-black/40 rounded-full p-0.5 border border-white/5 overflow-hidden">
+                <div className="h-3 bg-[#07050e] rounded-none p-0.5 border border-purple-950/50 overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-none transition-all duration-500"
                     style={{ width: `${Math.max(2, statusStats.rejected.pct)}%` }}
                   />
                 </div>
@@ -549,9 +549,9 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
             </div>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-400">
+          <div className="mt-3 pt-3 border-t border-purple-950/40 flex items-center justify-between text-[11px] text-zinc-400">
             <span>Workflow efficiency:</span>
-            <span className="font-semibold text-indigo-400 flex items-center gap-1">
+            <span className="font-semibold text-purple-400 flex items-center gap-1">
               <Zap size={11} /> Real-time instant sync
             </span>
           </div>
