@@ -80,6 +80,7 @@ export default function AdminDashboard() {
   const [newAdminInput, setNewAdminInput] = useState('');
   const [adminMessage, setAdminMessage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
   const [userSortBy, setUserSortBy] = useState('joined-desc');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -237,7 +238,7 @@ export default function AdminDashboard() {
       });
     });
 
-    // 2. Discover active creators in rooms (even if not yet in seed registry)
+    // 2. Discover active creators in rooms
     rooms.forEach(room => {
       const uId = room.user_id;
       if (!uId) return;
@@ -456,7 +457,6 @@ export default function AdminDashboard() {
       const countRooms = rooms.filter(r => dayjs(r.created_at).format('YYYY-MM-DD').includes(dateKey.slice(0, 7))).length;
       const countComments = comments.filter(c => dayjs(c.created_at).format('YYYY-MM-DD').includes(dateKey.slice(0, 7))).length;
 
-      // Realistic visual weights based on live data
       const barHeight1 = Math.max(15, Math.min(95, (countRooms * 18) + (i % 3 === 0 ? 45 : 25)));
       const barHeight2 = Math.max(10, Math.min(85, (countComments * 12) + (i % 2 === 0 ? 35 : 20)));
 
@@ -486,7 +486,7 @@ export default function AdminDashboard() {
   if (!userIsAdmin) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-6 text-zinc-100 font-sans">
-        <div className="bg-[#0c0a14] border border-purple-950/60 rounded-none p-8 max-w-md w-full text-center shadow-2xl">
+        <div className="bg-[#0c0a14] border border-purple-950/60 rounded-none p-6 md:p-8 max-w-md w-full text-center shadow-2xl">
           <div className="w-12 h-12 rounded-none bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
             <AlertCircle size={24} />
           </div>
@@ -506,14 +506,14 @@ export default function AdminDashboard() {
                 }
                 setLoading(false);
               }}
-              className="w-full py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-none text-xs transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-none text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <RefreshCw size={13} />
               <span>Check Admin Permissions</span>
             </button>
             <button
               onClick={() => navigate('/dashboard')}
-              className="w-full py-2.5 bg-[#07050e] hover:bg-white/5 text-zinc-300 border border-purple-950/50 rounded-none text-xs font-medium transition-colors"
+              className="w-full py-2.5 bg-[#07050e] hover:bg-white/5 text-zinc-300 border border-purple-950/50 rounded-none text-xs font-medium transition-colors cursor-pointer"
             >
               Return to Dashboard
             </button>
@@ -524,27 +524,28 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-zinc-200 font-sans flex flex-col md:flex-row">
-      {/* Mobile Sidebar Overlay */}
+    <div className="min-h-screen bg-[#0a0a0f] text-zinc-200 font-sans flex flex-col md:flex-row overflow-x-hidden">
+      
+      {/* Mobile Sidebar Backdrop Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 md:hidden animate-in fade-in duration-200"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* LEFT SIDEBAR (Fillow Style) */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0c0a14] border-r border-purple-950/40 flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        {/* Brand Logo */}
-        <div className="h-16 px-6 border-b border-purple-950/40 flex items-center justify-between">
+      {/* LEFT SIDEBAR */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 max-w-[85vw] bg-[#0c0a14] border-r border-purple-950/40 flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+        {/* Brand Header */}
+        <div className="h-16 px-5 border-b border-purple-950/40 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center font-black text-sm shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+            <div className="w-8 h-8 rounded-none bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400/40 text-white flex items-center justify-center font-black text-sm shadow-md">
               M
             </div>
             <div>
               <div className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
                 <span>markit.</span>
-                <span className="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1 py-0.2 rounded font-mono font-normal">
+                <span className="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1 py-0.2 rounded-none font-mono font-normal">
                   ADMIN
                 </span>
               </div>
@@ -553,20 +554,21 @@ export default function AdminDashboard() {
           </div>
           <button 
             onClick={() => setIsSidebarOpen(false)} 
-            className="md:hidden text-zinc-500 hover:text-white p-1"
+            className="md:hidden text-zinc-400 hover:text-white p-2 rounded-none hover:bg-white/5 transition-colors cursor-pointer"
+            aria-label="Close Menu"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
-        {/* Sidebar Navigation */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+        {/* Sidebar Nav Items */}
+        <div className="flex-1 overflow-y-auto px-3 py-5 space-y-6 custom-scrollbar">
           <div>
             <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-3 mb-2">Main Menu</div>
             <nav className="space-y-1">
               <button
                 onClick={() => { setActiveTab('overview'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-none transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
                   activeTab === 'overview'
                     ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
@@ -578,7 +580,7 @@ export default function AdminDashboard() {
 
               <button
                 onClick={() => { setActiveTab('projects'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
                   activeTab === 'projects'
                     ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
@@ -588,14 +590,14 @@ export default function AdminDashboard() {
                   <Film size={15} className={activeTab === 'projects' ? 'text-purple-400' : 'text-zinc-500'} />
                   <span>Projects & Sessions</span>
                 </div>
-                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded font-mono">
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-none font-mono">
                   {stats.totalRooms}
                 </span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('users'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
                   activeTab === 'users'
                     ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
@@ -605,14 +607,14 @@ export default function AdminDashboard() {
                   <Users size={15} className={activeTab === 'users' ? 'text-purple-400' : 'text-zinc-500'} />
                   <span>Users Directory</span>
                 </div>
-                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded font-mono">
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-none font-mono">
                   {stats.totalUsers}
                 </span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('admins'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
                   activeTab === 'admins'
                     ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
@@ -622,14 +624,14 @@ export default function AdminDashboard() {
                   <UserCheck size={15} className={activeTab === 'admins' ? 'text-purple-400' : 'text-zinc-500'} />
                   <span>Admin Privileges</span>
                 </div>
-                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded font-mono">
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-none font-mono">
                   {adminList.length}
                 </span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-none transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
                   activeTab === 'analytics'
                     ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
@@ -646,14 +648,14 @@ export default function AdminDashboard() {
             <nav className="space-y-1">
               <button
                 onClick={() => navigate('/dashboard')}
-                className="w-full flex items-center gap-3 px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-white/5 rounded-none transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-white/5 rounded-none transition-colors cursor-pointer"
               >
                 <ArrowLeft size={14} className="text-zinc-500" />
                 <span>Return to Player App</span>
               </button>
               <button
                 onClick={() => navigate('/notifications')}
-                className="w-full flex items-center gap-3 px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-white/5 rounded-none transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-white/5 rounded-none transition-colors cursor-pointer"
               >
                 <Bell size={14} className="text-zinc-500" />
                 <span>Notifications</span>
@@ -662,10 +664,10 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* User Card at bottom of sidebar */}
-        <div className="p-4 border-t border-purple-950/40 bg-[#07050e]">
+        {/* User Card at bottom */}
+        <div className="p-4 border-t border-purple-950/40 bg-[#07050e] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-purple-900/60 border border-purple-500/40 text-purple-200 flex items-center justify-center font-bold text-xs">
+            <div className="w-8 h-8 rounded-none bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400/40 text-white flex items-center justify-center font-bold text-xs shrink-0">
               {(userEmail || 'A').slice(0, 2).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
@@ -680,18 +682,19 @@ export default function AdminDashboard() {
       </aside>
 
       {/* RIGHT MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header Bar */}
-        <header className="h-16 px-4 md:px-8 border-b border-purple-950/40 bg-[#0c0a14] flex items-center justify-between sticky top-0 z-30">
-          <div className="flex items-center gap-3">
+        <header className="h-16 px-4 md:px-8 border-b border-purple-950/40 bg-[#0c0a14] flex items-center justify-between sticky top-0 z-30 shrink-0 gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden text-zinc-400 hover:text-white p-1.5 rounded-none"
+              className="md:hidden text-zinc-300 hover:text-white p-2 rounded-none bg-[#07050e] border border-purple-950/60 transition-colors cursor-pointer shrink-0"
+              aria-label="Open Navigation Menu"
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-white tracking-tight capitalize">
+            <div className="flex items-center gap-2 truncate">
+              <h1 className="text-sm md:text-base font-bold text-white tracking-tight capitalize truncate">
                 {activeTab === 'overview' ? 'Dashboard' : activeTab === 'projects' ? 'Projects' : activeTab === 'users' ? 'Users' : activeTab === 'admins' ? 'Admins' : 'Analytics'}
               </h1>
               <span className="hidden sm:inline text-xs text-zinc-600">/</span>
@@ -700,8 +703,9 @@ export default function AdminDashboard() {
           </div>
 
           {/* Search Bar & Quick Icons */}
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className="relative hidden sm:block w-48 lg:w-72">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Desktop Search Box */}
+            <div className="relative hidden md:block w-48 lg:w-72">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
               <input
                 type="text"
@@ -712,11 +716,20 @@ export default function AdminDashboard() {
               />
             </div>
 
+            {/* Mobile Search Toggle Icon */}
+            <button
+              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+              className="md:hidden p-2 text-zinc-400 hover:text-white bg-[#07050e] border border-purple-950/50 rounded-none transition-colors cursor-pointer"
+              title="Search"
+            >
+              <Search size={14} />
+            </button>
+
             {/* Quick Refresh Button */}
             <button
               onClick={fetchData}
               disabled={refreshing}
-              className="p-2 text-zinc-400 hover:text-white bg-[#07050e] hover:bg-white/5 border border-purple-950/50 rounded-none transition-colors"
+              className="p-2 text-zinc-400 hover:text-white bg-[#07050e] hover:bg-white/5 border border-purple-950/50 rounded-none transition-colors cursor-pointer"
               title="Refresh database records"
             >
               <RefreshCw size={14} className={refreshing ? 'animate-spin text-purple-400' : ''} />
@@ -725,57 +738,78 @@ export default function AdminDashboard() {
             {/* Notifications Pill */}
             <button
               onClick={() => navigate('/notifications')}
-              className="p-2 text-zinc-400 hover:text-white bg-[#07050e] hover:bg-white/5 border border-purple-950/50 rounded-none transition-colors relative"
+              className="p-2 text-zinc-400 hover:text-white bg-[#07050e] hover:bg-white/5 border border-purple-950/50 rounded-none transition-colors relative cursor-pointer"
               title="Notifications"
             >
               <Bell size={14} />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-purple-500"></span>
             </button>
 
-            {/* User Avatar */}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400/40 text-white flex items-center justify-center font-bold text-xs shadow-md">
+            {/* User Avatar Badge */}
+            <div className="w-8 h-8 rounded-none bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400/40 text-white flex items-center justify-center font-bold text-xs shadow-md shrink-0">
               {(userEmail || 'A').slice(0, 1).toUpperCase()}
             </div>
           </div>
         </header>
 
+        {/* Mobile Dropdown Search Input */}
+        {mobileSearchOpen && (
+          <div className="md:hidden bg-[#0c0a14] border-b border-purple-950/50 p-3 animate-in slide-in-from-top-2 duration-200">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+              <input
+                type="text"
+                placeholder="Search sessions, users, URLs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+                className="w-full bg-[#07050e] border border-purple-950/60 rounded-none pl-9 pr-8 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white text-xs">
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Scrollable Body */}
-        <main className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-5 md:p-8 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar">
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <>
-              {/* TOP HERO BANNER & STATS ROW (Fillow Reference Layout) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              {/* TOP HERO BANNER & STATS ROW */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 items-stretch">
                 {/* Hero Banner Card (7 cols) */}
-                <div className="lg:col-span-7 bg-gradient-to-r from-[#201140] via-[#160d2b] to-[#0c0a14] border border-purple-950/60 rounded-none p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between">
-                  {/* Decorative background glow */}
+                <div className="lg:col-span-7 bg-gradient-to-r from-[#201140] via-[#160d2b] to-[#0c0a14] border border-purple-950/60 rounded-none p-5 sm:p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between">
                   <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-purple-600/10 blur-3xl pointer-events-none"></div>
 
                   <div className="relative z-10 max-w-md">
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-tight mb-3">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white leading-tight mb-2 md:mb-3">
                       Manage your project in <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">one touch</span>
                     </h2>
-                    <p className="text-xs md:text-sm text-zinc-300 mb-6 leading-relaxed">
+                    <p className="text-xs md:text-sm text-zinc-300 mb-5 md:mb-6 leading-relaxed">
                       Let MarkIt Player manage your review projects automatically with live Supabase synchronization, timeline markers, and collaborative drawing tools.
                     </p>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                       <button
                         onClick={() => navigate('/dashboard')}
-                        className="px-5 py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold text-xs rounded-none transition-colors shadow-lg"
+                        className="px-4 sm:px-5 py-2 sm:py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold text-xs rounded-none transition-colors shadow-lg cursor-pointer"
                       >
                         Back to Player
                       </button>
                       <button
                         onClick={fetchData}
-                        className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white border border-purple-500/30 font-semibold text-xs rounded-none transition-colors"
+                        className="px-3.5 sm:px-4 py-2 sm:py-2.5 bg-white/5 hover:bg-white/10 text-white border border-purple-500/30 font-semibold text-xs rounded-none transition-colors cursor-pointer"
                       >
                         Live Sync
                       </button>
                     </div>
                   </div>
 
-                  {/* Visual Illustration / Mini Stat on Right */}
-                  <div className="hidden sm:block absolute right-6 bottom-6 opacity-90 pointer-events-none">
+                  {/* Visual Illustration on Desktop */}
+                  <div className="hidden lg:block absolute right-6 bottom-6 opacity-90 pointer-events-none">
                     <div className="w-36 h-24 bg-purple-950/40 border border-purple-500/20 p-2.5 backdrop-blur-md rounded-none shadow-xl flex flex-col justify-between">
                       <div className="flex items-center justify-between text-[10px] text-purple-300 font-mono">
                         <span>Realtime API</span>
@@ -795,9 +829,9 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Right Top KPI Cards (5 cols) */}
-                <div className="lg:col-span-5 grid grid-cols-2 gap-4">
+                <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                   {/* Total Clients / Users */}
-                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 shadow-xl flex flex-col justify-between">
+                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-5 shadow-xl flex flex-col justify-between">
                     <div>
                       <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Total Clients</div>
                       <div className="text-2xl md:text-3xl font-black text-white">{stats.totalUsers}</div>
@@ -816,7 +850,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Total Sessions Target */}
-                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 shadow-xl flex flex-col justify-between">
+                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-5 shadow-xl flex flex-col justify-between">
                     <div>
                       <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Total Sessions</div>
                       <div className="text-2xl md:text-3xl font-black text-white">{stats.totalRooms}</div>
@@ -838,7 +872,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Total Comments */}
-                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 shadow-xl flex flex-col justify-between">
+                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-5 shadow-xl flex flex-col justify-between">
                     <div>
                       <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Feedback Comments</div>
                       <div className="text-2xl md:text-3xl font-black text-white">{stats.totalComments}</div>
@@ -854,7 +888,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Revisions & Versions */}
-                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 shadow-xl flex flex-col justify-between">
+                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-5 shadow-xl flex flex-col justify-between">
                     <div>
                       <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Total Versions</div>
                       <div className="text-2xl md:text-3xl font-black text-white">{stats.totalVersions}</div>
@@ -872,14 +906,14 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* PROJECT STATISTICS & COMPLETION RADIAL SECTION (Fillow Reference Mid-Row) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              {/* PROJECT STATISTICS & COMPLETION RADIAL SECTION */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 items-stretch">
                 {/* Project Statistics Bar Chart (8 cols) */}
-                <div className="lg:col-span-8 bg-[#0c0a14] border border-purple-950/50 rounded-none p-6 shadow-xl flex flex-col justify-between">
-                  <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div className="lg:col-span-8 bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl flex flex-col justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                     <div>
                       <h3 className="text-sm font-bold text-white tracking-tight">Project Statistics</h3>
-                      <div className="flex items-center gap-4 text-xs text-zinc-400 mt-2 flex-wrap">
+                      <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-zinc-400 mt-2 flex-wrap">
                         <span className="flex items-center gap-1.5">
                           <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
                           <strong className="text-white">{stats.totalRooms}</strong> Total Projects
@@ -900,12 +934,12 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Period Pills Filter */}
-                    <div className="inline-flex p-1 bg-[#07050e] border border-purple-950/50 rounded-none text-xs">
+                    <div className="inline-flex p-1 bg-[#07050e] border border-purple-950/50 rounded-none text-xs overflow-x-auto max-w-full">
                       {['all', 'monthly', 'weekly', 'today'].map((period) => (
                         <button
                           key={period}
                           onClick={() => setChartPeriod(period)}
-                          className={`px-3 py-1 text-xs font-semibold capitalize transition-colors rounded-none ${
+                          className={`px-2.5 sm:px-3 py-1 text-xs font-semibold capitalize transition-colors rounded-none whitespace-nowrap cursor-pointer ${
                             chartPeriod === period
                               ? 'bg-[#191328] text-white border border-purple-500/30'
                               : 'text-zinc-400 hover:text-white'
@@ -917,34 +951,34 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* SVG Bar Chart */}
-                  <div className="h-56 w-full relative flex items-end justify-between gap-2 px-2 pt-6 pb-2 border-b border-purple-950/40">
-                    {projectChartData.map((d, idx) => (
-                      <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end group relative">
-                        {/* Hover Tooltip */}
-                        <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 border border-purple-500/30 text-white text-[10px] px-2 py-1 rounded-none shadow-xl pointer-events-none whitespace-nowrap z-20 font-mono">
-                          {d.label}: {d.roomsCount} sessions · {d.commentsCount} comments
-                        </div>
+                  {/* SVG Bar Chart with Horizontal Scroll on extra small screens */}
+                  <div className="overflow-x-auto">
+                    <div className="min-w-[320px] h-52 sm:h-56 w-full relative flex items-end justify-between gap-1 sm:gap-2 px-1 sm:px-2 pt-6 pb-2 border-b border-purple-950/40">
+                      {projectChartData.map((d, idx) => (
+                        <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                          <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 border border-purple-500/30 text-white text-[10px] px-2 py-1 rounded-none shadow-xl pointer-events-none whitespace-nowrap z-20 font-mono">
+                            {d.label}: {d.roomsCount} sessions · {d.commentsCount} comments
+                          </div>
 
-                        {/* Dual Column Bars */}
-                        <div className="w-full max-w-[28px] flex items-end justify-center gap-1 h-full">
-                          <div 
-                            className="w-1/2 bg-gradient-to-t from-pink-600 to-pink-400 rounded-none transition-all duration-500 hover:brightness-125"
-                            style={{ height: `${d.val1}%` }}
-                          />
-                          <div 
-                            className="w-1/2 bg-gradient-to-t from-purple-700 to-indigo-500 rounded-none transition-all duration-500 hover:brightness-125"
-                            style={{ height: `${d.val2}%` }}
-                          />
+                          <div className="w-full max-w-[28px] flex items-end justify-center gap-0.5 sm:gap-1 h-full">
+                            <div 
+                              className="w-1/2 bg-gradient-to-t from-pink-600 to-pink-400 rounded-none transition-all duration-500 hover:brightness-125"
+                              style={{ height: `${d.val1}%` }}
+                            />
+                            <div 
+                              className="w-1/2 bg-gradient-to-t from-purple-700 to-indigo-500 rounded-none transition-all duration-500 hover:brightness-125"
+                              style={{ height: `${d.val2}%` }}
+                            />
+                          </div>
+                          <span className="text-[9px] sm:text-[10px] text-zinc-500 font-mono mt-2 truncate max-w-full">{d.label}</span>
                         </div>
-                        <span className="text-[10px] text-zinc-500 font-mono mt-2 truncate max-w-full">{d.label}</span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {/* Project Completion Radial Donut Card (4 cols) */}
-                <div className="lg:col-span-4 bg-[#0c0a14] border border-purple-950/50 rounded-none p-6 shadow-xl flex flex-col justify-between">
+                <div className="lg:col-span-4 bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl flex flex-col justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-white tracking-tight mb-1">Session Completion</h3>
                     <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
@@ -954,8 +988,7 @@ export default function AdminDashboard() {
 
                   {/* Radial Gauge Visual */}
                   <div className="flex flex-col items-center justify-center my-4 relative">
-                    <svg className="w-36 h-36 transform -rotate-90" viewBox="0 0 100 100">
-                      {/* Background track */}
+                    <svg className="w-32 h-32 sm:w-36 sm:h-36 transform -rotate-90" viewBox="0 0 100 100">
                       <circle
                         cx="50"
                         cy="50"
@@ -964,7 +997,6 @@ export default function AdminDashboard() {
                         strokeWidth="12"
                         fill="transparent"
                       />
-                      {/* Progress Circle */}
                       <circle
                         cx="50"
                         cy="50"
@@ -986,8 +1018,8 @@ export default function AdminDashboard() {
                     </svg>
 
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-2xl font-black text-white">{stats.completionRate}%</span>
-                      <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Approved</span>
+                      <span className="text-xl sm:text-2xl font-black text-white">{stats.completionRate}%</span>
+                      <span className="text-[9px] sm:text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Approved</span>
                     </div>
                   </div>
 
@@ -1005,31 +1037,30 @@ export default function AdminDashboard() {
               </div>
 
               {/* RECENT SESSIONS TABLE SECTION */}
-              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-6 shadow-xl">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-4 gap-2">
                   <div>
                     <h3 className="text-sm font-bold text-white tracking-tight">Recent Sessions & Projects</h3>
                     <p className="text-xs text-zinc-400">Live review sessions uploaded by creators</p>
                   </div>
                   <button
                     onClick={() => setActiveTab('projects')}
-                    className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1"
+                    className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1 cursor-pointer shrink-0"
                   >
                     <span>View all ({stats.totalRooms})</span>
                     <ChevronRight size={13} />
                   </button>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                <div className="overflow-x-auto -mx-4 sm:mx-0 custom-scrollbar">
+                  <table className="w-full text-left text-xs min-w-[660px]">
                     <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
                       <tr>
-                        <th className="px-4 py-3">Session Title</th>
-                        <th className="px-4 py-3">Platform</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Versions</th>
-                        <th className="px-4 py-3">Created</th>
-                        <th className="px-4 py-3 text-right">Action</th>
+                        <th className="px-4 py-3 min-w-[180px]">Session Title</th>
+                        <th className="px-4 py-3 min-w-[160px]">Platform & Revisions</th>
+                        <th className="px-4 py-3 min-w-[120px]">Status</th>
+                        <th className="px-4 py-3 min-w-[100px]">Created</th>
+                        <th className="px-4 py-3 text-right min-w-[80px]">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-purple-950/30">
@@ -1040,21 +1071,26 @@ export default function AdminDashboard() {
                         return (
                           <tr key={room.id} className="hover:bg-white/[0.02] transition-colors">
                             <td className="px-4 py-3.5">
-                              <div className="font-semibold text-zinc-100">{room.title || 'Untitled Session'}</div>
-                              <div className="text-[10px] font-mono text-zinc-500">{room.id}</div>
+                              <div className="font-semibold text-zinc-100 truncate max-w-[180px] sm:max-w-xs">{room.title || 'Untitled Session'}</div>
+                              <div className="text-[10px] font-mono text-zinc-500 truncate max-w-[180px] sm:max-w-xs">{room.id}</div>
                             </td>
-                            <td className="px-4 py-3.5">
-                              <div className="flex items-center gap-1.5">
-                                {platform === 'drive' ? (
-                                  <img src="/drive.png" alt="Drive" className="w-3.5 h-3.5 object-contain" />
-                                ) : platform === 'youtube' ? (
-                                  <img src="/youtube.png" alt="YouTube" className="w-3.5 h-3.5 object-contain" />
-                                ) : null}
-                                <span className="capitalize text-zinc-300">{platform || 'Direct'}</span>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <div className="flex items-center gap-2 flex-nowrap">
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {platform === 'drive' ? (
+                                    <img src="/drive.png" alt="Drive" className="w-3.5 h-3.5 object-contain" />
+                                  ) : platform === 'youtube' ? (
+                                    <img src="/youtube.png" alt="YouTube" className="w-3.5 h-3.5 object-contain" />
+                                  ) : null}
+                                  <span className="capitalize text-zinc-300">{platform || 'Direct'}</span>
+                                </div>
+                                <span className="text-[10px] font-mono text-purple-300 bg-purple-950/40 border border-purple-500/20 px-1.5 py-0.5 rounded-none shrink-0 whitespace-nowrap">
+                                  V{videoData.currentVersion} ({videoData.versions.length} ver)
+                                </span>
                               </div>
                             </td>
-                            <td className="px-4 py-3.5">
-                              <span className={`text-[10px] px-2 py-0.5 rounded-none font-semibold border ${
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-none font-semibold border inline-block whitespace-nowrap ${
                                 (room.state || 'In Progress') === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                 (room.state || 'In Progress') === 'Rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
                                 'bg-amber-500/10 text-amber-400 border-amber-500/20'
@@ -1062,16 +1098,13 @@ export default function AdminDashboard() {
                                 {room.state || 'In Progress'}
                               </span>
                             </td>
-                            <td className="px-4 py-3.5 font-mono text-zinc-300">
-                              V{videoData.currentVersion} ({videoData.versions.length} ver)
-                            </td>
-                            <td className="px-4 py-3.5 text-zinc-400 font-mono">
+                            <td className="px-4 py-3.5 text-zinc-400 font-mono whitespace-nowrap">
                               {dayjs(room.created_at).format('MMM D, YYYY')}
                             </td>
-                            <td className="px-4 py-3.5 text-right">
+                            <td className="px-4 py-3.5 text-right whitespace-nowrap">
                               <button
                                 onClick={() => window.open(`/room/${room.id}`, '_blank')}
-                                className="text-xs text-purple-400 hover:text-purple-300 font-semibold inline-flex items-center gap-1"
+                                className="text-xs text-purple-400 hover:text-purple-300 font-semibold inline-flex items-center gap-1 cursor-pointer"
                               >
                                 <span>Open</span>
                                 <ExternalLink size={11} />
@@ -1102,7 +1135,7 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between sm:justify-end gap-3">
                   <select
                     value={selectedStatusFilter}
                     onChange={(e) => setSelectedStatusFilter(e.target.value)}
@@ -1113,90 +1146,94 @@ export default function AdminDashboard() {
                     <option value="Approved">Approved</option>
                     <option value="Rejected">Rejected</option>
                   </select>
-                  <div className="text-xs text-zinc-400 font-mono">
+                  <div className="text-xs text-zinc-400 font-mono shrink-0">
                     {filteredRooms.length} of {rooms.length}
                   </div>
                 </div>
               </div>
 
               <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none overflow-hidden shadow-xl">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
-                    <tr>
-                      <th className="px-4 py-3">Session Details</th>
-                      <th className="px-4 py-3">Platform & Revisions</th>
-                      <th className="px-4 py-3">Review State</th>
-                      <th className="px-4 py-3">Created</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-purple-950/30">
-                    {filteredRooms.length === 0 ? (
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left text-xs min-w-[700px]">
+                    <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
-                          No sessions found matching search criteria.
-                        </td>
+                        <th className="px-4 py-3 min-w-[180px]">Session Details</th>
+                        <th className="px-4 py-3 min-w-[180px]">Platform & Revisions</th>
+                        <th className="px-4 py-3 min-w-[130px]">Review State</th>
+                        <th className="px-4 py-3 min-w-[100px]">Created</th>
+                        <th className="px-4 py-3 text-right min-w-[90px]">Actions</th>
                       </tr>
-                    ) : (
-                      filteredRooms.map((room) => {
-                        const videoData = parseVideoData(room.video_url, room.created_at);
-                        const activeUrl = getActiveVideoUrl(room.video_url);
-                        const platform = detectPlatform(activeUrl);
-                        return (
-                          <tr key={room.id} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="px-4 py-3.5">
-                              <div className="font-semibold text-zinc-100">{room.title || 'Untitled Session'}</div>
-                              <div className="text-[10px] font-mono text-zinc-500">{room.id}</div>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <div className="flex items-center gap-1.5">
-                                {platform === 'drive' ? (
-                                  <img src="/drive.png" alt="Drive" className="w-3.5 h-3.5 object-contain" />
-                                ) : platform === 'youtube' ? (
-                                  <img src="/youtube.png" alt="YouTube" className="w-3.5 h-3.5 object-contain" />
-                                ) : null}
-                                <span className="capitalize text-zinc-300">{platform || 'Direct'}</span>
-                                <span className="text-[10px] font-mono text-purple-300 bg-purple-950/40 border border-purple-500/20 px-1 py-0.2 rounded-none">
-                                  V{videoData.currentVersion} ({videoData.versions.length} ver)
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <select
-                                value={room.state || 'In Progress'}
-                                onChange={(e) => handleUpdateRoomState(room.id, e.target.value)}
-                                className="bg-[#07050e] border border-purple-950/50 text-xs px-2 py-1 rounded-none text-zinc-200 cursor-pointer focus:outline-none"
-                              >
-                                <option value="In Progress">In Progress</option>
-                                <option value="Approved">Approved</option>
-                                <option value="Rejected">Rejected</option>
-                              </select>
-                            </td>
-                            <td className="px-4 py-3.5 text-zinc-400 font-mono">
-                              {dayjs(room.created_at).format('MMM D, YYYY')}
-                            </td>
-                            <td className="px-4 py-3.5 text-right space-x-2">
-                              <button
-                                onClick={() => window.open(`/room/${room.id}`, '_blank')}
-                                className="text-xs text-purple-400 hover:text-purple-300 font-semibold inline-flex items-center gap-1"
-                              >
-                                <span>Open</span>
-                                <ExternalLink size={11} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteRoom(room.id)}
-                                className="text-xs text-red-400 hover:text-red-300 p-1"
-                                title="Delete session"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-purple-950/30">
+                      {filteredRooms.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                            No sessions found matching search criteria.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredRooms.map((room) => {
+                          const videoData = parseVideoData(room.video_url, room.created_at);
+                          const activeUrl = getActiveVideoUrl(room.video_url);
+                          const platform = detectPlatform(activeUrl);
+                          return (
+                            <tr key={room.id} className="hover:bg-white/[0.02] transition-colors">
+                              <td className="px-4 py-3.5">
+                                <div className="font-semibold text-zinc-100 truncate max-w-[180px] sm:max-w-xs">{room.title || 'Untitled Session'}</div>
+                                <div className="text-[10px] font-mono text-zinc-500 truncate max-w-[180px] sm:max-w-xs">{room.id}</div>
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                <div className="flex items-center gap-2 flex-nowrap">
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    {platform === 'drive' ? (
+                                      <img src="/drive.png" alt="Drive" className="w-3.5 h-3.5 object-contain" />
+                                    ) : platform === 'youtube' ? (
+                                      <img src="/youtube.png" alt="YouTube" className="w-3.5 h-3.5 object-contain" />
+                                    ) : null}
+                                    <span className="capitalize text-zinc-300">{platform || 'Direct'}</span>
+                                  </div>
+                                  <span className="text-[10px] font-mono text-purple-300 bg-purple-950/40 border border-purple-500/20 px-1.5 py-0.5 rounded-none shrink-0 whitespace-nowrap">
+                                    V{videoData.currentVersion} ({videoData.versions.length} ver)
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                <select
+                                  value={room.state || 'In Progress'}
+                                  onChange={(e) => handleUpdateRoomState(room.id, e.target.value)}
+                                  className="bg-[#07050e] border border-purple-950/50 text-xs px-2.5 py-1.5 rounded-none text-zinc-200 cursor-pointer focus:outline-none min-w-[115px]"
+                                >
+                                  <option value="In Progress">In Progress</option>
+                                  <option value="Approved">Approved</option>
+                                  <option value="Rejected">Rejected</option>
+                                </select>
+                              </td>
+                              <td className="px-4 py-3.5 text-zinc-400 font-mono whitespace-nowrap">
+                                {dayjs(room.created_at).format('MMM D, YYYY')}
+                              </td>
+                              <td className="px-4 py-3.5 text-right space-x-2 whitespace-nowrap">
+                                <button
+                                  onClick={() => window.open(`/room/${room.id}`, '_blank')}
+                                  className="text-xs text-purple-400 hover:text-purple-300 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                                >
+                                  <span>Open</span>
+                                  <ExternalLink size={11} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteRoom(room.id)}
+                                  className="text-xs text-red-400 hover:text-red-300 p-1 cursor-pointer"
+                                  title="Delete session"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -1205,12 +1242,12 @@ export default function AdminDashboard() {
           {activeTab === 'users' && (
             <div className="space-y-4">
               <div className="flex flex-col gap-3 bg-[#0c0a14] p-4 border border-purple-950/50 rounded-none">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   {/* Account Inclusion Filter Tabs */}
-                  <div className="inline-flex p-1 bg-[#07050e] border border-purple-950/50 rounded-none text-xs">
+                  <div className="flex items-center p-1 bg-[#07050e] border border-purple-950/50 rounded-none text-xs overflow-x-auto max-w-full">
                     <button
                       onClick={() => setUserFilterTab('all')}
-                      className={`px-3 py-1.5 font-semibold rounded-none transition-all ${
+                      className={`px-3 py-1.5 font-semibold rounded-none transition-all whitespace-nowrap cursor-pointer ${
                         userFilterTab === 'all'
                           ? 'bg-white text-black shadow-sm'
                           : 'text-zinc-400 hover:text-zinc-200'
@@ -1220,17 +1257,17 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       onClick={() => setUserFilterTab('active')}
-                      className={`px-3 py-1.5 font-semibold rounded-none transition-all ${
+                      className={`px-3 py-1.5 font-semibold rounded-none transition-all whitespace-nowrap cursor-pointer ${
                         userFilterTab === 'active'
                           ? 'bg-white text-black shadow-sm'
                           : 'text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
-                      Active in Totals ({stats.totalUsers})
+                      Active ({stats.totalUsers})
                     </button>
                     <button
                       onClick={() => setUserFilterTab('excluded')}
-                      className={`px-3 py-1.5 font-semibold rounded-none transition-all ${
+                      className={`px-3 py-1.5 font-semibold rounded-none transition-all whitespace-nowrap cursor-pointer ${
                         userFilterTab === 'excluded'
                           ? 'bg-amber-500 text-black shadow-sm'
                           : 'text-zinc-400 hover:text-zinc-200'
@@ -1241,7 +1278,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="text-xs text-zinc-400 font-mono">
-                    Showing {filteredUsers.length} of {stats.totalRegistered} registered accounts
+                    Showing {filteredUsers.length} of {stats.totalRegistered} accounts
                   </div>
                 </div>
 
@@ -1257,12 +1294,12 @@ export default function AdminDashboard() {
                     />
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <span className="text-xs text-zinc-400 whitespace-nowrap">Sort:</span>
                     <select
                       value={userSortBy}
                       onChange={(e) => setUserSortBy(e.target.value)}
-                      className="bg-[#07050e] border border-purple-950/60 rounded-none px-3 py-1.5 text-xs text-zinc-200 focus:outline-none cursor-pointer"
+                      className="bg-[#07050e] border border-purple-950/60 rounded-none px-3 py-1.5 text-xs text-zinc-200 focus:outline-none cursor-pointer w-full sm:w-auto"
                     >
                       <option value="joined-desc">Joined: Newest First</option>
                       <option value="joined-asc">Joined: Oldest First</option>
@@ -1276,115 +1313,117 @@ export default function AdminDashboard() {
 
               {/* Users Directory Table */}
               <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none overflow-hidden shadow-xl">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
-                    <tr>
-                      <th className="px-4 py-3">Account & User</th>
-                      <th className="px-4 py-3">Provider</th>
-                      <th className="px-4 py-3">Joined Date</th>
-                      <th className="px-4 py-3">Sessions</th>
-                      <th className="px-4 py-3">Comments</th>
-                      <th className="px-4 py-3">Last Active</th>
-                      <th className="px-4 py-3">Inclusion</th>
-                      <th className="px-4 py-3">Role</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-purple-950/30">
-                    {filteredUsers.length === 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs min-w-[720px]">
+                    <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
-                          No registered users match the current filter.
-                        </td>
+                        <th className="px-4 py-3">Account & User</th>
+                        <th className="px-4 py-3">Provider</th>
+                        <th className="px-4 py-3">Joined Date</th>
+                        <th className="px-4 py-3">Sessions</th>
+                        <th className="px-4 py-3">Comments</th>
+                        <th className="px-4 py-3">Last Active</th>
+                        <th className="px-4 py-3">Inclusion</th>
+                        <th className="px-4 py-3">Role</th>
                       </tr>
-                    ) : (
-                      filteredUsers.map((u) => {
-                        const isUserAdmin = u.email && isAdmin(u.email);
-                        const provider = u.provider || (u.email?.includes('gmail') ? 'Google' : 'Email');
-                        return (
-                          <tr
-                            key={u.id}
-                            className={`transition-colors ${
-                              u.isExcluded
-                                ? 'bg-amber-950/10 hover:bg-amber-950/20 text-zinc-400'
-                                : 'hover:bg-white/[0.02]'
-                            }`}
-                          >
-                            <td className="px-4 py-3.5">
-                              <div className="flex items-center gap-2.5">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border ${
-                                  u.isExcluded
-                                    ? 'bg-zinc-800 text-zinc-500 border-zinc-700'
-                                    : 'bg-gradient-to-tr from-purple-700 to-indigo-600 text-white border-purple-400/40'
-                                }`}>
-                                  {(u.name || u.email || 'U').slice(0, 2).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="font-semibold flex items-center gap-1.5 truncate">
-                                    <span className={u.isExcluded ? 'text-zinc-400 line-through' : 'text-zinc-100'}>
-                                      {u.name}
-                                    </span>
-                                    {isUserAdmin && <Crown size={11} className="text-amber-400 shrink-0" />}
+                    </thead>
+                    <tbody className="divide-y divide-purple-950/30">
+                      {filteredUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
+                            No registered users match the current filter.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredUsers.map((u) => {
+                          const isUserAdmin = u.email && isAdmin(u.email);
+                          const provider = u.provider || (u.email?.includes('gmail') ? 'Google' : 'Email');
+                          return (
+                            <tr
+                              key={u.id}
+                              className={`transition-colors ${
+                                u.isExcluded
+                                  ? 'bg-amber-950/10 hover:bg-amber-950/20 text-zinc-400'
+                                  : 'hover:bg-white/[0.02]'
+                              }`}
+                            >
+                              <td className="px-4 py-3.5">
+                                <div className="flex items-center gap-2.5">
+                                  <div className={`w-8 h-8 rounded-none flex items-center justify-center font-bold text-xs shrink-0 border ${
+                                    u.isExcluded
+                                      ? 'bg-zinc-800 text-zinc-500 border-zinc-700'
+                                      : 'bg-gradient-to-tr from-purple-700 to-indigo-600 text-white border-purple-400/40'
+                                  }`}>
+                                    {(u.name || u.email || 'U').slice(0, 2).toUpperCase()}
                                   </div>
-                                  <div className="text-[11px] text-zinc-400 truncate">{u.email || 'No email associated'}</div>
-                                  <div className="text-[9px] font-mono text-zinc-600 truncate">ID: {u.id.slice(0, 16)}...</div>
+                                  <div className="min-w-0">
+                                    <div className="font-semibold flex items-center gap-1.5 truncate">
+                                      <span className={u.isExcluded ? 'text-zinc-400 line-through' : 'text-zinc-100'}>
+                                        {u.name}
+                                      </span>
+                                      {isUserAdmin && <Crown size={11} className="text-amber-400 shrink-0" />}
+                                    </div>
+                                    <div className="text-[11px] text-zinc-400 truncate">{u.email || 'No email associated'}</div>
+                                    <div className="text-[9px] font-mono text-zinc-600 truncate">ID: {u.id.slice(0, 16)}...</div>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <span className="text-[10px] px-2 py-0.5 rounded-none font-semibold border bg-purple-950/40 text-purple-300 border-purple-500/30">
-                                {provider}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <div className="text-zinc-200 font-medium">{dayjs(u.firstSeen).fromNow()}</div>
-                              <div className="text-[10px] text-zinc-500 font-mono">{dayjs(u.firstSeen).format('MMM D, YYYY')}</div>
-                            </td>
-                            <td className="px-4 py-3.5 font-mono text-purple-300 font-bold">
-                              {u.roomsCount}
-                            </td>
-                            <td className="px-4 py-3.5 font-mono text-pink-300 font-bold">
-                              {u.commentsCount}
-                            </td>
-                            <td className="px-4 py-3.5 text-zinc-400">{dayjs(u.lastActive).fromNow()}</td>
-                            <td className="px-4 py-3.5">
-                              <button
-                                onClick={() => handleToggleUserExclusion(u.id, u.email)}
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[11px] font-semibold border transition-all cursor-pointer ${
-                                  u.isExcluded
-                                    ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
-                                    : 'bg-emerald-500/10 hover:bg-white/10 text-emerald-300 hover:text-white border-emerald-500/20'
-                                }`}
-                              >
-                                {u.isExcluded ? (
-                                  <>
-                                    <UserPlus size={12} />
-                                    <span>Include</span>
-                                  </>
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                <span className="text-[10px] px-2 py-0.5 rounded-none font-semibold border bg-purple-950/40 text-purple-300 border-purple-500/30">
+                                  {provider}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                <div className="text-zinc-200 font-medium">{dayjs(u.firstSeen).fromNow()}</div>
+                                <div className="text-[10px] text-zinc-500 font-mono">{dayjs(u.firstSeen).format('MMM D, YYYY')}</div>
+                              </td>
+                              <td className="px-4 py-3.5 font-mono text-purple-300 font-bold whitespace-nowrap">
+                                {u.roomsCount}
+                              </td>
+                              <td className="px-4 py-3.5 font-mono text-pink-300 font-bold whitespace-nowrap">
+                                {u.commentsCount}
+                              </td>
+                              <td className="px-4 py-3.5 text-zinc-400 whitespace-nowrap">{dayjs(u.lastActive).fromNow()}</td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                <button
+                                  onClick={() => handleToggleUserExclusion(u.id, u.email)}
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[11px] font-semibold border transition-all cursor-pointer ${
+                                    u.isExcluded
+                                      ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
+                                      : 'bg-emerald-500/10 hover:bg-white/10 text-emerald-300 hover:text-white border-emerald-500/20'
+                                  }`}
+                                >
+                                  {u.isExcluded ? (
+                                    <>
+                                      <UserPlus size={12} />
+                                      <span>Include</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Check size={12} className="text-emerald-400" />
+                                      <span>Included</span>
+                                    </>
+                                  )}
+                                </button>
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                {isUserAdmin ? (
+                                  <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-none font-mono font-bold">
+                                    Admin
+                                  </span>
                                 ) : (
-                                  <>
-                                    <Check size={12} className="text-emerald-400" />
-                                    <span>Included</span>
-                                  </>
+                                  <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/40 px-2 py-0.5 rounded-none">
+                                    Member
+                                  </span>
                                 )}
-                              </button>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              {isUserAdmin ? (
-                                <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-none font-mono font-bold">
-                                  Admin
-                                </span>
-                              ) : (
-                                <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/40 px-2 py-0.5 rounded-none">
-                                  Member
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -1401,7 +1440,7 @@ export default function AdminDashboard() {
               )}
 
               {/* Add New Admin Form */}
-              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-6 shadow-xl">
+              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl">
                 <h3 className="text-sm font-bold text-white tracking-tight mb-2">
                   Grant Administrator Access
                 </h3>
@@ -1409,7 +1448,7 @@ export default function AdminDashboard() {
                   Administrators have permission to view all workspace statistics, inspect full video sessions, and manage user accounts.
                 </p>
 
-                <form onSubmit={handleAddAdmin} className="flex gap-2">
+                <form onSubmit={handleAddAdmin} className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="email"
                     required
@@ -1421,7 +1460,7 @@ export default function AdminDashboard() {
                   <button
                     type="submit"
                     disabled={!newAdminInput.trim()}
-                    className="px-5 py-2 bg-white hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-500 text-black font-semibold text-xs rounded-none transition-colors shadow-sm shrink-0"
+                    className="px-5 py-2 bg-white hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-500 text-black font-semibold text-xs rounded-none transition-colors shadow-sm shrink-0 cursor-pointer"
                   >
                     Add +
                   </button>
@@ -1429,7 +1468,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Current Admins List */}
-              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-6 shadow-xl">
+              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl">
                 <h3 className="text-sm font-bold text-white tracking-tight mb-4">
                   Active Administrators ({adminList.length})
                 </h3>
@@ -1438,15 +1477,15 @@ export default function AdminDashboard() {
                   {adminList.map((email) => {
                     const isPrimary = isPrimaryAdmin(email);
                     return (
-                      <div key={email} className="py-3.5 flex items-center justify-between text-xs">
+                      <div key={email} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                          <div className={`w-8 h-8 rounded-none flex items-center justify-center font-bold text-xs shrink-0 ${
                             isPrimary ? 'bg-purple-900/60 text-purple-200 border border-purple-400/40' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                           }`}>
                             {isPrimary ? <Crown size={14} className="text-amber-400" /> : <UserCheck size={14} />}
                           </div>
-                          <div>
-                            <div className="font-semibold text-zinc-100">{email}</div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-zinc-100 truncate">{email}</div>
                             <div className="text-[10px] text-zinc-500 font-mono">
                               {isPrimary ? 'Primary Super Admin (Permanent)' : 'Co-Administrator'}
                             </div>
@@ -1454,14 +1493,16 @@ export default function AdminDashboard() {
                         </div>
 
                         {!isPrimary && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAdmin(email)}
-                            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-none transition-colors"
-                            title="Revoke admin access"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAdmin(email)}
+                              className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-none transition-colors cursor-pointer"
+                              title="Revoke admin access"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         )}
                       </div>
                     );

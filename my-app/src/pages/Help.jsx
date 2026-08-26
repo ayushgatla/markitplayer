@@ -108,34 +108,34 @@ export default function Help() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#121318] text-white flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col font-sans selection:bg-purple-600 selection:text-white">
       {/* Header */}
-      <header className="border-b border-white/10 bg-[#1a1b23]/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+      <header className="border-b border-purple-950/40 bg-[#0c0a14]/90 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => navigate('/dashboard')}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors border border-white/10 flex items-center gap-2 text-sm font-medium cursor-pointer"
+              className="p-2 rounded-none bg-[#07050e] hover:bg-white/10 text-zinc-400 hover:text-white transition-colors border border-purple-950/50 flex items-center gap-2 text-xs font-semibold cursor-pointer"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Dashboard</span>
             </button>
-            <div className="h-5 w-px bg-white/10"></div>
+            <div className="h-5 w-px bg-purple-950/40"></div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-white">Platform Features Guide</h1>
+              <h1 className="text-lg font-bold tracking-tight text-white">Platform Features Guide</h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button 
               onClick={expandAll}
-              className="px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-md transition-colors border border-white/5 cursor-pointer"
+              className="px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#07050e] hover:bg-white/10 rounded-none transition-colors border border-purple-950/50 cursor-pointer"
             >
               Expand All
             </button>
             <button 
               onClick={collapseAll}
-              className="px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-md transition-colors border border-white/5 cursor-pointer"
+              className="px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#07050e] hover:bg-white/10 rounded-none transition-colors border border-purple-950/50 cursor-pointer"
             >
               Contract All
             </button>
@@ -145,17 +145,17 @@ export default function Help() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10">
-        <div className="mb-8 bg-zinc-900 border border-white/5 p-6 rounded-2xl shadow-lg">
-          <h2 className="text-2xl font-bold text-white mb-2">
+        <div className="mb-8 bg-[#0c0a14] border border-purple-950/50 p-6 rounded-none shadow-xl">
+          <h2 className="text-xl font-bold text-white mb-2">
             Welcome to Feedplayer
           </h2>
-          <p className="text-zinc-400 text-sm leading-relaxed max-w-3xl">
+          <p className="text-zinc-400 text-xs leading-relaxed max-w-3xl">
             Explore all the features and capabilities of Feedplayer below. Click on any feature tab to expand or contract its detailed explanation, workflow tips, and capabilities.
           </p>
         </div>
 
         {/* Feature Accordion Tabs */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {features.map((feature, idx) => {
             const IconComponent = feature.icon;
             const isOpen = !!openTabs[idx];
@@ -163,51 +163,51 @@ export default function Help() {
             return (
               <div 
                 key={feature.id}
-                className={`rounded-xl border transition-all duration-200 overflow-hidden ${
+                className={`rounded-none border transition-all duration-200 overflow-hidden ${
                   isOpen 
-                    ? 'bg-zinc-900 border-zinc-700 shadow-xl' 
-                    : 'bg-[#16171e] border-white/10 hover:border-white/20'
+                    ? 'bg-[#0c0a14] border-purple-500/40 shadow-2xl' 
+                    : 'bg-[#0c0a14] border-purple-950/50 hover:border-purple-500/30'
                 }`}
               >
                 {/* Accordion Header / Tab Toggle Button */}
                 <button
                   onClick={() => toggleTab(idx)}
-                  className="w-full px-6 py-5 flex items-center justify-between text-left transition-colors cursor-pointer group"
+                  className="w-full px-5 py-4 flex items-center justify-between text-left transition-colors cursor-pointer group"
                 >
                   <div className="flex flex-col gap-1 pr-6">
                     <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold text-white group-hover:text-zinc-300 transition-colors">
+                      <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
                         {feature.title}
                       </h3>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase bg-white/5 text-zinc-400 border border-white/5">
+                      <span className="px-2 py-0.5 rounded-none text-[10px] font-semibold tracking-wide uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">
                         {feature.category}
                       </span>
                     </div>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-xs text-zinc-400">
                       {feature.summary}
                     </p>
                   </div>
 
-                  <div className={`p-2 rounded-lg transition-transform duration-200 flex-shrink-0 ${
-                    isOpen ? 'rotate-180 text-white bg-zinc-800' : 'text-zinc-500 group-hover:text-white'
+                  <div className={`p-1.5 rounded-none transition-transform duration-200 flex-shrink-0 ${
+                    isOpen ? 'rotate-180 text-white bg-purple-950/50' : 'text-zinc-500 group-hover:text-white'
                   }`}>
-                    <ChevronDown className="w-5 h-5" />
+                    <ChevronDown className="w-4 h-4" />
                   </div>
                 </button>
 
                 {/* Collapsible Content */}
                 {isOpen && (
-                  <div className="px-6 pb-6 pt-2 border-t border-white/5 bg-white/[0.01]">
+                  <div className="px-5 pb-5 pt-2 border-t border-purple-950/40 bg-[#07050e]">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                       {feature.details.map((detail, dIdx) => {
                         const parts = detail.split(': ');
                         const title = parts[0];
                         const desc = parts.slice(1).join(': ');
                         return (
-                            <div key={dIdx} className="p-4 rounded-lg bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-                              <span className="font-semibold text-zinc-200 text-sm">{title}</span>
-                              <span className="text-zinc-400 text-sm leading-relaxed">{desc}</span>
-                            </div>
+                          <div key={dIdx} className="p-3.5 rounded-none bg-[#0c0a14] border border-purple-950/50 flex flex-col gap-1 shadow-sm">
+                            <span className="font-semibold text-zinc-100 text-xs">{title}</span>
+                            <span className="text-zinc-400 text-xs leading-relaxed">{desc}</span>
+                          </div>
                         );
                       })}
                     </div>
