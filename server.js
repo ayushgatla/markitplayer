@@ -7,8 +7,31 @@ const { google } = require('googleapis');
 const multer = require('multer');
 const { Readable } = require('stream');
 
+const https = require('https');
+const http = require('http');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Persistent connection pooling to eliminate TLS handshake latency on range requests
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 100,
+  maxFreeSockets: 20,
+  timeout: 60000,
+});
+const httpAgent = new http.Agent({
+  keepAlive: true,
+  maxSockets: 100,
+  maxFreeSockets: 20,
+  timeout: 60000,
+});
+
+const axiosClient = axios.create({
+  httpAgent,
+  httpsAgent,
+  timeout: 30000,
+});
 
 app.use(cors());
 
@@ -128,7 +151,7 @@ app.get('/api/video/:id', async (req, res) => {
       let initialDriveUrl = `https://drive.google.com/uc?export=download&id=${videoId}`;
       let cookies = [];
 
-      let response = await axios({
+      let response = await axiosClient({
         method: 'get',
         url: initialDriveUrl,
         responseType: 'stream',
@@ -175,7 +198,9 @@ app.get('/api/video/:id', async (req, res) => {
       } else {
         // Direct stream already returned without virus confirmation page
         res.status(response.status);
-        ['content-type', 'content-length', 'accept-ranges', 'content-range'].forEach(header => {
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+        ['content-type', 'content-length', 'content-range'].forEach(header => {
           if (response.headers[header]) {
             res.setHeader(header, response.headers[header]);
           }
@@ -186,8 +211,8 @@ app.get('/api/video/:id', async (req, res) => {
       }
     }
 
-    // Fast single-hop stream using the cached or newly resolved direct URL
-    const streamResponse = await axios({
+    // Fast single-hop stream using the cached or newly resolved direct URL with persistent TLS connection
+    const streamResponse = await axiosClient({
       method: 'get',
       url: targetUrl,
       responseType: 'stream',
@@ -200,8 +225,10 @@ app.get('/api/video/:id', async (req, res) => {
     });
 
     res.status(streamResponse.status);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
     
-    ['content-type', 'content-length', 'accept-ranges', 'content-range'].forEach(header => {
+    ['content-type', 'content-length', 'content-range'].forEach(header => {
       if (streamResponse.headers[header]) {
         res.setHeader(header, streamResponse.headers[header]);
       }
