@@ -143,11 +143,14 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     const match = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?.*id=)([-\w]+)/);
     if (match && match[1]) {
       driveFileId = match[1];
-      initialUrl = `${baseUrl}/api/video/${driveFileId}`;
+      fallbackProxyUrl = `${baseUrl}/api/video/${driveFileId}`;
+      initialUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
     }
   } else if (isInstagram) {
     initialUrl = `${baseUrl}/api/instagram?url=${encodeURIComponent(videoUrl)}`;
   }
+
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState(initialUrl);
 
   const fallbackProxyUrlRef = useRef(fallbackProxyUrl);
   fallbackProxyUrlRef.current = fallbackProxyUrl;
@@ -158,7 +161,40 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
   const hasFallenBackRef = useRef(false);
   useEffect(() => {
     hasFallenBackRef.current = false;
-  }, [videoUrl]);
+    setResolvedVideoUrl(initialUrl);
+  }, [videoUrl, initialUrl]);
+
+  // Fetch direct Google CDN stream URL to completely bypass backend proxy bottleneck on large videos
+  useEffect(() => {
+    let isCancelled = false;
+    if (isDrive && driveFileId) {
+      fetch(`${baseUrl}/api/direct-url/${driveFileId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!isCancelled && data?.directUrl) {
+            setResolvedVideoUrl(data.directUrl);
+            const rawPlayer = playerRef.current?.getRawPlayer?.();
+            if (rawPlayer && !hasFallenBackRef.current) {
+              const savedTime = rawPlayer.currentTime() || 0;
+              const wasPlaying = !rawPlayer.paused();
+              rawPlayer.src({ src: data.directUrl, type: 'video/mp4' });
+              if (savedTime > 0) {
+                rawPlayer.one('loadedmetadata', () => {
+                  rawPlayer.currentTime(savedTime);
+                  if (wasPlaying) rawPlayer.play().catch(() => {});
+                });
+              }
+            }
+          }
+        })
+        .catch(err => {
+          console.warn('Direct Google CDN stream resolution fallback:', err);
+        });
+    }
+    return () => {
+      isCancelled = true;
+    };
+  }, [isDrive, driveFileId, baseUrl]);
 
   const videoOptions = {
     autoplay: false,
@@ -168,7 +204,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     preload: 'auto',
     techOrder: isYouTube ? ['youtube'] : ['html5'],
     sources: [{
-      src: initialUrl,
+      src: resolvedVideoUrl || initialUrl,
       type: isYouTube ? 'video/youtube' : 'video/mp4'
     }],
     youtube: {
