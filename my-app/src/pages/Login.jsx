@@ -30,41 +30,79 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState(null);
+
+  // Helper to timeout hanging promises
+  const withTimeout = (promise, ms = 10000, timeoutErrorMsg = 'Request timed out') => {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error(timeoutErrorMsg)), ms))
+    ]);
+  };
+
   const handleEmailAuth = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    if (!email || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
     setLoading(true);
     setError(null);
     setMessage(null);
 
-    if (isSignUp) {
-      const { error, data } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      if (error) {
-        setError(error.message);
+    try {
+      if (isSignUp) {
+        const { error, data } = await withTimeout(
+          supabase.auth.signUp({ email, password }),
+          10000,
+          'Signup request timed out. Please check your connection or try again.'
+        );
+        if (error) {
+          setError(error.message);
+        } else {
+          setMessage('Check your email for the confirmation link!');
+        }
       } else {
-        setMessage('Check your email for the confirmation link!');
+        const { error, data } = await withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          10000,
+          'Authentication service timed out. Please verify your Supabase project status.'
+        );
+        if (error) {
+          setError(error.message);
+        }
       }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) {
-        setError(error.message);
-      }
+    } catch (err) {
+      console.error("Auth error:", err);
+      setError(err.message || 'An unexpected error occurred during authentication.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google'
-    });
-    if (error) {
-      setError(error.message);
+    setGoogleLoading(true);
+    setError(null);
+    try {
+      const { error } = await withTimeout(
+        supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + '/dashboard'
+          }
+        }),
+        10000,
+        'Google login timed out. Please verify your Supabase auth status.'
+      );
+      if (error) {
+        setError(error.message);
+      }
+    } catch (err) {
+      console.error("Google OAuth error:", err);
+      setError(err.message || 'Failed to initiate Google sign-in.');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -183,7 +221,7 @@ export default function Login() {
                 {isMobile ? (
                   <div
                     className="w-full h-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-xl overflow-hidden cursor-pointer backdrop-blur-md"
-                    onClick={handleGoogleLogin}
+                    onClick={googleLoading ? undefined : handleGoogleLogin}
                   >
                     <div className="flex items-center justify-center gap-3 w-full h-[52px] bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-colors">
                       <svg viewBox="0 0 24 24" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">
@@ -192,7 +230,7 @@ export default function Login() {
                         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                       </svg>
-                      Google
+                      {googleLoading ? 'Connecting...' : 'Google'}
                     </div>
                   </div>
                 ) : (
@@ -336,7 +374,7 @@ export default function Login() {
                   padding="0"
                   className="liquid-button w-full z-10"
                   style={{ position: 'absolute', top: '50%', left: '50%' }}
-                  onClick={handleGoogleLogin}
+                  onClick={googleLoading ? undefined : handleGoogleLogin}
                 >
                   <div className="flex items-center justify-center gap-3 w-full h-[52px] bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-colors">
                     <svg viewBox="0 0 24 24" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">
@@ -345,7 +383,7 @@ export default function Login() {
                       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                       <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                     </svg>
-                    Google
+                    {googleLoading ? 'Connecting...' : 'Google'}
                   </div>
                 </LiquidGlass>
               </div>
