@@ -35,7 +35,7 @@ export default function Login() {
   const [message, setMessage] = useState(null);
 
   // Helper to timeout hanging promises
-  const withTimeout = (promise, ms = 10000, timeoutErrorMsg = 'Request timed out') => {
+  const withTimeout = (promise, ms = 25000, timeoutErrorMsg = 'Request timed out') => {
     return Promise.race([
       promise,
       new Promise((_, reject) => setTimeout(() => reject(new Error(timeoutErrorMsg)), ms))
@@ -56,8 +56,8 @@ export default function Login() {
       if (isSignUp) {
         const { error, data } = await withTimeout(
           supabase.auth.signUp({ email, password }),
-          10000,
-          'Signup request timed out. Please check your connection or try again.'
+          25000,
+          'Signup request timed out. Please check your network connection.'
         );
         if (error) {
           setError(error.message);
@@ -67,7 +67,7 @@ export default function Login() {
       } else {
         const { error, data } = await withTimeout(
           supabase.auth.signInWithPassword({ email, password }),
-          10000,
+          25000,
           'Authentication service timed out. Please verify your Supabase project status.'
         );
         if (error) {
@@ -88,22 +88,30 @@ export default function Login() {
     setGoogleLoading(true);
     setError(null);
     try {
-      const { error } = await withTimeout(
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      const { data, error } = await withTimeout(
         supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + '/dashboard'
+            redirectTo: redirectUrl
           }
         }),
-        10000,
-        'Google login timed out. Please verify your Supabase auth status.'
+        15000,
+        'Google login timed out.'
       );
       if (error) {
         setError(error.message);
+      } else if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        // Direct fallback navigation to Supabase OAuth endpoint
+        window.location.href = `https://yfhpubzwhrvvyspswizj.supabase.co/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUrl)}`;
       }
     } catch (err) {
-      console.error("Google OAuth error:", err);
-      setError(err.message || 'Failed to initiate Google sign-in.');
+      console.error("Google OAuth error, using direct redirect:", err);
+      // Fail-safe direct redirect
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      window.location.href = `https://yfhpubzwhrvvyspswizj.supabase.co/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUrl)}`;
     } finally {
       setGoogleLoading(false);
     }
