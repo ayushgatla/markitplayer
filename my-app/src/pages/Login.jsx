@@ -7,11 +7,21 @@ import LiquidGlass from 'liquid-glass-react';
 
 export default function Login() {
   const [isMobile, setIsMobile] = useState(false);
+  const [hasWebGL, setHasWebGL] = useState(true);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
+
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      setHasWebGL(Boolean(gl));
+    } catch {
+      setHasWebGL(false);
+    }
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -72,7 +82,7 @@ export default function Login() {
       {/* Overlay to ensure glass UI remains legible against bright parts of the image */}
       <div className="absolute inset-0 z-0 bg-black/40"></div>
 
-      {isMobile ? (
+      {(isMobile || !hasWebGL) ? (
         <div
           className="w-[calc(100vw-32px)] max-w-md z-10 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-[32px] overflow-hidden"
         >
