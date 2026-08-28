@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import LiquidGlass from 'liquid-glass-react';
 
 export default function Login() {
+  const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(false);
   const [hasWebGL, setHasWebGL] = useState(true);
 
@@ -71,6 +72,8 @@ export default function Login() {
         );
         if (error) {
           setError(error.message);
+        } else if (data?.user || data?.session) {
+          navigate('/dashboard', { replace: true });
         }
       }
     } catch (err) {

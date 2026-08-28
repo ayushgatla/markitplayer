@@ -14,12 +14,18 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     isMountedRef.current = true;
 
-    // Safety fallback: Never keep the screen stuck in loading state for more than 1.5 seconds
+    const hasAuthHash = typeof window !== 'undefined' && (
+      window.location.hash.includes('access_token') ||
+      window.location.hash.includes('type=recovery') ||
+      window.location.search.includes('code=')
+    );
+
+    // Safety fallback: Give 3.5s for OAuth hash exchanges, 1.5s for normal page loads
     const safetyTimeout = setTimeout(() => {
       if (isMountedRef.current) {
         setLoading(false);
       }
-    }, 1500);
+    }, hasAuthHash ? 3500 : 1500);
 
     const checkSession = async () => {
       try {
