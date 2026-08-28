@@ -325,15 +325,31 @@ export const syncCurrentUserProfile = async (user) => {
     }
 
     // Also persist to Supabase sync config table
-    await supabase.from('rooms').upsert([
-      {
-        id: `usr_${user.id.slice(0, 30)}`,
-        title: `Profile: ${fullName}`,
-        user_id: user.id,
-        folder: REGISTRY_FOLDER,
-        video_url: JSON.stringify(userProfile)
-      }
-    ], { onConflict: 'id' });
+    const { data: existing } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('folder', REGISTRY_FOLDER)
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      await supabase
+        .from('rooms')
+        .update({
+          title: `Profile: ${fullName}`,
+          video_url: JSON.stringify(userProfile)
+        })
+        .eq('id', existing[0].id);
+    } else {
+      await supabase
+        .from('rooms')
+        .insert([{
+          title: `Profile: ${fullName}`,
+          user_id: user.id,
+          folder: REGISTRY_FOLDER,
+          video_url: JSON.stringify(userProfile)
+        }]);
+    }
   } catch (e) {
     console.warn('Could not sync user profile to database:', e);
   }
@@ -441,15 +457,29 @@ export const saveExcludedUsers = async (ids, adminUserId) => {
       window.localStorage.setItem(EXCLUDED_STORAGE_KEY, JSON.stringify(cleanIds));
     }
 
-    await supabase.from('rooms').upsert([
-      {
-        id: 'cfg_excluded_users',
-        title: 'System Config: Excluded Users',
-        user_id: adminUserId || 'system',
-        folder: EXCLUDED_FOLDER,
-        video_url: JSON.stringify(cleanIds)
-      }
-    ], { onConflict: 'id' });
+    const { data: existing } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('folder', EXCLUDED_FOLDER)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      await supabase
+        .from('rooms')
+        .update({
+          video_url: JSON.stringify(cleanIds)
+        })
+        .eq('id', existing[0].id);
+    } else if (adminUserId && adminUserId !== 'system') {
+      await supabase
+        .from('rooms')
+        .insert([{
+          title: 'System Config: Excluded Users',
+          user_id: adminUserId,
+          folder: EXCLUDED_FOLDER,
+          video_url: JSON.stringify(cleanIds)
+        }]);
+    }
   } catch (e) {
     console.warn('Could not persist excluded users to database:', e);
   }
