@@ -242,16 +242,15 @@ export const getCachedUserProfiles = () => {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Filter out legacy mock seed users if any are lingering
           const cleanProfiles = parsed.filter(u => u && u.id && !u.id.startsWith('seed-mock-'));
-          return cleanProfiles;
+          return mergeUserLists(SEED_SUPABASE_USERS, cleanProfiles);
         }
       }
     }
   } catch (e) {
     console.warn('Error loading cached user profiles:', e);
   }
-  return [];
+  return [...SEED_SUPABASE_USERS];
 };
 
 /**
@@ -382,7 +381,7 @@ export const fetchAllRegisteredUsers = async () => {
         }
       });
 
-      const uniqueDbUsers = mergeUserLists([], dbUsers);
+      const uniqueDbUsers = mergeUserLists(SEED_SUPABASE_USERS, dbUsers);
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(uniqueDbUsers));
       }
