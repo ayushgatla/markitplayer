@@ -229,6 +229,181 @@ export const SEED_SUPABASE_USERS = [
     email: 'yashpanday08@gmail.com',
     provider: 'Google',
     created_at: '2026-06-20T17:00:00.000Z'
+  },
+  {
+    id: 'auth-user-achuchannelvloger',
+    name: 'Achu Channel Vloger',
+    email: 'achuchannelvloger@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-08T10:00:00.000Z'
+  },
+  {
+    id: 'auth-user-amitanshupadhee',
+    name: 'Amitanshu Padhee',
+    email: 'amitanshupadhee205@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-09T11:00:00.000Z'
+  },
+  {
+    id: 'auth-user-arijitbose',
+    name: 'Arijit Bose',
+    email: 'arijit.bose@mastersunion.org',
+    provider: 'Email, Google',
+    created_at: '2026-07-10T12:00:00.000Z'
+  },
+  {
+    id: 'auth-user-ayushgatla07',
+    name: 'Ayush Gatla',
+    email: 'ayushgatla07@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-11T13:00:00.000Z'
+  },
+  {
+    id: 'auth-user-bkkartik',
+    name: 'Kartik BK',
+    email: 'bkkartik0407@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-12T14:00:00.000Z'
+  },
+  {
+    id: 'auth-user-creativeforcemedia',
+    name: 'Creative Force Media',
+    email: 'creativeforcemediaofficial@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-13T15:00:00.000Z'
+  },
+  {
+    id: 'auth-user-designsindiratrade',
+    name: 'Indira Trade Designs',
+    email: 'designs@indiratrade.com',
+    provider: 'Email',
+    created_at: '2026-07-14T16:00:00.000Z'
+  },
+  {
+    id: 'auth-user-editsbyalex',
+    name: 'Edits by Alex',
+    email: 'editsbyalex.ced@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-15T17:00:00.000Z'
+  },
+  {
+    id: 'auth-user-fahvocruz',
+    name: 'Fahvo Cruz',
+    email: 'fahvocruz@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-16T18:00:00.000Z'
+  },
+  {
+    id: 'auth-user-garv250904',
+    name: 'Garv',
+    email: 'garv250904@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-17T19:00:00.000Z'
+  },
+  {
+    id: 'auth-user-garvitbalbirsingh',
+    name: 'Garvit Balbir Singh',
+    email: 'garvitbalbirsingh@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-18T10:00:00.000Z'
+  },
+  {
+    id: 'auth-user-garvjain',
+    name: 'Garv Jain',
+    email: 'garvjain.work@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-19T11:00:00.000Z'
+  },
+  {
+    id: 'auth-user-harshshah',
+    name: 'Harsh Shah',
+    email: 'harshshah9975@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-20T12:00:00.000Z'
+  },
+  {
+    id: 'auth-user-khalil',
+    name: 'Khalil',
+    email: 'khalil030922@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-21T13:00:00.000Z'
+  },
+  {
+    id: 'auth-user-kishorepadda',
+    name: 'Kishore Padda',
+    email: 'kishorepadda50@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-22T14:00:00.000Z'
+  },
+  {
+    id: 'auth-user-mei',
+    name: 'Mei',
+    email: 'mei979144@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-23T15:00:00.000Z'
+  },
+  {
+    id: 'auth-user-narulaaryan',
+    name: 'Aryan Narula',
+    email: 'narulaaryan703@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-24T16:00:00.000Z'
+  },
+  {
+    id: 'auth-user-novalagecy',
+    name: 'Nova Legacy',
+    email: 'novalagecy@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-25T17:00:00.000Z'
+  },
+  {
+    id: 'auth-user-prathameshj',
+    name: 'Prathamesh J',
+    email: 'prathameshj899@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-26T18:00:00.000Z'
+  },
+  {
+    id: 'auth-user-rahulmuraleedharan',
+    name: 'Rahul Muraleedharan',
+    email: 'rahulmuraleedharanhere@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-27T19:00:00.000Z'
+  },
+  {
+    id: 'auth-user-shaheen',
+    name: 'Shaheen',
+    email: 'shaheen201@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-28T20:00:00.000Z'
+  },
+  {
+    id: 'auth-user-venginoski',
+    name: 'Venginoski G',
+    email: 'venginoskig@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-29T21:00:00.000Z'
+  },
+  {
+    id: 'auth-user-vrushabhshivankar',
+    name: 'Vrushabh Shivankar',
+    email: 'vrushabhshivankar78@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-30T22:00:00.000Z'
+  },
+  {
+    id: 'auth-user-workmaqsoodrai',
+    name: 'Maqsood Rai',
+    email: 'work.maqsoodraisk@gmail.com',
+    provider: 'Google',
+    created_at: '2026-07-31T23:00:00.000Z'
+  },
+  {
+    id: 'auth-user-yadavnarayan',
+    name: 'Narayan Yadav',
+    email: 'yadavnarayann@gmail.com',
+    provider: 'Google',
+    created_at: '2026-08-01T10:00:00.000Z'
   }
 ];
 
@@ -487,3 +662,10 @@ export const saveExcludedUsers = async (ids, adminUserId) => {
   return cleanIds;
 };
 
+/**
+ * Clear all exclusions from both localStorage and Supabase.
+ * @param {string} [adminUserId]
+ */
+export const clearAllExcludedUsers = async (adminUserId) => {
+  return saveExcludedUsers([], adminUserId);
+};

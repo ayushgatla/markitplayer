@@ -318,10 +318,25 @@ export default function AdminDashboard() {
         u.rooms.push(room);
         if (room.created_at && new Date(room.created_at) < new Date(u.firstSeen)) u.firstSeen = room.created_at;
         if (room.created_at && new Date(room.created_at) > new Date(u.lastActive)) u.lastActive = room.created_at;
+      } else {
+        const isExcluded = excludedUserIds.has(uId);
+        userMap.set(uId, {
+          id: uId,
+          name: `Editor_${uId.slice(0, 6)}`,
+          email: null,
+          avatar_url: '',
+          provider: 'Supabase User',
+          roomsCount: 1,
+          commentsCount: 0,
+          firstSeen: room.created_at || new Date().toISOString(),
+          lastActive: room.created_at || new Date().toISOString(),
+          rooms: [room],
+          isExcluded
+        });
       }
     });
 
-    // 4. Attach comments count only for logged-in editors (do not create user entries for clients or reviewers)
+    // 4. Attach comments count
     comments.forEach(comment => {
       const uId = comment.user_id;
       if (uId && userMap.has(uId)) {
@@ -467,6 +482,7 @@ export default function AdminDashboard() {
   const filteredEmailUsers = useMemo(() => {
     return usersWithEmail.filter(u => {
       if (emailFilter === 'active' && u.isExcluded) return false;
+      if (emailFilter === 'excluded' && !u.isExcluded) return false;
       if (emailFilter === 'google' && !u.provider?.toLowerCase().includes('google')) return false;
       if (emailFilter === 'email' && !u.provider?.toLowerCase().includes('email')) return false;
       if (searchQuery.trim()) {
@@ -478,6 +494,13 @@ export default function AdminDashboard() {
       return true;
     });
   }, [usersWithEmail, emailFilter, searchQuery]);
+
+  const handleIncludeAllUsers = async () => {
+    if (window.confirm("Include all users and clear all exclusions?")) {
+      setExcludedUserIds(new Set());
+      await saveExcludedUsers([], user?.id);
+    }
+  };
 
   const handleToggleSelectAllEmails = () => {
     if (selectedEmailUserIds.size === filteredEmailUsers.length) {
@@ -530,12 +553,11 @@ export default function AdminDashboard() {
     setEmailBody(tmpl.body.replace(/\{\{name\}\}/g, nameVal));
   };
 
-  const handleLaunchEmailClient = () => {
+  const handleLaunchGmailWeb = () => {
     let recipients = [];
     if (composerMode === 'single' && singleTargetUser?.email) {
-      recipients = [singleTargetUser.email];
-      const mailtoUrl = `mailto:${singleTargetUser.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-      window.location.href = mailtoUrl;
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(singleTargetUser.email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+      window.open(gmailUrl, '_blank', 'noopener,noreferrer');
       return;
     }
 
@@ -550,10 +572,40 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Best practice for bulk email: BCC recipients, TO support@blasync.in
     const bccString = recipients.join(',');
-    const mailtoUrl = `mailto:support@blasync.in?bcc=${encodeURIComponent(bccString)}&subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-    window.location.href = mailtoUrl;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent('support@blasync.in')}&bcc=${encodeURIComponent(bccString)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleLaunchEmailClient = () => {
+    let recipients = [];
+    let mailtoUrl = '';
+    if (composerMode === 'single' && singleTargetUser?.email) {
+      mailtoUrl = `mailto:${singleTargetUser.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    } else {
+      if (composerMode === 'selected') {
+        recipients = filteredEmailUsers.filter(u => selectedEmailUserIds.has(u.id)).map(u => u.email).filter(Boolean);
+      } else {
+        recipients = filteredEmailUsers.map(u => u.email).filter(Boolean);
+      }
+
+      if (recipients.length === 0) {
+        alert('No recipients selected to email.');
+        return;
+      }
+
+      const bccString = recipients.join(',');
+      mailtoUrl = `mailto:support@blasync.in?bcc=${encodeURIComponent(bccString)}&subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    }
+
+    // Use simulated anchor element for clean native OS mail handler triggering
+    const link = document.createElement('a');
+    link.href = mailtoUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Multi-period Chart Bar Data Generator for Project Statistics
@@ -1441,8 +1493,20 @@ export default function AdminDashboard() {
                     </button>
                   </div>
 
-                  <div className="text-xs text-zinc-400 font-mono">
-                    Showing {filteredUsers.length} of {stats.totalRegistered} editors
+                  <div className="flex items-center gap-2">
+                    {stats.totalExcluded > 0 && (
+                      <button
+                        onClick={handleIncludeAllUsers}
+                        className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-none transition-colors cursor-pointer flex items-center gap-1"
+                        title="Include all excluded users"
+                      >
+                        <UserPlus size={12} />
+                        <span>Include All ({stats.totalExcluded})</span>
+                      </button>
+                    )}
+                    <div className="text-xs text-zinc-400 font-mono">
+                      Showing {filteredUsers.length} of {stats.totalRegistered} editors
+                    </div>
                   </div>
                 </div>
 
@@ -1681,7 +1745,7 @@ export default function AdminDashboard() {
 
                     {/* Filter Chips */}
                     <div className="flex items-center gap-1 ml-0 sm:ml-2">
-                      {['all', 'active', 'google', 'email'].map((tabKey) => (
+                      {['all', 'active', 'excluded', 'google', 'email'].map((tabKey) => (
                         <button
                           key={tabKey}
                           onClick={() => setEmailFilter(tabKey)}
@@ -1694,6 +1758,16 @@ export default function AdminDashboard() {
                           {tabKey}
                         </button>
                       ))}
+                      {stats.totalExcluded > 0 && (
+                        <button
+                          onClick={handleIncludeAllUsers}
+                          className="px-2 py-0.5 text-[11px] font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-colors cursor-pointer flex items-center gap-1"
+                          title="Include all excluded users"
+                        >
+                          <UserPlus size={11} />
+                          <span>Include All ({stats.totalExcluded})</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1956,21 +2030,33 @@ export default function AdminDashboard() {
                         <span>Copy Email List</span>
                       </button>
 
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap justify-end">
                         <button
                           type="button"
                           onClick={() => setEmailComposerOpen(false)}
-                          className="flex-1 sm:flex-initial px-4 py-2 text-zinc-400 hover:text-white text-xs transition-colors cursor-pointer"
+                          className="px-3 py-2 text-zinc-400 hover:text-white text-xs transition-colors cursor-pointer"
                         >
                           Cancel
                         </button>
+
                         <button
                           type="button"
                           onClick={handleLaunchEmailClient}
-                          className="flex-1 sm:flex-initial px-5 py-2 bg-white hover:bg-zinc-200 text-black font-bold text-xs rounded-none transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.02]"
+                          className="px-3.5 py-2 bg-[#1b172a] hover:bg-purple-950/80 text-purple-200 border border-purple-500/40 font-semibold text-xs rounded-none transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Open default system mail client (Apple Mail, Thunderbird, Outlook)"
+                        >
+                          <Mail size={13} />
+                          <span>Default Mail App</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleLaunchGmailWeb}
+                          className="px-4 py-2 bg-white hover:bg-zinc-200 text-black font-bold text-xs rounded-none transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.02]"
+                          title="Open in Gmail Web in a new browser tab"
                         >
                           <Send size={13} />
-                          <span>Open in Email App</span>
+                          <span>Open in Gmail</span>
                         </button>
                       </div>
                     </div>
