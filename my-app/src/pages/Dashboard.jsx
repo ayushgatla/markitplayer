@@ -232,7 +232,10 @@ export default function Dashboard() {
       if (error) {
         console.error('Error fetching rooms:', error);
       } else {
-        setRooms(data || []);
+        const realRooms = (data || []).filter(
+          r => (!r.folder || !r.folder.startsWith('__system_')) && (!r.title || !r.title.startsWith('Profile:'))
+        );
+        setRooms(realRooms);
       }
     } catch (err) {
       console.error('Unexpected error fetching rooms:', err);
@@ -358,6 +361,8 @@ export default function Dashboard() {
   const filteredRooms = useMemo(() => {
     return rooms
       .filter(room => {
+        if (room.folder && room.folder.startsWith('__system_')) return false;
+        if (room.title && room.title.startsWith('Profile:')) return false;
         if (activeFolder !== 'All Rooms') {
           if (room.folder !== activeFolder) return false;
         }
@@ -775,16 +780,6 @@ export default function Dashboard() {
                 <span className="text-white font-semibold flex items-center gap-1 cursor-pointer">
                   {activeFolder} <ChevronDown className="w-3 h-3 text-zinc-400" />
                 </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div 
-                  onClick={() => setCurrentMode('profile_dashboard')}
-                  className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400 text-white flex items-center justify-center text-xs font-bold uppercase shadow-sm cursor-pointer"
-                  title="Profile & Stats Dashboard"
-                >
-                  {userName.substring(0, 2)}
-                </div>
               </div>
             </header>
 

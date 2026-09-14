@@ -233,7 +233,7 @@ export const SEED_SUPABASE_USERS = [
 ];
 
 /**
- * Get all cached user profiles.
+ * Get all cached user profiles (only real logged-in editors).
  */
 export const getCachedUserProfiles = () => {
   try {
@@ -242,14 +242,16 @@ export const getCachedUserProfiles = () => {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return mergeUserLists(SEED_SUPABASE_USERS, parsed);
+          // Filter out legacy mock seed users if any are lingering
+          const cleanProfiles = parsed.filter(u => u && u.id && !u.id.startsWith('seed-mock-'));
+          return cleanProfiles;
         }
       }
     }
   } catch (e) {
     console.warn('Error loading cached user profiles:', e);
   }
-  return SEED_SUPABASE_USERS;
+  return [];
 };
 
 /**
@@ -380,11 +382,11 @@ export const fetchAllRegisteredUsers = async () => {
         }
       });
 
-      const merged = mergeUserLists(SEED_SUPABASE_USERS, dbUsers);
+      const uniqueDbUsers = mergeUserLists([], dbUsers);
       if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(merged));
+        window.localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(uniqueDbUsers));
       }
-      return merged;
+      return uniqueDbUsers;
     }
   } catch (e) {
     console.warn('Could not fetch registered users from database:', e);

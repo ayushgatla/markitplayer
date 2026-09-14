@@ -34,8 +34,8 @@ export default function Room() {
         .eq('id', roomId)
         .single();
         
-      if (error) {
-        console.error('Error fetching room:', error);
+      if (error || (data?.folder && data.folder.startsWith('__system_')) || (data?.title && data.title.startsWith('Profile:'))) {
+        console.error('Error fetching room or system config room:', error);
         navigate('/dashboard');
       } else {
         setRoomData(data);

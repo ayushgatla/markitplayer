@@ -42,20 +42,24 @@ export default function Notifications() {
       // 1. Fetch user's rooms
       const { data: rooms, error: roomsError } = await supabase
         .from('rooms')
-        .select('id, title')
+        .select('id, title, folder')
         .eq('user_id', user.id);
 
       if (roomsError) throw roomsError;
 
-      if (!rooms || rooms.length === 0) {
+      const realRooms = (rooms || []).filter(
+        r => (!r.folder || !r.folder.startsWith('__system_')) && (!r.title || !r.title.startsWith('Profile:'))
+      );
+
+      if (realRooms.length === 0) {
         setNotifications([]);
         setLoading(false);
         return;
       }
 
-      const roomIds = rooms.map(r => r.id);
+      const roomIds = realRooms.map(r => r.id);
       const roomMap = {};
-      rooms.forEach(r => { roomMap[r.id] = r.title || 'Untitled Session'; });
+      realRooms.forEach(r => { roomMap[r.id] = r.title || 'Untitled Session'; });
 
       // 2. Fetch recent comments across those rooms
       const { data: comments, error: commentsError } = await supabase
@@ -233,7 +237,7 @@ export default function Notifications() {
                 {/* Left: Avatar + Content Details */}
                 <div className="flex items-start gap-3.5 flex-1 min-w-0">
                   {/* User Initials Avatar */}
-                  <div className="w-9 h-9 rounded-none bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400/40 flex items-center justify-center text-xs font-bold text-white shrink-0 uppercase shadow-md">
+                  <div className="w-9 h-9 rounded-full bg-[#1c182c] border border-purple-900/60 flex items-center justify-center text-xs font-bold text-purple-200 shrink-0 uppercase shadow-md">
                     {(notif.author_name || 'C').substring(0, 2)}
                   </div>
 
@@ -251,27 +255,27 @@ export default function Notifications() {
                       {/* Metadata Badges */}
                       <div className="flex items-center gap-1.5 ml-auto md:ml-2 flex-wrap">
                         {notif.version && (
-                          <span className="text-[9px] px-2 py-0.2 rounded-none bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono font-semibold">
+                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono font-semibold">
                             Version {notif.version}
                           </span>
                         )}
                         {notif.hasDrawing && (
-                          <span className="text-[9px] px-2 py-0.2 rounded-none bg-white/10 text-white border border-white/20 font-medium flex items-center gap-1">
+                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20 font-medium flex items-center gap-1">
                             <Pencil className="w-2.5 h-2.5 text-white" /> Drawing
                           </span>
                         )}
                         {notif.isRange && (
-                          <span className="text-[9px] px-2 py-0.2 rounded-none bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono font-medium flex items-center gap-1">
+                          <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono font-medium flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" /> {notif.formattedTime}
                           </span>
                         )}
                         {!notif.isRange && !notif.isChat && notif.timestamp >= 0 && (
-                          <span className="text-[9px] px-2 py-0.2 rounded-none bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono font-medium flex items-center gap-1">
+                          <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono font-medium flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" /> @ {notif.formattedTime}
                           </span>
                         )}
                         {notif.isChat && (
-                          <span className="text-[9px] px-2 py-0.2 rounded-none bg-pink-500/20 text-pink-300 border border-pink-500/30 font-medium flex items-center gap-1">
+                          <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30 font-medium flex items-center gap-1">
                             <MessageSquare className="w-2.5 h-2.5" /> Room Chat
                           </span>
                         )}

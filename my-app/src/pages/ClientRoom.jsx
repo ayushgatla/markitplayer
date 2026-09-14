@@ -29,8 +29,8 @@ export default function ClientRoom() {
         .eq('id', roomId)
         .single();
         
-      if (error) {
-        console.error('Error fetching room:', error);
+      if (error || (data?.folder && data.folder.startsWith('__system_')) || (data?.title && data.title.startsWith('Profile:'))) {
+        console.error('Error fetching room or system config row:', error);
         alert('Room not found or unavailable.');
         navigate('/');
       } else {

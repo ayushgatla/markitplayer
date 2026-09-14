@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, Globe, MoreHorizontal, CheckCircle, Search, Menu, ListFilter, Trash2, Image as ImageIcon, X, Loader2, Pencil, Clock, Plus, Minus, RotateCcw } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { supabase } from '../supabaseClient';
 import { extractDrawingFromText, injectDrawingIntoText, extractRangeFromText, injectRangeIntoText, formatRangeTime } from '../utils/drawingHelper';
 import { parseComment } from '../utils/commentHelper';
+import { getCachedUserProfiles } from '../utils/userRegistry';
 
 dayjs.extend(relativeTime);
 
@@ -85,6 +86,44 @@ export const CommentSidebar = ({
 
   const mainFileInputRef = useRef(null);
   const inlineFileInputRef = useRef(null);
+
+  // Cached user profiles lookup map for avatar resolution
+  const userProfilesMap = useMemo(() => {
+    try {
+      const list = getCachedUserProfiles();
+      const map = new Map();
+      (list || []).forEach(p => {
+        if (p?.id) map.set(p.id, p);
+        if (p?.name) map.set(p.name.toLowerCase(), p);
+      });
+      return map;
+    } catch {
+      return new Map();
+    }
+  }, []);
+
+  const getCommentAvatar = (c) => {
+    if (!c) return null;
+    if (c.avatar_url) return c.avatar_url;
+    if (c.author_avatar) return c.author_avatar;
+    if (c.user_avatar) return c.user_avatar;
+    if (c.user_id) {
+      if (currentUserIdentity?.id === c.user_id && currentUserIdentity?.avatar_url) {
+        return currentUserIdentity.avatar_url;
+      }
+      const profile = userProfilesMap.get(c.user_id);
+      if (profile?.avatar_url) return profile.avatar_url;
+    }
+    const name = c.author_name || c.author;
+    if (name) {
+      if (currentUserIdentity?.name === name && currentUserIdentity?.avatar_url) {
+        return currentUserIdentity.avatar_url;
+      }
+      const profile = userProfilesMap.get(name.toLowerCase());
+      if (profile?.avatar_url) return profile.avatar_url;
+    }
+    return null;
+  };
 
   // Sync range preview to parent
   useEffect(() => {
@@ -329,6 +368,7 @@ export const CommentSidebar = ({
               : (comment.user_id ? comment.user_id === currentUserIdentity?.id : comment.author_name === currentUserIdentity?.name);
             
             const avatarInitials = (comment.author_name || comment.author || 'U').substring(0, 2).toUpperCase();
+            const avatarImg = getCommentAvatar(comment);
             const replies = getReplies(comment.id);
             const isSelected = activeCommentId === comment.id;
             const hasDrawing = comment.drawingData?.strokes?.length > 0;
@@ -336,12 +376,20 @@ export const CommentSidebar = ({
             return (
               <div key={comment.id} className="flex flex-col mb-4">
                 <div className="flex gap-3 group relative">
-                  {/* Unread dot + Avatar */}
-                  <div className="flex flex-col items-center mt-1 relative pl-2">
-                    <div className="w-1.5 h-1.5 rounded-none bg-purple-500 absolute left-0 top-3"></div>
-                    <div className="w-8 h-8 rounded-none bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400/40 text-white flex items-center justify-center text-[10px] font-bold tracking-wider uppercase shadow-md">
-                      {avatarInitials}
-                    </div>
+                  {/* Unread dot + Circular Flat Avatar */}
+                  <div className="flex flex-col items-center mt-1 relative pl-2 shrink-0">
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500 absolute left-0 top-3"></div>
+                    {avatarImg ? (
+                      <img 
+                        src={avatarImg} 
+                        alt={comment.author_name || comment.author || 'User'} 
+                        className="w-8 h-8 rounded-full object-cover border border-purple-500/30 shadow-sm shrink-0" 
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-[#1c182c] border border-purple-900/60 text-purple-200 flex items-center justify-center text-[10px] font-bold tracking-wider uppercase shadow-sm shrink-0">
+                        {avatarInitials}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Content Box */}
@@ -387,12 +435,12 @@ export const CommentSidebar = ({
                     <div className="flex items-start gap-2.5 mb-3">
                       {activeTab === 'comments' && (
                         comment.isRange ? (
-                          <span className="text-[10.5px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded-none font-semibold tracking-tight mt-0.5 whitespace-nowrap flex items-center gap-1">
+                          <span className="text-[10.5px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2.5 py-0.5 rounded-full font-semibold tracking-tight mt-0.5 whitespace-nowrap flex items-center gap-1 shadow-sm">
                             <span>↔</span>
                             <span>{formatTime(comment.timestamp)} - {formatTime(comment.endTime)}</span>
                           </span>
                         ) : (
-                          <span className="text-[11px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded-none font-semibold tracking-tight mt-0.5 whitespace-nowrap">
+                          <span className="text-[11px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2.5 py-0.5 rounded-full font-semibold tracking-tight mt-0.5 whitespace-nowrap shadow-sm">
                             {formatTime(comment.timestamp)}
                           </span>
                         )
@@ -448,12 +496,21 @@ export const CommentSidebar = ({
                         ? reply.author_name === currentUserIdentity.name 
                         : (reply.user_id ? reply.user_id === currentUserIdentity?.id : reply.author_name === currentUserIdentity?.name);
                       const avatarInitialsReply = (reply.author_name || reply.author || 'U').substring(0, 2).toUpperCase();
+                      const replyAvatarImg = getCommentAvatar(reply);
                       
                       return (
                         <div key={reply.id} className="flex gap-3 group relative bg-[#07050e] p-2.5 border border-purple-950/40 rounded-none shadow-sm">
-                          <div className="w-6 h-6 rounded-none bg-purple-950/50 border border-purple-500/40 text-purple-300 flex items-center justify-center text-[9px] font-bold tracking-wider shrink-0 mt-0.5 uppercase">
-                            {avatarInitialsReply}
-                          </div>
+                          {replyAvatarImg ? (
+                            <img 
+                              src={replyAvatarImg} 
+                              alt={reply.author_name || reply.author || 'User'} 
+                              className="w-6 h-6 rounded-full object-cover border border-purple-500/30 shadow-sm shrink-0 mt-0.5" 
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-[#1c182c] border border-purple-900/60 text-purple-200 flex items-center justify-center text-[9px] font-bold tracking-wider shrink-0 mt-0.5 uppercase">
+                              {avatarInitialsReply}
+                            </div>
+                          )}
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-semibold text-[12px] text-zinc-100">{reply.author_name || reply.author}</span>
@@ -493,9 +550,17 @@ export const CommentSidebar = ({
                 {/* Inline Reply Input */}
                 {inlineReplyingTo === comment.id && (
                   <div className="ml-11 mt-3 flex gap-2 items-start">
-                    <div className="w-6 h-6 rounded-none bg-purple-600 text-white flex items-center justify-center text-[9px] font-bold tracking-wider shrink-0 mt-1 uppercase">
+                    {currentUserIdentity?.avatar_url ? (
+                      <img 
+                        src={currentUserIdentity.avatar_url} 
+                        alt={currentUserIdentity?.name || 'User'} 
+                        className="w-6 h-6 rounded-full object-cover border border-purple-500/40 shadow-sm shrink-0 mt-1" 
+                      />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-[#1c182c] border border-purple-900/60 text-purple-200 flex items-center justify-center text-[9px] font-bold tracking-wider shrink-0 mt-1 uppercase">
                         {(currentUserIdentity?.name || 'U').substring(0, 2).toUpperCase()}
-                    </div>
+                      </div>
+                    )}
                     <form onSubmit={(e) => handleInlineReplySubmit(e, comment.id)} className="flex-1 relative">
                       <input 
                         type="file" 

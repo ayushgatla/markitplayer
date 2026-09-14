@@ -434,7 +434,7 @@ export default function Landing() {
             <a href="#" className="text-zinc-400 hover:text-white transition-colors">Products</a>
             <a href="#" className="text-zinc-400 hover:text-white transition-colors">Pricing</a>
             <a href="#" className="text-zinc-400 hover:text-white transition-colors">Our Work</a>
-            <a href="#" className="text-zinc-400 hover:text-white transition-colors">Contact Us</a>
+            <a href="mailto:support@blasync.in" className="text-zinc-400 hover:text-white transition-colors">Contact Us</a>
           </div>
 
           {/* Others Column */}
@@ -451,8 +451,8 @@ export default function Landing() {
             <div>
               <h3 className="text-zinc-100 font-semibold mb-1">Contact</h3>
               <p className="text-zinc-400 mb-1">Email:</p>
-              <a href="mailto:blasync93@gmail.com" className="text-white hover:text-zinc-300 transition-colors">
-                blasync93@gmail.com
+              <a href="mailto:support@blasync.in" className="text-white hover:text-zinc-300 transition-colors">
+                support@blasync.in
               </a>
             </div>
 

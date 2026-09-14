@@ -221,80 +221,67 @@ export default function AdminDashboard() {
   const stats = useMemo(() => {
     const userMap = new Map();
 
-    // 1. Seed with registered accounts
-    registeredUsers.forEach(u => {
+    // 1. Seed with registered / logged-in editors only
+    (registeredUsers || []).forEach(u => {
+      if (!u || !u.id) return;
       const isExcluded = excludedUserIds.has(u.id) || (u.email && excludedUserIds.has(normalizeEmail(u.email)));
       userMap.set(u.id, {
         id: u.id,
-        name: u.name || (u.email ? u.email.split('@')[0] : `User_${u.id.slice(0, 6)}`),
+        name: u.name || (u.email ? u.email.split('@')[0] : `Editor_${u.id.slice(0, 6)}`),
         email: u.email || null,
+        avatar_url: u.avatar_url || '',
         provider: u.provider || 'Google',
         roomsCount: 0,
         commentsCount: 0,
-        firstSeen: u.created_at || '2026-06-01T00:00:00.000Z',
-        lastActive: u.last_sign_in_at || u.created_at || '2026-06-01T00:00:00.000Z',
+        firstSeen: u.created_at || new Date().toISOString(),
+        lastActive: u.last_sign_in_at || u.created_at || new Date().toISOString(),
         rooms: [],
         isExcluded
       });
     });
 
-    // 2. Discover active creators in rooms
+    // 2. Include current admin user if authenticated and not yet in map
+    if (user && user.id && !userMap.has(user.id)) {
+      const email = user.email || user.user_metadata?.email || '';
+      const name = user.user_metadata?.full_name || user.user_metadata?.name || (email ? email.split('@')[0] : 'Admin');
+      const isExcluded = excludedUserIds.has(user.id) || (email && excludedUserIds.has(normalizeEmail(email)));
+      userMap.set(user.id, {
+        id: user.id,
+        name,
+        email: email || null,
+        avatar_url: user.user_metadata?.avatar_url || '',
+        provider: user.app_metadata?.provider || 'Google',
+        roomsCount: 0,
+        commentsCount: 0,
+        firstSeen: user.created_at || new Date().toISOString(),
+        lastActive: new Date().toISOString(),
+        rooms: [],
+        isExcluded
+      });
+    }
+
+    // 3. Attach rooms to their respective editor creator
     rooms.forEach(room => {
       const uId = room.user_id;
       if (!uId) return;
 
-      if (!userMap.has(uId)) {
-        userMap.set(uId, {
-          id: uId,
-          name: `User_${uId.slice(0, 6)}`,
-          email: null,
-          provider: 'Registered',
-          roomsCount: 0,
-          commentsCount: 0,
-          firstSeen: room.created_at || new Date().toISOString(),
-          lastActive: room.created_at || new Date().toISOString(),
-          rooms: [],
-          isExcluded: excludedUserIds.has(uId)
-        });
+      if (userMap.has(uId)) {
+        const u = userMap.get(uId);
+        u.roomsCount += 1;
+        u.rooms.push(room);
+        if (room.created_at && new Date(room.created_at) < new Date(u.firstSeen)) u.firstSeen = room.created_at;
+        if (room.created_at && new Date(room.created_at) > new Date(u.lastActive)) u.lastActive = room.created_at;
       }
-
-      const u = userMap.get(uId);
-      u.roomsCount += 1;
-      u.rooms.push(room);
-      if (new Date(room.created_at) < new Date(u.firstSeen)) u.firstSeen = room.created_at;
-      if (new Date(room.created_at) > new Date(u.lastActive)) u.lastActive = room.created_at;
     });
 
-    // 3. Attach comments count
+    // 4. Attach comments count only for logged-in editors (do not create user entries for clients or reviewers)
     comments.forEach(comment => {
       const uId = comment.user_id;
-      if (uId) {
-        if (!userMap.has(uId)) {
-          userMap.set(uId, {
-            id: uId,
-            name: comment.author_name || (comment.author || `User_${uId.slice(0, 6)}`),
-            email: null,
-            provider: 'Registered',
-            roomsCount: 0,
-            commentsCount: 0,
-            firstSeen: comment.created_at || new Date().toISOString(),
-            lastActive: comment.created_at || new Date().toISOString(),
-            rooms: [],
-            isExcluded: excludedUserIds.has(uId)
-          });
-        }
+      if (uId && userMap.has(uId)) {
         const u = userMap.get(uId);
         u.commentsCount += 1;
-        if (new Date(comment.created_at) > new Date(u.lastActive)) u.lastActive = comment.created_at;
-      } else if (comment.author_name) {
-        const existingByName = Array.from(userMap.values()).find(
-          u => u.name && u.name.toLowerCase() === comment.author_name.toLowerCase()
-        );
-        if (existingByName) {
-          existingByName.commentsCount += 1;
-          if (new Date(comment.created_at) > new Date(existingByName.lastActive)) {
-            existingByName.lastActive = comment.created_at;
-          }
+        if (comment.created_at && new Date(comment.created_at) > new Date(u.lastActive)) {
+          u.lastActive = comment.created_at;
         }
       }
     });
@@ -605,7 +592,7 @@ export default function AdminDashboard() {
               >
                 <div className="flex items-center gap-3">
                   <Users size={15} className={activeTab === 'users' ? 'text-purple-400' : 'text-zinc-500'} />
-                  <span>Users Directory</span>
+                  <span>Editors Directory</span>
                 </div>
                 <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-none font-mono">
                   {stats.totalUsers}
@@ -667,9 +654,17 @@ export default function AdminDashboard() {
         {/* User Card at bottom */}
         <div className="p-4 border-t border-purple-950/40 bg-[#07050e] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-none bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400/40 text-white flex items-center justify-center font-bold text-xs shrink-0">
-              {(userEmail || 'A').slice(0, 2).toUpperCase()}
-            </div>
+            {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
+              <img
+                src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture}
+                alt={userEmail}
+                className="w-8 h-8 rounded-full object-cover border border-purple-500/40 shadow-sm shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[#1c182c] border border-purple-900/60 text-purple-200 flex items-center justify-center font-bold text-xs shrink-0">
+                {(userEmail || 'A').slice(0, 2).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold text-white truncate">{userEmail}</div>
               <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
@@ -746,9 +741,17 @@ export default function AdminDashboard() {
             </button>
 
             {/* User Avatar Badge */}
-            <div className="w-8 h-8 rounded-none bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400/40 text-white flex items-center justify-center font-bold text-xs shadow-md shrink-0">
-              {(userEmail || 'A').slice(0, 1).toUpperCase()}
-            </div>
+            {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
+              <img
+                src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture}
+                alt={userEmail}
+                className="w-8 h-8 rounded-full object-cover border border-purple-500/40 shadow-md shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[#1c182c] border border-purple-900/60 text-purple-200 flex items-center justify-center font-bold text-xs shadow-md shrink-0">
+                {(userEmail || 'A').slice(0, 1).toUpperCase()}
+              </div>
+            )}
           </div>
         </header>
 
@@ -830,10 +833,10 @@ export default function AdminDashboard() {
 
                 {/* Right Top KPI Cards (5 cols) */}
                 <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                  {/* Total Clients / Users */}
+                  {/* Total Registered Editors */}
                   <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-5 shadow-xl flex flex-col justify-between">
                     <div>
-                      <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Total Clients</div>
+                      <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Total Editors</div>
                       <div className="text-2xl md:text-3xl font-black text-white">{stats.totalUsers}</div>
                       <div className="text-[11px] text-emerald-400 flex items-center gap-1 font-semibold mt-1">
                         <TrendingUp size={12} />
@@ -1253,7 +1256,7 @@ export default function AdminDashboard() {
                           : 'text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
-                      All Accounts ({stats.totalRegistered})
+                      All Editors ({stats.totalRegistered})
                     </button>
                     <button
                       onClick={() => setUserFilterTab('active')}
@@ -1278,7 +1281,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="text-xs text-zinc-400 font-mono">
-                    Showing {filteredUsers.length} of {stats.totalRegistered} accounts
+                    Showing {filteredUsers.length} of {stats.totalRegistered} editors
                   </div>
                 </div>
 
@@ -1287,7 +1290,7 @@ export default function AdminDashboard() {
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                     <input
                       type="text"
-                      placeholder="Search accounts by name, email or ID..."
+                      placeholder="Search editors by name, email or ID..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full bg-[#07050e] border border-purple-950/60 rounded-none pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
@@ -1317,7 +1320,7 @@ export default function AdminDashboard() {
                   <table className="w-full text-left text-xs min-w-[720px]">
                     <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
                       <tr>
-                        <th className="px-4 py-3">Account & User</th>
+                        <th className="px-4 py-3">Editor & Account</th>
                         <th className="px-4 py-3">Provider</th>
                         <th className="px-4 py-3">Joined Date</th>
                         <th className="px-4 py-3">Sessions</th>
@@ -1331,7 +1334,7 @@ export default function AdminDashboard() {
                       {filteredUsers.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
-                            No registered users match the current filter.
+                            No registered editors match the current filter.
                           </td>
                         </tr>
                       ) : (
@@ -1349,13 +1352,21 @@ export default function AdminDashboard() {
                             >
                               <td className="px-4 py-3.5">
                                 <div className="flex items-center gap-2.5">
-                                  <div className={`w-8 h-8 rounded-none flex items-center justify-center font-bold text-xs shrink-0 border ${
-                                    u.isExcluded
-                                      ? 'bg-zinc-800 text-zinc-500 border-zinc-700'
-                                      : 'bg-gradient-to-tr from-purple-700 to-indigo-600 text-white border-purple-400/40'
-                                  }`}>
-                                    {(u.name || u.email || 'U').slice(0, 2).toUpperCase()}
-                                  </div>
+                                  {u.avatar_url && !u.isExcluded ? (
+                                    <img
+                                      src={u.avatar_url}
+                                      alt={u.name}
+                                      className="w-8 h-8 rounded-full object-cover border border-purple-500/40 shadow-sm shrink-0"
+                                    />
+                                  ) : (
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border ${
+                                      u.isExcluded
+                                        ? 'bg-zinc-800 text-zinc-500 border-zinc-700'
+                                        : 'bg-[#1c182c] border-purple-900/60 text-purple-200'
+                                    }`}>
+                                      {(u.name || u.email || 'U').slice(0, 2).toUpperCase()}
+                                    </div>
+                                  )}
                                   <div className="min-w-0">
                                     <div className="font-semibold flex items-center gap-1.5 truncate">
                                       <span className={u.isExcluded ? 'text-zinc-400 line-through' : 'text-zinc-100'}>
