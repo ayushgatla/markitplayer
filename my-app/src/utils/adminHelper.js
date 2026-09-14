@@ -6,13 +6,6 @@ import { supabase } from '../supabaseClient.js';
 
 export const PRIMARY_ADMIN_EMAIL = 'ayushgatla@gmail.com';
 
-export const INITIAL_ADMIN_EMAILS = [
-  'ayushgatla@gmail.com',
-  'harshitkhare607@gmail.com',
-  'bajikeisuke8117@gmail.com',
-  'bajikeisuke8117@gamil.com'
-];
-
 const STORAGE_KEY = 'markit_admin_emails';
 const CONFIG_FOLDER = '__system_admin_config__';
 
@@ -30,7 +23,8 @@ export const normalizeEmail = (email) => {
 };
 
 /**
- * Get all current administrator emails (syncs local storage + defaults).
+ * Get all current administrator emails from local cache.
+ * Always guarantees PRIMARY_ADMIN_EMAIL is present.
  * @returns {string[]}
  */
 export const getAdminEmails = () => {
@@ -38,21 +32,26 @@ export const getAdminEmails = () => {
     let customAdmins = [];
     if (typeof window !== 'undefined' && window.localStorage) {
       const stored = window.localStorage.getItem(STORAGE_KEY);
-      customAdmins = stored ? JSON.parse(stored) : [];
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          customAdmins = parsed.map(normalizeEmail);
+        }
+      }
     }
     const all = [
-      ...INITIAL_ADMIN_EMAILS,
-      ...(Array.isArray(customAdmins) ? customAdmins : []).map(normalizeEmail)
+      normalizeEmail(PRIMARY_ADMIN_EMAIL),
+      ...customAdmins
     ];
     return Array.from(new Set(all.map(normalizeEmail).filter(Boolean)));
   } catch (e) {
     console.warn('Error reading admin emails:', e);
-    return INITIAL_ADMIN_EMAILS.map(normalizeEmail);
+    return [normalizeEmail(PRIMARY_ADMIN_EMAIL)];
   }
 };
 
 /**
- * Fetch and sync admin emails from Supabase so all devices and admins share the exact same admin list.
+ * Fetch and sync admin emails from Supabase so all devices and sessions share the exact dynamic admin list.
  * @returns {Promise<string[]>}
  */
 export const syncAdminEmailsWithDatabase = async () => {
@@ -78,7 +77,7 @@ export const syncAdminEmailsWithDatabase = async () => {
       });
 
       const merged = Array.from(new Set([
-        ...INITIAL_ADMIN_EMAILS.map(normalizeEmail),
+        normalizeEmail(PRIMARY_ADMIN_EMAIL),
         ...extractedAdmins
       ].filter(Boolean)));
 

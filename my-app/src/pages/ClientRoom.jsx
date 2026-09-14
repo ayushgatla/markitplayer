@@ -110,6 +110,7 @@ export default function ClientRoom() {
       <main className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
         {activeVideoUrl ? (
           <ReviewPlayer
+            key={`${roomId}_v${currentVersion}_${activeVideoUrl}`}
             videoUrl={activeVideoUrl}
             rawVideoUrl={roomData?.video_url}
             roomId={roomId}

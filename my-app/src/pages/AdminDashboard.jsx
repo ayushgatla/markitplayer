@@ -37,7 +37,13 @@ import {
   Sparkles,
   ArrowUpRight,
   TrendingDown,
-  ChevronDown
+  ChevronDown,
+  Mail,
+  Send,
+  Copy,
+  Inbox,
+  AtSign,
+  CheckCheck
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -65,10 +71,33 @@ import {
 
 dayjs.extend(relativeTime);
 
+export const EMAIL_TEMPLATES = {
+  update: {
+    name: 'Product Update & Features',
+    subject: '[Blasync] Major Update: Video Version Switching & Performance Upgrades',
+    body: `Hi {{name}},\n\nWe've released important new features on Blasync to speed up your video revision workflow:\n\n• Multi-Version Video Management: Add V1, V2, and new video versions right inside your project without creating separate links.\n• Instant Streaming: High-speed video playback and timeline markers.\n• Client Review Mode: Gather frame-accurate notes, drawings, and approvals seamlessly.\n\nLog in and try out the new tools on your dashboard:\nhttps://blasync.in/dashboard\n\nIf you have any questions or feedback, just reply to this email!\n\nBest regards,\nAyush & the Blasync Team`
+  },
+  feedback: {
+    name: 'Feedback & Feature Request',
+    subject: '[Blasync] How has your video review experience been?',
+    body: `Hi {{name}},\n\nWe're building Blasync specifically with video editors, and your feedback is essential to making it the best collaboration platform.\n\nWe'd love to know:\n1. What has been your favorite part of using Blasync so far?\n2. What feature, shortcut, or integration would save you the most time?\n\nSimply reply directly to this email with your thoughts — we read and respond to every note!\n\nBest regards,\nAyush from Blasync`
+  },
+  welcome: {
+    name: 'Welcome to Blasync Beta',
+    subject: 'Welcome to Blasync: The Modern Video Collaboration Tool',
+    body: `Hi {{name}},\n\nWelcome to Blasync! You're all set to share your video edits with clients, collect timeline notes, and streamline client approvals.\n\nGet started in 30 seconds:\n1. Go to https://blasync.in/dashboard\n2. Create a session and paste a Google Drive or YouTube link\n3. Share the client review link to start getting frame-accurate comments!\n\nIf you need any support, reach out to us at support@blasync.in.\n\nBest regards,\nThe Blasync Team`
+  },
+  custom: {
+    name: 'Custom Email',
+    subject: '[Blasync] Important Notice for Video Editors',
+    body: `Hi {{name}},\n\n\n\nBest regards,\nThe Blasync Team`
+  }
+};
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'projects' | 'users' | 'admins' | 'analytics'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'projects' | 'users' | 'emails' | 'admins' | 'analytics'
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [rooms, setRooms] = useState([]);
@@ -85,6 +114,18 @@ export default function AdminDashboard() {
   const [userSortBy, setUserSortBy] = useState('joined-desc');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [chartPeriod, setChartPeriod] = useState('monthly'); // 'all' | 'monthly' | 'weekly' | 'today'
+
+  // Email Broadcast State
+  const [selectedEmailUserIds, setSelectedEmailUserIds] = useState(() => new Set());
+  const [emailFilter, setEmailFilter] = useState('all'); // 'all' | 'active' | 'google' | 'email'
+  const [emailComposerOpen, setEmailComposerOpen] = useState(false);
+  const [composerMode, setComposerMode] = useState('all'); // 'all' | 'selected' | 'single'
+  const [singleTargetUser, setSingleTargetUser] = useState(null);
+  const [emailSubject, setEmailSubject] = useState(EMAIL_TEMPLATES.update.subject);
+  const [emailBody, setEmailBody] = useState(EMAIL_TEMPLATES.update.body);
+  const [emailTemplateKey, setEmailTemplateKey] = useState('update');
+  const [emailCopiedFeedback, setEmailCopiedFeedback] = useState(null);
+  const [singleCopiedEmail, setSingleCopiedEmail] = useState(null);
 
   const userEmail = user?.email || user?.user_metadata?.email || user?.raw_user_meta_data?.email || '';
 
@@ -159,17 +200,23 @@ export default function AdminDashboard() {
     return () => { isMounted = false; };
   }, [user, userEmail]);
 
-  // Real-time synchronization for Admin Console
+  // Real-time synchronization for Admin Console & Privilege Revocation
   useEffect(() => {
-    if (!userIsAdmin) return;
-
     const channel = supabase
       .channel('admin-dashboard-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
-        fetchData();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, async (payload) => {
+        if (payload?.new?.folder === '__system_admin_config__' || payload?.old?.folder === '__system_admin_config__') {
+          const synced = await syncAdminEmailsWithDatabase();
+          if (synced) setAdminList(synced);
+        }
+        if (userIsAdmin) {
+          fetchData();
+        }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => {
-        fetchData();
+        if (userIsAdmin) {
+          fetchData();
+        }
       })
       .subscribe();
 
@@ -412,6 +459,103 @@ export default function AdminDashboard() {
     });
   }, [stats.users, searchQuery, userSortBy, userFilterTab]);
 
+  // Filtered users for Email Broadcast tab
+  const usersWithEmail = useMemo(() => {
+    return stats.users.filter(u => u.email && u.email.trim() && u.email.includes('@'));
+  }, [stats.users]);
+
+  const filteredEmailUsers = useMemo(() => {
+    return usersWithEmail.filter(u => {
+      if (emailFilter === 'active' && u.isExcluded) return false;
+      if (emailFilter === 'google' && !u.provider?.toLowerCase().includes('google')) return false;
+      if (emailFilter === 'email' && !u.provider?.toLowerCase().includes('email')) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = u.name?.toLowerCase().includes(q);
+        const matchEmail = u.email?.toLowerCase().includes(q);
+        return matchName || matchEmail;
+      }
+      return true;
+    });
+  }, [usersWithEmail, emailFilter, searchQuery]);
+
+  const handleToggleSelectAllEmails = () => {
+    if (selectedEmailUserIds.size === filteredEmailUsers.length) {
+      setSelectedEmailUserIds(new Set());
+    } else {
+      setSelectedEmailUserIds(new Set(filteredEmailUsers.map(u => u.id)));
+    }
+  };
+
+  const handleToggleUserEmail = (userId) => {
+    setSelectedEmailUserIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const handleCopyEmails = (emailsList, label = 'emails') => {
+    if (!emailsList || emailsList.length === 0) return;
+    const text = emailsList.join(', ');
+    navigator.clipboard.writeText(text).then(() => {
+      setEmailCopiedFeedback(`Copied ${emailsList.length} ${label} to clipboard!`);
+      setTimeout(() => setEmailCopiedFeedback(null), 3000);
+    });
+  };
+
+  const handleCopySingleEmail = (email, userId) => {
+    navigator.clipboard.writeText(email).then(() => {
+      setSingleCopiedEmail(userId);
+      setTimeout(() => setSingleCopiedEmail(null), 2000);
+    });
+  };
+
+  const handleOpenComposer = (mode = 'all', targetUser = null) => {
+    setComposerMode(mode);
+    setSingleTargetUser(targetUser);
+    const tmpl = EMAIL_TEMPLATES[emailTemplateKey] || EMAIL_TEMPLATES.update;
+    let nameVal = targetUser ? (targetUser.name || 'there') : 'there';
+    setEmailSubject(tmpl.subject);
+    setEmailBody(tmpl.body.replace(/\{\{name\}\}/g, nameVal));
+    setEmailComposerOpen(true);
+  };
+
+  const handleTemplateChange = (key) => {
+    setEmailTemplateKey(key);
+    const tmpl = EMAIL_TEMPLATES[key] || EMAIL_TEMPLATES.custom;
+    let nameVal = singleTargetUser ? (singleTargetUser.name || 'there') : 'there';
+    setEmailSubject(tmpl.subject);
+    setEmailBody(tmpl.body.replace(/\{\{name\}\}/g, nameVal));
+  };
+
+  const handleLaunchEmailClient = () => {
+    let recipients = [];
+    if (composerMode === 'single' && singleTargetUser?.email) {
+      recipients = [singleTargetUser.email];
+      const mailtoUrl = `mailto:${singleTargetUser.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+      window.location.href = mailtoUrl;
+      return;
+    }
+
+    if (composerMode === 'selected') {
+      recipients = filteredEmailUsers.filter(u => selectedEmailUserIds.has(u.id)).map(u => u.email).filter(Boolean);
+    } else {
+      recipients = filteredEmailUsers.map(u => u.email).filter(Boolean);
+    }
+
+    if (recipients.length === 0) {
+      alert('No recipients selected to email.');
+      return;
+    }
+
+    // Best practice for bulk email: BCC recipients, TO support@blasync.in
+    const bccString = recipients.join(',');
+    const mailtoUrl = `mailto:support@blasync.in?bcc=${encodeURIComponent(bccString)}&subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    window.location.href = mailtoUrl;
+  };
+
   // Multi-period Chart Bar Data Generator for Project Statistics
   const projectChartData = useMemo(() => {
     const slots = chartPeriod === 'today' ? 6 : chartPeriod === 'weekly' ? 7 : chartPeriod === 'monthly' ? 12 : 8;
@@ -600,6 +744,23 @@ export default function AdminDashboard() {
               </button>
 
               <button
+                onClick={() => { setActiveTab('emails'); setIsSidebarOpen(false); }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                  activeTab === 'emails'
+                    ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Mail size={15} className={activeTab === 'emails' ? 'text-purple-400' : 'text-zinc-500'} />
+                  <span>Mail Users</span>
+                </div>
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-none font-mono">
+                  {usersWithEmail.length}
+                </span>
+              </button>
+
+              <button
                 onClick={() => { setActiveTab('admins'); setIsSidebarOpen(false); }}
                 className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
                   activeTab === 'admins'
@@ -690,7 +851,7 @@ export default function AdminDashboard() {
             </button>
             <div className="flex items-center gap-2 truncate">
               <h1 className="text-sm md:text-base font-bold text-white tracking-tight capitalize truncate">
-                {activeTab === 'overview' ? 'Dashboard' : activeTab === 'projects' ? 'Projects' : activeTab === 'users' ? 'Users' : activeTab === 'admins' ? 'Admins' : 'Analytics'}
+                {activeTab === 'overview' ? 'Dashboard' : activeTab === 'projects' ? 'Projects' : activeTab === 'users' ? 'Users' : activeTab === 'emails' ? 'Mail Users' : activeTab === 'admins' ? 'Admins' : 'Analytics'}
               </h1>
               <span className="hidden sm:inline text-xs text-zinc-600">/</span>
               <span className="hidden sm:inline text-xs text-zinc-400 font-mono">Live Supabase Sync</span>
@@ -1436,6 +1597,386 @@ export default function AdminDashboard() {
                   </table>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB: EMAIL BROADCAST & MAIL USERS */}
+          {activeTab === 'emails' && (
+            <div className="space-y-6">
+              {/* Feedback toast notification */}
+              {emailCopiedFeedback && (
+                <div className="p-3 bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center justify-between animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-emerald-400" />
+                    <span>{emailCopiedFeedback}</span>
+                  </div>
+                  <button onClick={() => setEmailCopiedFeedback(null)} className="text-emerald-400 hover:text-white">✕</button>
+                </div>
+              )}
+
+              {/* Top Action Bar & Stat Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-[#0c0a14] border border-purple-950/50 p-4 flex items-center justify-between shadow-xl">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Reachable User Emails</div>
+                    <div className="text-xl font-bold text-white mt-1 font-mono">{usersWithEmail.length}</div>
+                    <div className="text-[10px] text-purple-400 mt-0.5">Synced from Supabase Auth</div>
+                  </div>
+                  <div className="w-10 h-10 rounded-none bg-purple-950/40 border border-purple-500/30 text-purple-300 flex items-center justify-center">
+                    <Mail size={18} />
+                  </div>
+                </div>
+
+                <div className="bg-[#0c0a14] border border-purple-950/50 p-4 flex items-center justify-between shadow-xl">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Selected Recipients</div>
+                    <div className="text-xl font-bold text-white mt-1 font-mono">
+                      {selectedEmailUserIds.size > 0 ? selectedEmailUserIds.size : 'All (' + filteredEmailUsers.length + ')'}
+                    </div>
+                    <div className="text-[10px] text-zinc-400 mt-0.5">
+                      {selectedEmailUserIds.size > 0 ? 'Custom batch selection' : 'Targeting all displayed users'}
+                    </div>
+                  </div>
+                  <div className="w-10 h-10 rounded-none bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 flex items-center justify-center">
+                    <Users size={18} />
+                  </div>
+                </div>
+
+                <div className="bg-[#0c0a14] border border-purple-950/50 p-4 flex flex-col justify-between shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Quick Actions</div>
+                    <span className="text-[10px] text-emerald-400 font-mono">Instant BCC Ready</span>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => handleOpenComposer('all')}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all shadow-sm cursor-pointer"
+                      title="Mail all users at once via BCC"
+                    >
+                      <Send size={12} />
+                      <span>Mail All</span>
+                    </button>
+                    <button
+                      onClick={() => handleCopyEmails(filteredEmailUsers.map(u => u.email), 'user emails')}
+                      className="px-3 py-1.5 bg-[#07050e] hover:bg-white/10 text-zinc-300 hover:text-white border border-purple-950/60 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                      title="Copy all emails to clipboard"
+                    >
+                      <Copy size={12} />
+                      <span>Copy All</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table Container */}
+              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none shadow-xl overflow-hidden">
+                {/* Header Filter / Search Bar */}
+                <div className="p-4 border-b border-purple-950/40 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#07050e]">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
+                      <Mail size={14} className="text-purple-400" />
+                      <span>Email Directory</span>
+                      <span className="text-zinc-500 font-normal">({filteredEmailUsers.length})</span>
+                    </span>
+
+                    {/* Filter Chips */}
+                    <div className="flex items-center gap-1 ml-0 sm:ml-2">
+                      {['all', 'active', 'google', 'email'].map((tabKey) => (
+                        <button
+                          key={tabKey}
+                          onClick={() => setEmailFilter(tabKey)}
+                          className={`px-2 py-0.5 text-[11px] font-semibold border transition-all cursor-pointer capitalize ${
+                            emailFilter === tabKey
+                              ? 'bg-purple-950/60 text-purple-200 border-purple-500/50'
+                              : 'bg-black/40 text-zinc-400 border-purple-950/40 hover:text-zinc-200'
+                          }`}
+                        >
+                          {tabKey}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    {selectedEmailUserIds.size > 0 && (
+                      <button
+                        onClick={() => handleOpenComposer('selected')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        <Send size={12} />
+                        <span>Mail Selected ({selectedEmailUserIds.size})</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleOpenComposer('all')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      <Send size={12} />
+                      <span>Mail All Users ({filteredEmailUsers.length})</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-zinc-300">
+                    <thead className="bg-[#090712] border-b border-purple-950/40 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+                      <tr>
+                        <th className="px-4 py-3 w-10">
+                          <input
+                            type="checkbox"
+                            checked={filteredEmailUsers.length > 0 && selectedEmailUserIds.size === filteredEmailUsers.length}
+                            onChange={handleToggleSelectAllEmails}
+                            className="rounded-none accent-purple-500 cursor-pointer"
+                            title="Select / Deselect all"
+                          />
+                        </th>
+                        <th className="px-4 py-3">User</th>
+                        <th className="px-4 py-3">Email Address</th>
+                        <th className="px-4 py-3">Auth Method</th>
+                        <th className="px-4 py-3">Registered</th>
+                        <th className="px-4 py-3">Activity</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-purple-950/20">
+                      {filteredEmailUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="px-4 py-12 text-center text-zinc-500">
+                            No user emails found matching criteria.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredEmailUsers.map((u) => {
+                          const isSelected = selectedEmailUserIds.has(u.id);
+                          const isCopied = singleCopiedEmail === u.id;
+
+                          return (
+                            <tr
+                              key={u.id}
+                              className={`transition-colors ${
+                                isSelected ? 'bg-purple-950/30' : 'hover:bg-white/[0.02]'
+                              }`}
+                            >
+                              <td className="px-4 py-3.5">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleUserEmail(u.id)}
+                                  className="rounded-none accent-purple-500 cursor-pointer"
+                                />
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <div className="flex items-center gap-3">
+                                  {u.avatar_url ? (
+                                    <img
+                                      src={u.avatar_url}
+                                      alt={u.name}
+                                      className="w-8 h-8 rounded-full object-cover border border-purple-500/30 shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-[#1b172a] border border-purple-900/60 text-purple-200 flex items-center justify-center font-bold text-xs shrink-0">
+                                      {(u.name || 'U').slice(0, 2).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="font-semibold text-white truncate flex items-center gap-1.5">
+                                      <span>{u.name || 'Anonymous User'}</span>
+                                      {isAdmin(u.email) && <Crown size={11} className="text-amber-400 shrink-0" />}
+                                    </div>
+                                    <div className="text-[10px] text-zinc-500 font-mono truncate">ID: {u.id.slice(0, 12)}...</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <div className="flex items-center gap-2 group">
+                                  <span className="font-mono text-xs text-purple-200 font-medium select-all">
+                                    {u.email}
+                                  </span>
+                                  <button
+                                    onClick={() => handleCopySingleEmail(u.email, u.id)}
+                                    className="text-zinc-500 hover:text-white transition-colors p-1 cursor-pointer"
+                                    title="Copy email"
+                                  >
+                                    {isCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                <span className="text-[10px] px-2 py-0.5 rounded-none font-semibold border bg-purple-950/40 text-purple-300 border-purple-500/30">
+                                  {u.provider || 'Google'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                <div className="text-zinc-300">{dayjs(u.firstSeen).fromNow()}</div>
+                                <div className="text-[10px] text-zinc-500 font-mono">{dayjs(u.firstSeen).format('MMM D, YYYY')}</div>
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap font-mono text-xs">
+                                <span className="text-purple-300">{u.roomsCount} rooms</span>
+                                <span className="text-zinc-600 mx-1">•</span>
+                                <span className="text-pink-300">{u.commentsCount} notes</span>
+                              </td>
+                              <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => handleOpenComposer('single', u)}
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-purple-950/60 hover:bg-purple-900/80 text-purple-200 border border-purple-500/40 rounded-none text-xs font-semibold transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+                                    title={`Send email to ${u.email}`}
+                                  >
+                                    <Mail size={12} className="text-purple-400" />
+                                    <span>Mail</span>
+                                  </button>
+                                  <a
+                                    href={`mailto:${u.email}?subject=${encodeURIComponent('[Blasync] Video Collaboration')}`}
+                                    className="p-1 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                                    title="Direct mailto link"
+                                  >
+                                    <ExternalLink size={13} />
+                                  </a>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* BROADCAST / COMPOSE EMAIL MODAL */}
+              {emailComposerOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                  <div className="bg-[#0c0a14] border border-purple-950/70 rounded-none p-5 sm:p-6 w-full max-w-2xl shadow-2xl relative animate-in fade-in duration-200 max-h-[90vh] flex flex-col">
+                    {/* Modal Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-purple-950/40 shrink-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-none bg-purple-950/60 border border-purple-500/40 text-purple-300 flex items-center justify-center">
+                          <Mail size={16} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-white tracking-tight">
+                            {composerMode === 'single'
+                              ? `Send Email to ${singleTargetUser?.name || 'User'}`
+                              : composerMode === 'selected'
+                              ? `Mail Selected Recipients (${selectedEmailUserIds.size})`
+                              : `Broadcast to All Users (${filteredEmailUsers.length})`}
+                          </h3>
+                          <p className="text-[11px] text-zinc-400">
+                            {composerMode === 'single'
+                              ? singleTargetUser?.email
+                              : `Opens your email client with ${
+                                  composerMode === 'selected' ? selectedEmailUserIds.size : filteredEmailUsers.length
+                                } recipient emails in BCC`}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setEmailComposerOpen(false)}
+                        className="text-zinc-500 hover:text-zinc-300 p-1.5 transition-colors cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Modal Body */}
+                    <div className="flex-1 overflow-y-auto py-4 space-y-4 custom-scrollbar">
+                      {/* Templates Selection */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+                          Choose Email Template
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                          {Object.entries(EMAIL_TEMPLATES).map(([key, t]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => handleTemplateChange(key)}
+                              className={`px-2.5 py-2 text-left text-xs border rounded-none transition-all cursor-pointer ${
+                                emailTemplateKey === key
+                                  ? 'bg-purple-950/80 text-white border-purple-500/60 shadow-sm'
+                                  : 'bg-[#07050e] text-zinc-400 border-purple-950/40 hover:text-zinc-200 hover:bg-white/5'
+                              }`}
+                            >
+                              <div className="font-semibold truncate">{t.name}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Subject Input */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 block">
+                          Subject Line
+                        </label>
+                        <input
+                          type="text"
+                          value={emailSubject}
+                          onChange={(e) => setEmailSubject(e.target.value)}
+                          placeholder="Enter email subject..."
+                          className="w-full bg-[#07050e] border border-purple-950/60 rounded-none px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+                        />
+                      </div>
+
+                      {/* Message Body */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                            Message Body
+                          </label>
+                          <span className="text-[10px] text-zinc-500 font-mono">Use {'{{name}}'} for recipient name</span>
+                        </div>
+                        <textarea
+                          rows={8}
+                          value={emailBody}
+                          onChange={(e) => setEmailBody(e.target.value)}
+                          placeholder="Write your email message here..."
+                          className="w-full bg-[#07050e] border border-purple-950/60 rounded-none p-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/60 font-sans leading-relaxed"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Modal Footer */}
+                    <div className="pt-3 border-t border-purple-950/40 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0 bg-[#0c0a14]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const list =
+                            composerMode === 'single'
+                              ? [singleTargetUser?.email]
+                              : composerMode === 'selected'
+                              ? filteredEmailUsers.filter(u => selectedEmailUserIds.has(u.id)).map(u => u.email)
+                              : filteredEmailUsers.map(u => u.email);
+                          handleCopyEmails(list.filter(Boolean), 'recipients');
+                        }}
+                        className="w-full sm:w-auto px-3 py-2 bg-[#07050e] hover:bg-white/10 text-zinc-300 hover:text-white border border-purple-950/60 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Copy size={13} />
+                        <span>Copy Email List</span>
+                      </button>
+
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <button
+                          type="button"
+                          onClick={() => setEmailComposerOpen(false)}
+                          className="flex-1 sm:flex-initial px-4 py-2 text-zinc-400 hover:text-white text-xs transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleLaunchEmailClient}
+                          className="flex-1 sm:flex-initial px-5 py-2 bg-white hover:bg-zinc-200 text-black font-bold text-xs rounded-none transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.02]"
+                        >
+                          <Send size={13} />
+                          <span>Open in Email App</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

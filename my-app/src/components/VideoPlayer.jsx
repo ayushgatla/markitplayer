@@ -9,28 +9,28 @@ export const VideoPlayer = forwardRef(({ options, onReady, onTimeUpdate }, ref) 
 
   useImperativeHandle(ref, () => ({
     seekTo: (time) => {
-      if (playerRef.current) {
+      if (playerRef.current && !playerRef.current.isDisposed()) {
         playerRef.current.currentTime(time);
       }
     },
     pause: () => {
-      if (playerRef.current) {
+      if (playerRef.current && !playerRef.current.isDisposed()) {
         playerRef.current.pause();
       }
     },
     play: () => {
-      if (playerRef.current) {
+      if (playerRef.current && !playerRef.current.isDisposed()) {
         playerRef.current.play();
       }
     },
     getCurrentTime: () => {
-      if (playerRef.current) {
+      if (playerRef.current && !playerRef.current.isDisposed()) {
         return playerRef.current.currentTime();
       }
       return 0;
     },
     getDuration: () => {
-      if (playerRef.current) {
+      if (playerRef.current && !playerRef.current.isDisposed()) {
         return playerRef.current.duration();
       }
       return 0;
@@ -40,41 +40,43 @@ export const VideoPlayer = forwardRef(({ options, onReady, onTimeUpdate }, ref) 
     }
   }));
 
+  const src = options?.sources?.[0]?.src;
+  const tech = options?.techOrder?.[0];
+
   useEffect(() => {
-    // Make sure Video.js player is only initialized once
-    if (!playerRef.current) {
-      const videoElement = document.createElement("video-js");
-      videoElement.classList.add('vjs-big-play-centered');
-      videoRef.current.appendChild(videoElement);
+    if (!videoRef.current || !src) return;
 
-      const player = playerRef.current = videojs(videoElement, options, () => {
-        videojs.log('player is ready');
-        if (onReady) {
-          onReady(player);
-        }
-      });
-
-      player.on('timeupdate', () => {
-        if (onTimeUpdate) {
-          onTimeUpdate(player.currentTime());
-        }
-      });
+    // Clean up previous instance before mounting new one
+    if (playerRef.current && !playerRef.current.isDisposed()) {
+      playerRef.current.dispose();
+      playerRef.current = null;
     }
 
-    // You could update an existing player in the `else` block here
-    // on prop change.
-  }, [options, videoRef, onReady, onTimeUpdate]);
+    const videoElement = document.createElement("video-js");
+    videoElement.classList.add('vjs-big-play-centered');
+    videoRef.current.innerHTML = '';
+    videoRef.current.appendChild(videoElement);
 
-  // Dispose the Video.js player when the functional component unmounts
-  useEffect(() => {
-    const player = playerRef.current;
+    const player = playerRef.current = videojs(videoElement, options, () => {
+      videojs.log('player is ready');
+      if (onReady) {
+        onReady(player);
+      }
+    });
+
+    player.on('timeupdate', () => {
+      if (onTimeUpdate && !player.isDisposed()) {
+        onTimeUpdate(player.currentTime());
+      }
+    });
+
     return () => {
       if (player && !player.isDisposed()) {
         player.dispose();
         playerRef.current = null;
       }
     };
-  }, []);
+  }, [src, tech]);
 
   return (
     <div data-vjs-player className="absolute inset-0 w-full h-full">

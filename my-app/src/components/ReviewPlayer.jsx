@@ -151,7 +151,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     initialUrl = `${baseUrl}/api/instagram?url=${encodeURIComponent(videoUrl)}`;
   }
 
-  const [resolvedVideoUrl, setResolvedVideoUrl] = useState(initialUrl);
+  const [hasFallenBack, setHasFallenBack] = useState(false);
 
   const fallbackProxyUrlRef = useRef(fallbackProxyUrl);
   fallbackProxyUrlRef.current = fallbackProxyUrl;
@@ -162,8 +162,15 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
   const hasFallenBackRef = useRef(false);
   useEffect(() => {
     hasFallenBackRef.current = false;
-    setResolvedVideoUrl(initialUrl);
-  }, [videoUrl, initialUrl]);
+    setHasFallenBack(false);
+    setCurrentTime(0);
+    setIsPlaying(false);
+    setIsDrawingMode(false);
+    setActiveCommentDrawing(null);
+    setActiveCommentId(null);
+  }, [videoUrl]);
+
+  const activeStreamUrl = (hasFallenBack && fallbackProxyUrl) ? fallbackProxyUrl : initialUrl;
 
   const videoOptions = {
     autoplay: false,
@@ -173,7 +180,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     preload: 'auto',
     techOrder: isYouTube ? ['youtube'] : ['html5'],
     sources: [{
-      src: resolvedVideoUrl || initialUrl,
+      src: activeStreamUrl,
       type: isYouTube ? 'video/youtube' : 'video/mp4'
     }],
     youtube: {

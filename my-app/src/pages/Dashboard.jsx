@@ -104,6 +104,20 @@ export default function Dashboard() {
     syncAdminEmailsWithDatabase().then(list => {
       if (list) setAdminEmails(list);
     });
+
+    const channel = supabase
+      .channel('admin_privileges_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, async (payload) => {
+        if (payload?.new?.folder === '__system_admin_config__' || payload?.old?.folder === '__system_admin_config__') {
+          const updated = await syncAdminEmailsWithDatabase();
+          if (updated) setAdminEmails(updated);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
