@@ -43,7 +43,12 @@ import {
   Copy,
   Inbox,
   AtSign,
-  CheckCheck
+  CheckCheck,
+  Trophy,
+  Flame,
+  Zap,
+  Medal,
+  Award
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -117,7 +122,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
-  const [userSortBy, setUserSortBy] = useState('joined-desc');
+  const [userSortBy, setUserSortBy] = useState('activity-desc'); // 'activity-desc' | 'rooms-desc' | 'comments-desc' | 'active-desc' | 'joined-desc' | 'joined-asc'
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [chartPeriod, setChartPeriod] = useState('monthly'); // 'all' | 'monthly' | 'weekly' | 'today'
 
@@ -403,9 +408,66 @@ export default function AdminDashboard() {
       uniqueMap.set(u.id, u);
     }
 
-    const allUsersList = Array.from(uniqueMap.values()).sort((a, b) => new Date(b.firstSeen) - new Date(a.firstSeen));
+    // Calculate comprehensive activity score & metrics for each user
+    const now = dayjs();
+    const scoredUsers = Array.from(uniqueMap.values()).map(u => {
+      const firstSeenDay = u.firstSeen ? dayjs(u.firstSeen) : now;
+      const lastActiveDay = u.lastActive ? dayjs(u.lastActive) : firstSeenDay;
+      
+      const activeSpanHours = Math.max(0, lastActiveDay.diff(firstSeenDay, 'hour', true));
+      const activeSpanDays = Math.max(0, lastActiveDay.diff(firstSeenDay, 'day', true));
+      
+      const daysSinceActive = Math.max(0, now.diff(lastActiveDay, 'day'));
+      
+      let recencyMultiplier = 1.0;
+      if (daysSinceActive <= 1) recencyMultiplier = 1.6;
+      else if (daysSinceActive <= 7) recencyMultiplier = 1.3;
+      else if (daysSinceActive <= 30) recencyMultiplier = 1.0;
+      else recencyMultiplier = 0.7;
+
+      // Activity Formula: Rooms (x35) + Comments (x15) + Lifespan Active Days (x10) + Active Session Bonus
+      const rawActivityScore = (u.roomsCount * 35) + 
+                               (u.commentsCount * 15) + 
+                               (Math.min(activeSpanDays, 60) * 10) + 
+                               (activeSpanHours > 0 ? 5 : 0);
+      
+      const activityScore = Math.max(1, Math.round(rawActivityScore * recencyMultiplier));
+
+      let activityTier = 'Starter';
+      let tierColor = 'text-zinc-400 border-zinc-700 bg-zinc-800/40';
+      if (activityScore >= 200) {
+        activityTier = 'Elite Champion';
+        tierColor = 'text-amber-300 border-amber-500/40 bg-amber-500/10';
+      } else if (activityScore >= 100) {
+        activityTier = 'Power Editor';
+        tierColor = 'text-purple-300 border-purple-500/40 bg-purple-500/10';
+      } else if (activityScore >= 40) {
+        activityTier = 'Active Contributor';
+        tierColor = 'text-pink-300 border-pink-500/40 bg-pink-500/10';
+      }
+
+      return {
+        ...u,
+        activeSpanHours: Math.round(activeSpanHours * 10) / 10,
+        activeSpanDays: Math.round(activeSpanDays * 10) / 10,
+        rawActivityScore,
+        activityScore,
+        activityTier,
+        tierColor,
+        daysSinceActive
+      };
+    });
+
+    // Rank all users by activityScore
+    scoredUsers.sort((a, b) => b.activityScore - a.activityScore);
+    scoredUsers.forEach((u, index) => {
+      u.activityRank = index + 1;
+    });
+
+    const allUsersList = scoredUsers;
     const activeUsersList = allUsersList.filter(u => !u.isExcluded);
     const excludedUsersList = allUsersList.filter(u => u.isExcluded);
+    const topActiveUsers = activeUsersList.slice(0, 3);
 
     // Platform distribution
     let driveCount = 0;
@@ -438,6 +500,7 @@ export default function AdminDashboard() {
       users: allUsersList,
       activeUsers: activeUsersList,
       excludedUsers: excludedUsersList,
+      topActiveUsers,
       totalRooms: rooms.length,
       totalComments: comments.length,
       totalVersions,
@@ -520,12 +583,14 @@ export default function AdminDashboard() {
     }
 
     return list.sort((a, b) => {
+      if (userSortBy === 'activity-desc') return b.activityScore - a.activityScore;
+      if (userSortBy === 'rooms-desc') return b.roomsCount - a.roomsCount;
+      if (userSortBy === 'comments-desc') return b.commentsCount - a.commentsCount;
+      if (userSortBy === 'span-desc') return (b.activeSpanHours || 0) - (a.activeSpanHours || 0);
       if (userSortBy === 'joined-desc') return new Date(b.firstSeen) - new Date(a.firstSeen);
       if (userSortBy === 'joined-asc') return new Date(a.firstSeen) - new Date(b.firstSeen);
       if (userSortBy === 'active-desc') return new Date(b.lastActive) - new Date(a.lastActive);
-      if (userSortBy === 'rooms-desc') return b.roomsCount - a.roomsCount;
-      if (userSortBy === 'comments-desc') return b.commentsCount - a.commentsCount;
-      return new Date(b.firstSeen) - new Date(a.firstSeen);
+      return b.activityScore - a.activityScore;
     });
   }, [stats.users, searchQuery, userSortBy, userFilterTab]);
 
@@ -1027,6 +1092,24 @@ export default function AdminDashboard() {
               </button>
 
               <button
+                onClick={() => { setActiveTab('rankings'); setIsSidebarOpen(false); }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                  activeTab === 'rankings'
+                    ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Trophy size={15} className={activeTab === 'rankings' ? 'text-amber-400' : 'text-zinc-500'} />
+                  <span>Active Rankings</span>
+                </div>
+                <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded-none font-mono flex items-center gap-0.5">
+                  <Flame size={10} className="text-amber-400" />
+                  <span>Ranked</span>
+                </span>
+              </button>
+
+              <button
                 onClick={() => { setActiveTab('emails'); setIsSidebarOpen(false); }}
                 className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
                   activeTab === 'emails'
@@ -1079,41 +1162,41 @@ export default function AdminDashboard() {
             <nav className="space-y-1">
               <button
                 onClick={() => navigate('/dashboard')}
-                className="w-full flex items-center gap-3 px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-white/5 rounded-none transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
               >
-                <ArrowLeft size={14} className="text-zinc-500" />
-                <span>Return to Player App</span>
+                <div className="flex items-center gap-2">
+                  <ExternalLink size={13} />
+                  <span>User Dashboard</span>
+                </div>
+                <ArrowUpRight size={12} className="text-zinc-500" />
               </button>
               <button
-                onClick={() => navigate('/notifications')}
-                className="w-full flex items-center gap-3 px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-white/5 rounded-none transition-colors cursor-pointer"
+                onClick={() => navigate('/project/new')}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
               >
-                <Bell size={14} className="text-zinc-500" />
-                <span>Notifications</span>
+                <div className="flex items-center gap-2">
+                  <Plus size={13} />
+                  <span>Create Session</span>
+                </div>
+                <ArrowUpRight size={12} className="text-zinc-500" />
               </button>
             </nav>
           </div>
         </div>
 
-        {/* User Card at bottom */}
-        <div className="p-4 border-t border-purple-950/40 bg-[#07050e] shrink-0">
-          <div className="flex items-center gap-3">
-            {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
-              <img
-                src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture}
-                alt={userEmail}
-                className="w-8 h-8 rounded-full object-cover border border-purple-500/40 shadow-sm shrink-0"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-[#1c182c] border border-purple-900/60 text-purple-200 flex items-center justify-center font-bold text-xs shrink-0">
-                {(userEmail || 'A').slice(0, 2).toUpperCase()}
-              </div>
-            )}
+        {/* Current Admin Footer in Sidebar */}
+        <div className="p-3 border-t border-purple-950/40 bg-[#07050e] shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-purple-950/80 border border-purple-500/40 flex items-center justify-center font-bold text-xs text-purple-200">
+              {(user?.email || 'A').slice(0, 2).toUpperCase()}
+            </div>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-semibold text-white truncate">{userEmail}</div>
-              <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Active Admin</span>
+              <div className="text-xs font-semibold text-zinc-200 truncate flex items-center gap-1">
+                <span>{user?.email?.split('@')[0] || 'Admin'}</span>
+                <Crown size={11} className="text-amber-400 shrink-0" />
+              </div>
+              <div className="text-[10px] text-zinc-500 truncate font-mono">
+                {isPrimaryAdmin(user?.email) ? 'Primary Super Admin' : 'Administrator'}
               </div>
             </div>
           </div>
@@ -1134,7 +1217,19 @@ export default function AdminDashboard() {
             </button>
             <div className="flex items-center gap-2 truncate">
               <h1 className="text-sm md:text-base font-bold text-white tracking-tight capitalize truncate">
-                {activeTab === 'overview' ? 'Dashboard' : activeTab === 'projects' ? 'Projects' : activeTab === 'users' ? 'Users' : activeTab === 'emails' ? 'Mail Users' : activeTab === 'admins' ? 'Admins' : 'Analytics'}
+                {activeTab === 'overview'
+                  ? 'Dashboard'
+                  : activeTab === 'projects'
+                  ? 'Projects'
+                  : activeTab === 'users'
+                  ? 'Users'
+                  : activeTab === 'rankings'
+                  ? 'Active Rankings'
+                  : activeTab === 'emails'
+                  ? 'Mail Users'
+                  : activeTab === 'admins'
+                  ? 'Admins'
+                  : 'Analytics'}
               </h1>
               <span className="hidden sm:inline text-xs text-zinc-600">/</span>
               <span className="hidden sm:inline text-xs text-zinc-400 font-mono">Live Supabase Sync</span>
@@ -1811,6 +1906,7 @@ export default function AdminDashboard() {
                       <option value="active-desc">Last Active</option>
                       <option value="rooms-desc">Most Sessions Created</option>
                       <option value="comments-desc">Most Comments Left</option>
+                      <option value="activity-desc">🔥 Activity Score</option>
                     </select>
                   </div>
                 </div>
@@ -1936,6 +2032,333 @@ export default function AdminDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: ACTIVE RANKINGS & LEADERBOARD */}
+          {activeTab === 'rankings' && (
+            <div className="space-y-6">
+              {/* Header Banner */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0c0a14] p-5 border border-purple-950/60 shadow-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                    <Trophy size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
+                      Most Active Editors Leaderboard
+                      <span className="text-[10px] font-mono px-2 py-0.5 bg-amber-950/60 border border-amber-500/30 text-amber-300">
+                        Live Activity Ranking
+                      </span>
+                    </h2>
+                    <p className="text-xs text-zinc-400">
+                      Ranked by composite score: retention lifespan (joined vs last active), session creations, notes left, and recency multipliers.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Top Quick Badges */}
+                <div className="flex items-center gap-2">
+                  <div className="text-xs font-mono text-amber-300 bg-amber-950/40 border border-amber-500/30 px-3 py-1.5 flex items-center gap-2">
+                    <Flame size={13} className="text-amber-400 animate-pulse" />
+                    <span>{stats.topActiveUsers.length} Champions on Podium</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Controls Bar: Search & Multi-Criteria Ordering */}
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-[#0c0a14] p-4 border border-purple-950/50">
+                <div className="relative flex-1 max-w-md">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <input
+                    type="text"
+                    placeholder="Search editors by name, email or ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[#07050e] border border-purple-950/60 rounded-none pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+                  />
+                </div>
+
+                {/* Ordering & Sort Dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-400 whitespace-nowrap font-medium flex items-center gap-1.5">
+                    <Filter size={12} className="text-purple-400" />
+                    Order By:
+                  </span>
+                  <select
+                    value={userSortBy}
+                    onChange={(e) => setUserSortBy(e.target.value)}
+                    className="bg-[#07050e] border border-purple-950/60 rounded-none px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none cursor-pointer w-full sm:w-auto"
+                  >
+                    <option value="activity-desc">🔥 Our Formula (Activity Score)</option>
+                    <option value="rooms-desc">🎬 Most Rooms / Sessions Created</option>
+                    <option value="comments-desc">💬 Most Comments / Notes Left</option>
+                    <option value="span-desc">⏳ Diff of Joined & Last Active (Active Span)</option>
+                    <option value="active-desc">🕒 Last Active (Recent First)</option>
+                    <option value="joined-desc">📅 Joined Date: Newest First</option>
+                    <option value="joined-asc">📅 Joined Date: Oldest First</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Split Layout: Full Rankings Table on Left (7 cols), Scrollable All-Editors Cards on Right (5 cols) */}
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                {/* LEFT AREA: Full Rankings Table (7 cols) */}
+                <div className="xl:col-span-7 space-y-4">
+                  <div className="bg-[#0c0a14] border border-purple-950/50 overflow-hidden shadow-xl">
+                    <div className="p-3 border-b border-purple-950/40 flex items-center justify-between bg-[#07050e]">
+                      <div className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+                        <Users size={13} className="text-purple-400" />
+                        <span>All Ranked Editors Directory</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-zinc-400">
+                        Showing {filteredUsers.filter(u => !u.isExcluded).length} of {stats.totalUsers} active editors
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs min-w-[620px]">
+                        <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
+                          <tr>
+                            <th className="px-4 py-3">Rank & Score</th>
+                            <th className="px-4 py-3">Editor</th>
+                            <th className="px-4 py-3">Tier</th>
+                            <th className="px-4 py-3">Active Span</th>
+                            <th className="px-4 py-3">Rooms</th>
+                            <th className="px-4 py-3">Comments</th>
+                            <th className="px-4 py-3">Last Active</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-purple-950/30">
+                          {filteredUsers.filter(u => !u.isExcluded).length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                                No active editors match the query.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredUsers.filter(u => !u.isExcluded).map((u, idx) => {
+                              const isUserAdmin = u.email && isAdmin(u.email);
+                              const rankIcon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
+                              return (
+                                <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className={`w-6 h-6 flex items-center justify-center font-mono font-bold text-xs rounded-none border ${
+                                          idx === 0
+                                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                                            : idx === 1
+                                            ? 'bg-zinc-700/30 border-zinc-500/40 text-zinc-200'
+                                            : idx === 2
+                                            ? 'bg-amber-900/30 border-amber-700/50 text-amber-400'
+                                            : 'bg-[#07050e] border-purple-950/60 text-zinc-400'
+                                        }`}
+                                      >
+                                        {rankIcon || `#${idx + 1}`}
+                                      </span>
+                                      <div className="font-mono font-bold text-amber-300 flex items-center gap-1">
+                                        <Flame size={11} className="text-orange-400" />
+                                        <span>{u.activityScore} pts</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                      {u.avatar_url ? (
+                                        <img
+                                          src={u.avatar_url}
+                                          alt={u.name}
+                                          className="w-7 h-7 rounded-full object-cover border border-purple-500/40 shrink-0"
+                                        />
+                                      ) : (
+                                        <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 bg-[#1c182c] border border-purple-900/60 text-purple-200">
+                                          {(u.name || u.email || 'U').slice(0, 2).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <div className="min-w-0">
+                                        <div className="font-semibold text-zinc-100 truncate flex items-center gap-1">
+                                          <span>{u.name}</span>
+                                          {isUserAdmin && <Crown size={11} className="text-amber-400 shrink-0" />}
+                                        </div>
+                                        <div className="text-[10px] text-zinc-400 truncate">{u.email}</div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className={`text-[10px] px-2 py-0.5 font-semibold border ${u.tierColor}`}>
+                                      {u.activityTier}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-zinc-300 font-mono whitespace-nowrap">
+                                    {u.activeSpanDays > 0 ? `${u.activeSpanDays}d` : `${u.activeSpanHours}h`}
+                                  </td>
+                                  <td className="px-4 py-3 font-mono text-purple-300 font-bold whitespace-nowrap">
+                                    {u.roomsCount}
+                                  </td>
+                                  <td className="px-4 py-3 font-mono text-pink-300 font-bold whitespace-nowrap">
+                                    {u.commentsCount}
+                                  </td>
+                                  <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">
+                                    {dayjs(u.lastActive).fromNow()}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT SIDE PANEL: Scrollable All-Editors Cards Feed (5 cols) */}
+                <div className="xl:col-span-5 space-y-4">
+                  <div className="bg-[#0c0a14] border border-purple-950/60 p-4 space-y-3 shadow-xl">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-purple-950/40">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-200">
+                        <Trophy size={14} className="text-amber-400" />
+                        <span>Ranked Editors Cards Feed</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-amber-400 bg-amber-950/30 px-2 py-0.5 border border-amber-500/20">
+                        {filteredUsers.filter(u => !u.isExcluded).length} Editors • Scrollable
+                      </span>
+                    </div>
+
+                    {/* Scrollable Container for All Ranked Editors Cards */}
+                    <div className="max-h-[580px] overflow-y-auto pr-1.5 space-y-2.5 custom-scrollbar">
+                      {filteredUsers.filter(u => !u.isExcluded).length === 0 ? (
+                        <div className="p-6 text-center text-xs text-zinc-500">
+                          No editors found matching filter.
+                        </div>
+                      ) : (
+                        filteredUsers.filter(u => !u.isExcluded).map((user, idx) => {
+                          const isFirst = idx === 0;
+                          const isSecond = idx === 1;
+                          const isThird = idx === 2;
+                          const medalIcon = isFirst ? '🥇' : isSecond ? '🥈' : isThird ? '🥉' : null;
+                          const medalLabel = isFirst
+                            ? 'Gold • #1 Overall'
+                            : isSecond
+                            ? 'Silver • #2 Contributor'
+                            : isThird
+                            ? 'Bronze • #3 Contributor'
+                            : `#${idx + 1} Contributor`;
+
+                          const cardBorder = isFirst
+                            ? 'border-amber-500/50 bg-amber-950/15 shadow-sm'
+                            : isSecond
+                            ? 'border-zinc-400/40 bg-zinc-900/20'
+                            : isThird
+                            ? 'border-amber-700/30 bg-amber-950/10'
+                            : 'border-purple-950/50 bg-[#07050e]/90 hover:border-purple-500/30';
+
+                          return (
+                            <div key={user.id} className={`p-3 border transition-all ${cardBorder}`}>
+                              {/* Rank Header */}
+                              <div className="flex items-center justify-between gap-1 mb-2">
+                                <span className="text-[11px] font-bold font-mono text-zinc-200 flex items-center gap-1.5">
+                                  {medalIcon ? <span>{medalIcon}</span> : <span className="text-[10px] text-zinc-400 font-mono">#{idx + 1}</span>}
+                                  <span>{medalLabel}</span>
+                                </span>
+                                <span className={`text-[9px] font-semibold px-1.5 py-0.2 border ${user.tierColor}`}>
+                                  {user.activityTier}
+                                </span>
+                              </div>
+
+                              {/* User row */}
+                              <div className="flex items-center gap-2 mb-2">
+                                {user.avatar_url ? (
+                                  <img
+                                    src={user.avatar_url}
+                                    alt={user.name}
+                                    className={`w-7 h-7 rounded-full object-cover shrink-0 border ${
+                                      isFirst ? 'border-amber-400' : 'border-purple-500/40'
+                                    }`}
+                                  />
+                                ) : (
+                                  <div
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 border ${
+                                      isFirst
+                                        ? 'bg-amber-950/60 border-amber-400 text-amber-300'
+                                        : 'bg-[#1c182c] border-purple-500/40 text-purple-200'
+                                    }`}
+                                  >
+                                    {(user.name || user.email || 'U').slice(0, 2).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-semibold text-zinc-100 text-[11px] truncate flex items-center gap-1">
+                                    <span>{user.name}</span>
+                                    {user.email && isAdmin(user.email) && <Crown size={10} className="text-amber-400 shrink-0" />}
+                                  </div>
+                                  <div className="text-[10px] text-zinc-400 truncate">{user.email || 'No email'}</div>
+                                  <div className="text-[9px] text-zinc-500 font-mono">
+                                    Joined {dayjs(user.firstSeen).format('MMM D, YYYY')} • Active {dayjs(user.lastActive).fromNow()}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Score pill */}
+                              <div className="mb-2 px-2 py-1 bg-[#07050e] border border-purple-950/40 flex items-center justify-between text-xs">
+                                <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                                  <Zap size={10} className="text-purple-400" />
+                                  Score:
+                                </span>
+                                <span className="font-bold font-mono text-amber-400 flex items-center gap-1 text-xs">
+                                  <Flame size={11} className="text-orange-500" />
+                                  {user.activityScore.toLocaleString()} pts
+                                </span>
+                              </div>
+
+                              {/* Mini Stats (Span, Rooms, Comments) */}
+                              <div className="grid grid-cols-3 gap-1 text-center pt-1.5 border-t border-purple-950/30">
+                                <div className="bg-white/[0.02] p-1">
+                                  <div className="text-[8px] uppercase tracking-wider text-zinc-500 font-semibold" title="Diff of joined date and last active">
+                                    Span
+                                  </div>
+                                  <div className="text-[11px] font-mono font-bold text-purple-300">
+                                    {user.activeSpanDays > 0 ? `${user.activeSpanDays}d` : `${user.activeSpanHours}h`}
+                                  </div>
+                                </div>
+                                <div className="bg-white/[0.02] p-1">
+                                  <div className="text-[8px] uppercase tracking-wider text-zinc-500 font-semibold" title="Rooms and sessions created">
+                                    Rooms
+                                  </div>
+                                  <div className="text-[11px] font-mono font-bold text-purple-300">{user.roomsCount}</div>
+                                </div>
+                                <div className="bg-white/[0.02] p-1">
+                                  <div className="text-[8px] uppercase tracking-wider text-zinc-500 font-semibold" title="Comments and feedback left">
+                                    Comments
+                                  </div>
+                                  <div className="text-[11px] font-mono font-bold text-pink-300">{user.commentsCount}</div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Formula breakdown card */}
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-3.5 space-y-2 text-xs shadow-xl">
+                    <div className="text-[11px] font-semibold text-purple-300 flex items-center gap-1.5">
+                      <Activity size={13} />
+                      <span>Ranking Formula Parameters</span>
+                    </div>
+                    <div className="p-2 bg-[#07050e] border border-purple-950/40 text-[10px] font-mono text-zinc-300 space-y-1">
+                      <div className="text-amber-300 font-semibold">• Sessions Weight: 35 pts / room created</div>
+                      <div className="text-pink-300 font-semibold">• Comments Weight: 15 pts / note or comment</div>
+                      <div className="text-purple-300 font-semibold">• Retention Lifespan: 10 pts / active day (joined vs last active)</div>
+                      <div className="text-zinc-400 font-semibold">• Recency Bonus: up to 1.6x multiplier for activity in last 24h</div>
+                    </div>
+                    <div className="text-[9px] text-zinc-500 leading-tight">
+                      Combines user tenure, engagement duration from joined date to latest action, room creations, and feedback volume.
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
