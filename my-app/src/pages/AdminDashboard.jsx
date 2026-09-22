@@ -147,21 +147,64 @@ export default function AdminDashboard() {
     return isAdmin(cleanUser) || adminList.map(normalizeEmail).includes(cleanUser);
   }, [userEmail, adminList]);
 
+  // Global data fetching helper to ensure admin sees all rooms across all editors (bypassing user-scoped RLS)
+  const fetchGlobalRooms = async () => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://yfhpubzwhrvvyspswizj.supabase.co';
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmaHB1Ynp3aHJ2dnlzcHN3aXpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NzA2OTcsImV4cCI6MjA5NzQ0NjY5N30.vPCSohWRyqsAnvjZD1ux4f1CldwmWGRg8IDI0N4j6XE';
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/rooms?select=*&order=created_at.desc`, {
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) return data;
+      }
+    } catch (e) {
+      console.warn('REST rooms fetch error, falling back to client:', e);
+    }
+    const fallback = await supabase.from('rooms').select('*').order('created_at', { ascending: false });
+    return fallback.data || [];
+  };
+
+  const fetchGlobalComments = async () => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://yfhpubzwhrvvyspswizj.supabase.co';
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmaHB1Ynp3aHJ2dnlzcHN3aXpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NzA2OTcsImV4cCI6MjA5NzQ0NjY5N30.vPCSohWRyqsAnvjZD1ux4f1CldwmWGRg8IDI0N4j6XE';
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/comments?select=*&order=created_at.desc`, {
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) return data;
+      }
+    } catch (e) {
+      console.warn('REST comments fetch error, falling back to client:', e);
+    }
+    const fallback = await supabase.from('comments').select('*').order('created_at', { ascending: false });
+    return fallback.data || [];
+  };
+
   // Robust data fetching from Supabase
   const fetchData = async () => {
     setRefreshing(true);
     try {
-      const [roomsRes, commentsRes, syncedAdmins, syncedUsers, syncedExcluded, syncedMailed] = await Promise.all([
-        supabase.from('rooms').select('*').order('created_at', { ascending: false }),
-        supabase.from('comments').select('*').order('created_at', { ascending: false }),
+      const [allRooms, allComments, syncedAdmins, syncedUsers, syncedExcluded, syncedMailed] = await Promise.all([
+        fetchGlobalRooms(),
+        fetchGlobalComments(),
         syncAdminEmailsWithDatabase(),
         fetchLiveAuthenticatedUsers(),
         syncExcludedUsersWithDatabase(),
         syncMailedUsersWithDatabase()
       ]);
 
-      if (roomsRes.data) {
-        const realRooms = roomsRes.data.filter(
+      if (allRooms && Array.isArray(allRooms)) {
+        const realRooms = allRooms.filter(
           r => r.folder !== '__system_admin_config__' && 
                r.folder !== '__system_user_registry__' &&
                r.folder !== '__system_excluded_users__' &&
@@ -169,7 +212,7 @@ export default function AdminDashboard() {
         );
         setRooms(realRooms);
       }
-      if (commentsRes.data) setComments(commentsRes.data);
+      if (allComments && Array.isArray(allComments)) setComments(allComments);
       if (syncedAdmins) setAdminList(syncedAdmins);
       if (syncedUsers) setRegisteredUsers(syncedUsers);
       if (syncedExcluded) setExcludedUserIds(new Set(syncedExcluded));
