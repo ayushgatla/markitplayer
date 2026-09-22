@@ -63,10 +63,15 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { AnalyticsCharts } from '../components/AnalyticsCharts';
 import {
   fetchAllRegisteredUsers,
+  fetchLiveAuthenticatedUsers,
   getCachedUserProfiles,
   syncExcludedUsersWithDatabase,
   saveExcludedUsers,
-  getCachedExcludedUserIds
+  getCachedExcludedUserIds,
+  getCachedMailedUsers,
+  syncMailedUsersWithDatabase,
+  markUsersAsMailed,
+  unmarkUsersAsMailed
 } from '../utils/userRegistry';
 
 dayjs.extend(relativeTime);
@@ -104,6 +109,7 @@ export default function AdminDashboard() {
   const [comments, setComments] = useState([]);
   const [registeredUsers, setRegisteredUsers] = useState(getCachedUserProfiles());
   const [excludedUserIds, setExcludedUserIds] = useState(() => new Set(getCachedExcludedUserIds()));
+  const [mailedUsersData, setMailedUsersData] = useState(() => getCachedMailedUsers());
   const [userFilterTab, setUserFilterTab] = useState('all'); // 'all' | 'active' | 'excluded'
   const [adminList, setAdminList] = useState(getAdminEmails());
   const [newAdminInput, setNewAdminInput] = useState('');
@@ -117,7 +123,7 @@ export default function AdminDashboard() {
 
   // Email Broadcast State
   const [selectedEmailUserIds, setSelectedEmailUserIds] = useState(() => new Set());
-  const [emailFilter, setEmailFilter] = useState('all'); // 'all' | 'active' | 'google' | 'email'
+  const [emailFilter, setEmailFilter] = useState('unmailed'); // 'unmailed' | 'all' | 'mailed' | 'active' | 'google' | 'email'
   const [emailComposerOpen, setEmailComposerOpen] = useState(false);
   const [composerMode, setComposerMode] = useState('all'); // 'all' | 'selected' | 'single'
   const [singleTargetUser, setSingleTargetUser] = useState(null);
@@ -126,6 +132,7 @@ export default function AdminDashboard() {
   const [emailTemplateKey, setEmailTemplateKey] = useState('update');
   const [emailCopiedFeedback, setEmailCopiedFeedback] = useState(null);
   const [singleCopiedEmail, setSingleCopiedEmail] = useState(null);
+  const [autoMarkMailed, setAutoMarkMailed] = useState(true);
 
   const userEmail = user?.email || user?.user_metadata?.email || user?.raw_user_meta_data?.email || '';
 
@@ -139,19 +146,21 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setRefreshing(true);
     try {
-      const [roomsRes, commentsRes, syncedAdmins, syncedUsers, syncedExcluded] = await Promise.all([
+      const [roomsRes, commentsRes, syncedAdmins, syncedUsers, syncedExcluded, syncedMailed] = await Promise.all([
         supabase.from('rooms').select('*').order('created_at', { ascending: false }),
         supabase.from('comments').select('*').order('created_at', { ascending: false }),
         syncAdminEmailsWithDatabase(),
-        fetchAllRegisteredUsers(),
-        syncExcludedUsersWithDatabase()
+        fetchLiveAuthenticatedUsers(),
+        syncExcludedUsersWithDatabase(),
+        syncMailedUsersWithDatabase()
       ]);
 
       if (roomsRes.data) {
         const realRooms = roomsRes.data.filter(
           r => r.folder !== '__system_admin_config__' && 
                r.folder !== '__system_user_registry__' &&
-               r.folder !== '__system_excluded_users__'
+               r.folder !== '__system_excluded_users__' &&
+               r.folder !== '__system_mailed_users__'
         );
         setRooms(realRooms);
       }
@@ -159,6 +168,7 @@ export default function AdminDashboard() {
       if (syncedAdmins) setAdminList(syncedAdmins);
       if (syncedUsers) setRegisteredUsers(syncedUsers);
       if (syncedExcluded) setExcludedUserIds(new Set(syncedExcluded));
+      if (syncedMailed) setMailedUsersData(syncedMailed);
     } catch (e) {
       console.error('Error fetching admin data:', e);
     } finally {
@@ -172,15 +182,17 @@ export default function AdminDashboard() {
     const initialize = async () => {
       setLoading(true);
       try {
-        const [syncedAdmins, initialUsers, syncedExcluded] = await Promise.all([
+        const [syncedAdmins, initialUsers, syncedExcluded, syncedMailed] = await Promise.all([
           syncAdminEmailsWithDatabase(),
-          fetchAllRegisteredUsers(),
-          syncExcludedUsersWithDatabase()
+          fetchLiveAuthenticatedUsers(),
+          syncExcludedUsersWithDatabase(),
+          syncMailedUsersWithDatabase()
         ]);
         if (isMounted) {
           if (syncedAdmins) setAdminList(syncedAdmins);
           if (initialUsers) setRegisteredUsers(initialUsers);
           if (syncedExcluded) setExcludedUserIds(new Set(syncedExcluded));
+          if (syncedMailed) setMailedUsersData(syncedMailed);
         }
         const cleanUser = normalizeEmail(userEmail);
         const hasAccess = isAdmin(cleanUser) || (syncedAdmins || []).map(normalizeEmail).includes(cleanUser);
@@ -266,44 +278,72 @@ export default function AdminDashboard() {
 
   // Live Statistics Calculation with Dynamic User Extraction
   const stats = useMemo(() => {
-    const userMap = new Map();
+    const idMap = new Map();
+    const emailMap = new Map();
+
+    const insertOrUpdateUser = (u) => {
+      if (!u || !u.id) return;
+      const cleanEmail = u.email ? normalizeEmail(u.email) : null;
+      let existing = (cleanEmail && emailMap.get(cleanEmail)) || idMap.get(u.id);
+
+      const isExcluded = excludedUserIds.has(u.id) || (cleanEmail && excludedUserIds.has(cleanEmail));
+
+      if (existing) {
+        // If incoming user has a real UUID and existing has a placeholder auth-user-*, upgrade the ID
+        const isIncomingRealId = u.id && !u.id.startsWith('auth-user-') && !u.id.startsWith('seed-mock-');
+        const isExistingPlaceholder = existing.id && (existing.id.startsWith('auth-user-') || existing.id.startsWith('seed-mock-'));
+
+        if (isIncomingRealId && isExistingPlaceholder) {
+          idMap.delete(existing.id);
+          existing.id = u.id;
+          idMap.set(u.id, existing);
+        }
+
+        existing.name = (u.name && !u.name.startsWith('Editor_')) ? u.name : (existing.name || u.name);
+        if (cleanEmail) existing.email = u.email;
+        if (u.avatar_url) existing.avatar_url = u.avatar_url || existing.avatar_url;
+        if (u.provider) existing.provider = u.provider || existing.provider;
+        if (u.created_at) existing.firstSeen = existing.firstSeen || u.created_at;
+        if (u.last_sign_in_at) existing.lastActive = u.last_sign_in_at || existing.lastActive;
+        existing.isExcluded = isExcluded || existing.isExcluded;
+
+        if (cleanEmail) emailMap.set(cleanEmail, existing);
+        if (existing.id) idMap.set(existing.id, existing);
+      } else {
+        const userObj = {
+          id: u.id,
+          name: u.name || (cleanEmail ? cleanEmail.split('@')[0] : `Editor_${u.id.slice(0, 6)}`),
+          email: u.email || null,
+          avatar_url: u.avatar_url || '',
+          provider: u.provider || 'Google',
+          roomsCount: 0,
+          commentsCount: 0,
+          firstSeen: u.created_at || new Date().toISOString(),
+          lastActive: u.last_sign_in_at || u.created_at || new Date().toISOString(),
+          rooms: [],
+          isExcluded
+        };
+
+        if (cleanEmail) emailMap.set(cleanEmail, userObj);
+        if (userObj.id) idMap.set(userObj.id, userObj);
+      }
+    };
 
     // 1. Seed with registered / logged-in editors only
-    (registeredUsers || []).forEach(u => {
-      if (!u || !u.id) return;
-      const isExcluded = excludedUserIds.has(u.id) || (u.email && excludedUserIds.has(normalizeEmail(u.email)));
-      userMap.set(u.id, {
-        id: u.id,
-        name: u.name || (u.email ? u.email.split('@')[0] : `Editor_${u.id.slice(0, 6)}`),
-        email: u.email || null,
-        avatar_url: u.avatar_url || '',
-        provider: u.provider || 'Google',
-        roomsCount: 0,
-        commentsCount: 0,
-        firstSeen: u.created_at || new Date().toISOString(),
-        lastActive: u.last_sign_in_at || u.created_at || new Date().toISOString(),
-        rooms: [],
-        isExcluded
-      });
-    });
+    (registeredUsers || []).forEach(insertOrUpdateUser);
 
     // 2. Include current admin user if authenticated and not yet in map
-    if (user && user.id && !userMap.has(user.id)) {
+    if (user && user.id) {
       const email = user.email || user.user_metadata?.email || '';
       const name = user.user_metadata?.full_name || user.user_metadata?.name || (email ? email.split('@')[0] : 'Admin');
-      const isExcluded = excludedUserIds.has(user.id) || (email && excludedUserIds.has(normalizeEmail(email)));
-      userMap.set(user.id, {
+      insertOrUpdateUser({
         id: user.id,
         name,
         email: email || null,
         avatar_url: user.user_metadata?.avatar_url || '',
         provider: user.app_metadata?.provider || 'Google',
-        roomsCount: 0,
-        commentsCount: 0,
-        firstSeen: user.created_at || new Date().toISOString(),
-        lastActive: new Date().toISOString(),
-        rooms: [],
-        isExcluded
+        created_at: user.created_at || new Date().toISOString(),
+        last_sign_in_at: new Date().toISOString()
       });
     }
 
@@ -312,15 +352,15 @@ export default function AdminDashboard() {
       const uId = room.user_id;
       if (!uId) return;
 
-      if (userMap.has(uId)) {
-        const u = userMap.get(uId);
+      const u = idMap.get(uId);
+      if (u) {
         u.roomsCount += 1;
         u.rooms.push(room);
         if (room.created_at && new Date(room.created_at) < new Date(u.firstSeen)) u.firstSeen = room.created_at;
         if (room.created_at && new Date(room.created_at) > new Date(u.lastActive)) u.lastActive = room.created_at;
       } else {
         const isExcluded = excludedUserIds.has(uId);
-        userMap.set(uId, {
+        const newU = {
           id: uId,
           name: `Editor_${uId.slice(0, 6)}`,
           email: null,
@@ -332,15 +372,16 @@ export default function AdminDashboard() {
           lastActive: room.created_at || new Date().toISOString(),
           rooms: [room],
           isExcluded
-        });
+        };
+        idMap.set(uId, newU);
       }
     });
 
     // 4. Attach comments count
     comments.forEach(comment => {
       const uId = comment.user_id;
-      if (uId && userMap.has(uId)) {
-        const u = userMap.get(uId);
+      if (uId && idMap.has(uId)) {
+        const u = idMap.get(uId);
         u.commentsCount += 1;
         if (comment.created_at && new Date(comment.created_at) > new Date(u.lastActive)) {
           u.lastActive = comment.created_at;
@@ -348,7 +389,21 @@ export default function AdminDashboard() {
       }
     });
 
-    const allUsersList = Array.from(userMap.values()).sort((a, b) => new Date(b.firstSeen) - new Date(a.firstSeen));
+    // Extract deduplicated unique user records across idMap and emailMap
+    const uniqueMap = new Map();
+    const seenEmails = new Set();
+
+    for (const u of [...idMap.values(), ...emailMap.values()]) {
+      if (!u || !u.id) continue;
+      const cleanEmail = u.email ? normalizeEmail(u.email) : null;
+      if (cleanEmail && seenEmails.has(cleanEmail)) continue;
+      if (uniqueMap.has(u.id)) continue;
+
+      if (cleanEmail) seenEmails.add(cleanEmail);
+      uniqueMap.set(u.id, u);
+    }
+
+    const allUsersList = Array.from(uniqueMap.values()).sort((a, b) => new Date(b.firstSeen) - new Date(a.firstSeen));
     const activeUsersList = allUsersList.filter(u => !u.isExcluded);
     const excludedUsersList = allUsersList.filter(u => u.isExcluded);
 
@@ -474,13 +529,47 @@ export default function AdminDashboard() {
     });
   }, [stats.users, searchQuery, userSortBy, userFilterTab]);
 
-  // Filtered users for Email Broadcast tab
+  // Filtered users for Email Broadcast tab with live Mailed tracking and strict email deduplication
   const usersWithEmail = useMemo(() => {
-    return stats.users.filter(u => u.email && u.email.trim() && u.email.includes('@'));
-  }, [stats.users]);
+    const seenEmails = new Set();
+    const list = [];
+
+    (stats.users || []).forEach(u => {
+      if (!u || !u.email || !u.email.trim() || !u.email.includes('@')) return;
+      const cleanEmail = normalizeEmail(u.email);
+      if (seenEmails.has(cleanEmail)) return;
+      seenEmails.add(cleanEmail);
+
+      const mailedInfo = (u.id && mailedUsersData[u.id]) || (cleanEmail && mailedUsersData[cleanEmail]) || null;
+      const isMailed = Boolean(mailedInfo);
+      const mailedAt = mailedInfo?.mailedAt || null;
+
+      list.push({
+        ...u,
+        email: cleanEmail,
+        isMailed,
+        mailedAt,
+        mailedTemplate: mailedInfo?.templateKey || null,
+        isNewUnmailed: !isMailed
+      });
+    });
+
+    return list;
+  }, [stats.users, mailedUsersData]);
+
+  const unmailedUsersCount = useMemo(() => {
+    return usersWithEmail.filter(u => !u.isMailed && !u.isExcluded).length;
+  }, [usersWithEmail]);
+
+  const mailedUsersCount = useMemo(() => {
+    return usersWithEmail.filter(u => u.isMailed).length;
+  }, [usersWithEmail]);
 
   const filteredEmailUsers = useMemo(() => {
     return usersWithEmail.filter(u => {
+      if (emailFilter === 'unmailed' && u.isMailed) return false;
+      if (emailFilter === 'unmailed' && u.isExcluded) return false;
+      if (emailFilter === 'mailed' && !u.isMailed) return false;
       if (emailFilter === 'active' && u.isExcluded) return false;
       if (emailFilter === 'excluded' && !u.isExcluded) return false;
       if (emailFilter === 'google' && !u.provider?.toLowerCase().includes('google')) return false;
@@ -519,6 +608,62 @@ export default function AdminDashboard() {
     });
   };
 
+  const handleToggleMarkMailed = async (targetUser) => {
+    if (!targetUser) return;
+    try {
+      if (targetUser.isMailed) {
+        const updated = await unmarkUsersAsMailed([targetUser], user?.id);
+        setMailedUsersData(updated);
+        setEmailCopiedFeedback(`Marked ${targetUser.name || targetUser.email} as Unmailed.`);
+      } else {
+        const updated = await markUsersAsMailed([targetUser], emailTemplateKey, user?.id);
+        setMailedUsersData(updated);
+        setEmailCopiedFeedback(`Marked ${targetUser.name || targetUser.email} as Mailed!`);
+      }
+      setTimeout(() => setEmailCopiedFeedback(null), 3000);
+    } catch (err) {
+      console.error('Error toggling mailed status:', err);
+    }
+  };
+
+  const handleMarkSelectedAsMailed = async () => {
+    const selectedUsers = usersWithEmail.filter(u => selectedEmailUserIds.has(u.id));
+    if (selectedUsers.length === 0) return;
+    try {
+      const updated = await markUsersAsMailed(selectedUsers, emailTemplateKey, user?.id);
+      setMailedUsersData(updated);
+      setEmailCopiedFeedback(`Marked ${selectedUsers.length} selected users as Mailed!`);
+      setTimeout(() => setEmailCopiedFeedback(null), 3000);
+    } catch (err) {
+      console.error('Error marking selected as mailed:', err);
+    }
+  };
+
+  const handleUnmarkSelectedAsMailed = async () => {
+    const selectedUsers = usersWithEmail.filter(u => selectedEmailUserIds.has(u.id));
+    if (selectedUsers.length === 0) return;
+    try {
+      const updated = await unmarkUsersAsMailed(selectedUsers, user?.id);
+      setMailedUsersData(updated);
+      setEmailCopiedFeedback(`Marked ${selectedUsers.length} selected users as Unmailed.`);
+      setTimeout(() => setEmailCopiedFeedback(null), 3000);
+    } catch (err) {
+      console.error('Error unmarking selected as mailed:', err);
+    }
+  };
+
+  const recordMailedRecipients = async (recipientsList) => {
+    if (!autoMarkMailed || !recipientsList || recipientsList.length === 0) return;
+    try {
+      const updated = await markUsersAsMailed(recipientsList, emailTemplateKey, user?.id);
+      setMailedUsersData(updated);
+      setEmailCopiedFeedback(`Broadcast launched & ${recipientsList.length} recipients marked as Mailed!`);
+      setTimeout(() => setEmailCopiedFeedback(null), 4000);
+    } catch (err) {
+      console.error('Failed to auto-record mailed users:', err);
+    }
+  };
+
   const handleCopyEmails = (emailsList, label = 'emails') => {
     if (!emailsList || emailsList.length === 0) return;
     const text = emailsList.join(', ');
@@ -555,17 +700,23 @@ export default function AdminDashboard() {
 
   const handleLaunchGmailWeb = () => {
     let recipients = [];
+    let recipientUsers = [];
     if (composerMode === 'single' && singleTargetUser?.email) {
+      recipients = [singleTargetUser.email];
+      recipientUsers = [singleTargetUser];
       const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(singleTargetUser.email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
       window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+      recordMailedRecipients(recipientUsers);
       return;
     }
 
     if (composerMode === 'selected') {
-      recipients = filteredEmailUsers.filter(u => selectedEmailUserIds.has(u.id)).map(u => u.email).filter(Boolean);
+      recipientUsers = filteredEmailUsers.filter(u => selectedEmailUserIds.has(u.id));
     } else {
-      recipients = filteredEmailUsers.map(u => u.email).filter(Boolean);
+      recipientUsers = filteredEmailUsers;
     }
+
+    recipients = recipientUsers.map(u => u.email).filter(Boolean);
 
     if (recipients.length === 0) {
       alert('No recipients selected to email.');
@@ -575,19 +726,25 @@ export default function AdminDashboard() {
     const bccString = recipients.join(',');
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent('support@blasync.in')}&bcc=${encodeURIComponent(bccString)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
     window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+    recordMailedRecipients(recipientUsers);
   };
 
   const handleLaunchEmailClient = () => {
     let recipients = [];
+    let recipientUsers = [];
     let mailtoUrl = '';
     if (composerMode === 'single' && singleTargetUser?.email) {
+      recipients = [singleTargetUser.email];
+      recipientUsers = [singleTargetUser];
       mailtoUrl = `mailto:${singleTargetUser.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
     } else {
       if (composerMode === 'selected') {
-        recipients = filteredEmailUsers.filter(u => selectedEmailUserIds.has(u.id)).map(u => u.email).filter(Boolean);
+        recipientUsers = filteredEmailUsers.filter(u => selectedEmailUserIds.has(u.id));
       } else {
-        recipients = filteredEmailUsers.map(u => u.email).filter(Boolean);
+        recipientUsers = filteredEmailUsers;
       }
+
+      recipients = recipientUsers.map(u => u.email).filter(Boolean);
 
       if (recipients.length === 0) {
         alert('No recipients selected to email.');
@@ -606,53 +763,127 @@ export default function AdminDashboard() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    recordMailedRecipients(recipientUsers);
   };
 
-  // Multi-period Chart Bar Data Generator for Project Statistics
-  const projectChartData = useMemo(() => {
-    const slots = chartPeriod === 'today' ? 6 : chartPeriod === 'weekly' ? 7 : chartPeriod === 'monthly' ? 12 : 8;
-    const data = [];
+  // User Acquisition & Daily Signups Analytics
+  const userGrowthStats = useMemo(() => {
+    const allUsers = stats.users || [];
     const now = dayjs();
+    const todayStr = now.format('YYYY-MM-DD');
+    const yesterdayStr = now.subtract(1, 'day').format('YYYY-MM-DD');
 
-    for (let i = slots - 1; i >= 0; i--) {
-      let label = '';
-      let dateKey = '';
+    const joinedTodayUsers = allUsers.filter(u => u.firstSeen && dayjs(u.firstSeen).format('YYYY-MM-DD') === todayStr);
+    const joinedYesterdayUsers = allUsers.filter(u => u.firstSeen && dayjs(u.firstSeen).format('YYYY-MM-DD') === yesterdayStr);
+    const joinedThisWeekUsers = allUsers.filter(u => u.firstSeen && dayjs(u.firstSeen).isAfter(now.subtract(7, 'day')));
+    const joinedThisMonthUsers = allUsers.filter(u => u.firstSeen && dayjs(u.firstSeen).isAfter(now.subtract(30, 'day')));
 
-      if (chartPeriod === 'today') {
-        const h = now.subtract(i * 4, 'hour');
-        label = h.format('HH:00');
-        dateKey = h.format('YYYY-MM-DD-HH');
-      } else if (chartPeriod === 'weekly') {
-        const d = now.subtract(i, 'day');
-        label = d.format('ddd');
-        dateKey = d.format('YYYY-MM-DD');
-      } else if (chartPeriod === 'monthly') {
-        const d = now.subtract(i * 2.5, 'day');
-        label = d.format('D MMM');
-        dateKey = d.format('YYYY-MM-DD');
-      } else {
-        const m = now.subtract(i, 'month');
-        label = m.format('MMM');
-        dateKey = m.format('YYYY-MM');
-      }
+    return {
+      joinedToday: joinedTodayUsers.length,
+      joinedTodayUsers,
+      joinedYesterday: joinedYesterdayUsers.length,
+      joinedYesterdayUsers,
+      joinedThisWeek: joinedThisWeekUsers.length,
+      joinedThisMonth: joinedThisMonthUsers.length,
+      totalUsers: allUsers.length
+    };
+  }, [stats.users]);
 
-      // Count actual rooms & comments
-      const countRooms = rooms.filter(r => dayjs(r.created_at).format('YYYY-MM-DD').includes(dateKey.slice(0, 7))).length;
-      const countComments = comments.filter(c => dayjs(c.created_at).format('YYYY-MM-DD').includes(dateKey.slice(0, 7))).length;
+  // Multi-period Chart Bar Data Generator for User Signups & Growth
+  const userGrowthChartData = useMemo(() => {
+    const allUsers = stats.users || [];
+    const now = dayjs();
+    const data = [];
 
-      const barHeight1 = Math.max(15, Math.min(95, (countRooms * 18) + (i % 3 === 0 ? 45 : 25)));
-      const barHeight2 = Math.max(10, Math.min(85, (countComments * 12) + (i % 2 === 0 ? 35 : 20)));
+    if (chartPeriod === 'today') {
+      // 6 time blocks across today
+      const slots = [
+        { label: '00:00 - 04:00', startHour: 0, endHour: 4 },
+        { label: '04:00 - 08:00', startHour: 4, endHour: 8 },
+        { label: '08:00 - 12:00', startHour: 8, endHour: 12 },
+        { label: '12:00 - 16:00', startHour: 12, endHour: 16 },
+        { label: '16:00 - 20:00', startHour: 16, endHour: 20 },
+        { label: '20:00 - 23:59', startHour: 20, endHour: 24 }
+      ];
 
-      data.push({
-        label,
-        val1: barHeight1,
-        val2: barHeight2,
-        roomsCount: countRooms,
-        commentsCount: countComments
+      slots.forEach(slot => {
+        const matchingUsers = allUsers.filter(u => {
+          if (!u.firstSeen) return false;
+          const d = dayjs(u.firstSeen);
+          if (d.format('YYYY-MM-DD') !== now.format('YYYY-MM-DD')) return false;
+          const h = d.hour();
+          return h >= slot.startHour && h < slot.endHour;
+        });
+
+        data.push({
+          label: slot.label.split(' - ')[0],
+          fullLabel: `${slot.label} Today`,
+          count: matchingUsers.length,
+          users: matchingUsers,
+          isToday: true
+        });
       });
+    } else if (chartPeriod === 'weekly') {
+      // Past 7 days (including today)
+      for (let i = 6; i >= 0; i--) {
+        const d = now.subtract(i, 'day');
+        const dateKey = d.format('YYYY-MM-DD');
+        const isToday = i === 0;
+        const matchingUsers = allUsers.filter(u => u.firstSeen && dayjs(u.firstSeen).format('YYYY-MM-DD') === dateKey);
+
+        data.push({
+          label: isToday ? 'Today' : d.format('ddd D'),
+          fullLabel: d.format('dddd, MMMM D, YYYY'),
+          dateKey,
+          count: matchingUsers.length,
+          users: matchingUsers,
+          isToday
+        });
+      }
+    } else if (chartPeriod === 'monthly') {
+      // Past 14 days
+      for (let i = 13; i >= 0; i--) {
+        const d = now.subtract(i, 'day');
+        const dateKey = d.format('YYYY-MM-DD');
+        const isToday = i === 0;
+        const matchingUsers = allUsers.filter(u => u.firstSeen && dayjs(u.firstSeen).format('YYYY-MM-DD') === dateKey);
+
+        data.push({
+          label: isToday ? 'Today' : d.format('D MMM'),
+          fullLabel: d.format('MMMM D, YYYY'),
+          dateKey,
+          count: matchingUsers.length,
+          users: matchingUsers,
+          isToday
+        });
+      }
+    } else {
+      // All time by month (past 6 months)
+      for (let i = 5; i >= 0; i--) {
+        const m = now.subtract(i, 'month');
+        const monthKey = m.format('YYYY-MM');
+        const matchingUsers = allUsers.filter(u => u.firstSeen && dayjs(u.firstSeen).format('YYYY-MM') === monthKey);
+
+        data.push({
+          label: m.format('MMM YYYY'),
+          fullLabel: m.format('MMMM YYYY'),
+          dateKey: monthKey,
+          count: matchingUsers.length,
+          users: matchingUsers,
+          isToday: i === 0
+        });
+      }
     }
-    return data;
-  }, [rooms, comments, chartPeriod]);
+
+    const maxCount = Math.max(1, ...data.map(d => d.count));
+    return data.map(d => {
+      const heightPercent = d.count === 0 ? 8 : Math.max(20, Math.min(95, Math.round((d.count / maxCount) * 85) + 10));
+      return {
+        ...d,
+        heightPercent
+      };
+    });
+  }, [stats.users, chartPeriod]);
 
   if (loading) {
     return (
@@ -1122,73 +1353,119 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* PROJECT STATISTICS & COMPLETION RADIAL SECTION */}
+              {/* USER ACQUISITION & DAILY SIGNUPS GROWTH SECTION */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 items-stretch">
-                {/* Project Statistics Bar Chart (8 cols) */}
+                {/* User Signups Bar Chart (8 cols) */}
                 <div className="lg:col-span-8 bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl flex flex-col justify-between">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                     <div>
-                      <h3 className="text-sm font-bold text-white tracking-tight">Project Statistics</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-white tracking-tight">User Signups & Daily Growth</h3>
+                        <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                          <Sparkles size={10} className="text-amber-400" />
+                          <span>Live Signups</span>
+                        </span>
+                      </div>
                       <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-zinc-400 mt-2 flex-wrap">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                          <strong className="text-white">{stats.totalRooms}</strong> Total Projects
+                        <span className="flex items-center gap-1.5 bg-amber-950/30 border border-amber-500/30 px-2 py-0.5">
+                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                          <strong className="text-amber-200 font-mono">{userGrowthStats.joinedToday}</strong> Joined Today
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-pink-500"></span>
-                          <strong className="text-white">{stats.states.inProgress}</strong> On Going
+                          <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                          <strong className="text-purple-200 font-mono">{userGrowthStats.joinedYesterday}</strong> Yesterday
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                          <strong className="text-white">{stats.states.rejected}</strong> Unfinished
+                          <span className="w-2 h-2 rounded-full bg-pink-400"></span>
+                          <strong className="text-pink-200 font-mono">{userGrowthStats.joinedThisWeek}</strong> Past 7 Days
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                          <strong className="text-white">{stats.states.approved}</strong> Completed
+                          <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+                          <strong className="text-indigo-200 font-mono">{userGrowthStats.joinedThisMonth}</strong> Past 30 Days
+                        </span>
+                        <span className="flex items-center gap-1.5 text-zinc-500">
+                          <strong className="text-white font-mono">{userGrowthStats.totalUsers}</strong> Total Users
                         </span>
                       </div>
                     </div>
 
-                    {/* Period Pills Filter */}
+                    {/* Period Filter Pills */}
                     <div className="inline-flex p-1 bg-[#07050e] border border-purple-950/50 rounded-none text-xs overflow-x-auto max-w-full">
-                      {['all', 'monthly', 'weekly', 'today'].map((period) => (
+                      {[
+                        { key: 'today', label: 'Today' },
+                        { key: 'weekly', label: '7 Days' },
+                        { key: 'monthly', label: '30 Days' },
+                        { key: 'all', label: 'All Time' }
+                      ].map(({ key, label }) => (
                         <button
-                          key={period}
-                          onClick={() => setChartPeriod(period)}
+                          key={key}
+                          onClick={() => setChartPeriod(key)}
                           className={`px-2.5 sm:px-3 py-1 text-xs font-semibold capitalize transition-colors rounded-none whitespace-nowrap cursor-pointer ${
-                            chartPeriod === period
-                              ? 'bg-[#191328] text-white border border-purple-500/30'
+                            chartPeriod === key
+                              ? 'bg-purple-950/80 text-white border border-purple-500/40 shadow-sm'
                               : 'text-zinc-400 hover:text-white'
                           }`}
                         >
-                          {period === 'all' ? 'All Time' : period}
+                          {label}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* SVG Bar Chart with Horizontal Scroll on extra small screens */}
+                  {/* SVG Bar Chart with Interactive Tooltips */}
                   <div className="overflow-x-auto">
-                    <div className="min-w-[320px] h-52 sm:h-56 w-full relative flex items-end justify-between gap-1 sm:gap-2 px-1 sm:px-2 pt-6 pb-2 border-b border-purple-950/40">
-                      {projectChartData.map((d, idx) => (
-                        <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end group relative">
-                          <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 border border-purple-500/30 text-white text-[10px] px-2 py-1 rounded-none shadow-xl pointer-events-none whitespace-nowrap z-20 font-mono">
-                            {d.label}: {d.roomsCount} sessions · {d.commentsCount} comments
-                          </div>
+                    <div className="min-w-[320px] h-52 sm:h-56 w-full relative flex items-end justify-between gap-1 sm:gap-2 px-1 sm:px-2 pt-8 pb-2 border-b border-purple-950/40">
+                      {userGrowthChartData.map((d, idx) => {
+                        const hasUsers = d.count > 0;
 
-                          <div className="w-full max-w-[28px] flex items-end justify-center gap-0.5 sm:gap-1 h-full">
-                            <div 
-                              className="w-1/2 bg-gradient-to-t from-pink-600 to-pink-400 rounded-none transition-all duration-500 hover:brightness-125"
-                              style={{ height: `${d.val1}%` }}
-                            />
-                            <div 
-                              className="w-1/2 bg-gradient-to-t from-purple-700 to-indigo-500 rounded-none transition-all duration-500 hover:brightness-125"
-                              style={{ height: `${d.val2}%` }}
-                            />
+                        return (
+                          <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end group relative cursor-pointer">
+                            {/* Hover Tooltip */}
+                            <div className="absolute -top-14 opacity-0 group-hover:opacity-100 transition-all duration-150 bg-[#120d24] border border-purple-500/40 text-white text-[10px] p-2 rounded-none shadow-2xl pointer-events-none whitespace-nowrap z-30 font-sans text-center min-w-[120px]">
+                              <div className="font-bold text-zinc-300">{d.fullLabel || d.label}</div>
+                              <div className="text-purple-300 font-mono mt-0.5 font-bold">
+                                {d.count} {d.count === 1 ? 'new user joined' : 'new users joined'}
+                              </div>
+                              {d.users && d.users.length > 0 && (
+                                <div className="text-[9px] text-zinc-400 mt-1 max-w-[180px] truncate">
+                                  {d.users.map(u => u.name || u.email).slice(0, 3).join(', ')}
+                                  {d.users.length > 3 ? ` +${d.users.length - 3} more` : ''}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Value Label above Bar */}
+                            {hasUsers && (
+                              <span className={`text-[10px] font-mono font-bold mb-1 transition-transform group-hover:scale-110 ${
+                                d.isToday ? 'text-amber-300' : 'text-purple-300'
+                              }`}>
+                                +{d.count}
+                              </span>
+                            )}
+
+                            {/* Bar Column */}
+                            <div className="w-full max-w-[32px] flex items-end justify-center h-full">
+                              <div
+                                className={`w-full rounded-none transition-all duration-500 group-hover:brightness-125 ${
+                                  d.isToday
+                                    ? 'bg-gradient-to-t from-amber-500 via-pink-500 to-purple-400 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                                    : hasUsers
+                                    ? 'bg-gradient-to-t from-purple-800 via-purple-600 to-indigo-400'
+                                    : 'bg-zinc-800/40 border-t border-purple-950/40'
+                                }`}
+                                style={{ height: `${d.heightPercent}%` }}
+                              />
+                            </div>
+
+                            {/* X-Axis Date Label */}
+                            <span className={`text-[9px] sm:text-[10px] font-mono mt-2 truncate max-w-full ${
+                              d.isToday ? 'text-amber-300 font-bold' : 'text-zinc-500'
+                            }`}>
+                              {d.label}
+                            </span>
                           </div>
-                          <span className="text-[9px] sm:text-[10px] text-zinc-500 font-mono mt-2 truncate max-w-full">{d.label}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -1679,26 +1956,54 @@ export default function AdminDashboard() {
               )}
 
               {/* Top Action Bar & Stat Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* 1. Reachable User Emails */}
                 <div className="bg-[#0c0a14] border border-purple-950/50 p-4 flex items-center justify-between shadow-xl">
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Reachable User Emails</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total User Emails</div>
                     <div className="text-xl font-bold text-white mt-1 font-mono">{usersWithEmail.length}</div>
-                    <div className="text-[10px] text-purple-400 mt-0.5">Synced from Supabase Auth</div>
+                    <div className="text-[10px] text-purple-400 mt-0.5">Synced Supabase Auth</div>
                   </div>
                   <div className="w-10 h-10 rounded-none bg-purple-950/40 border border-purple-500/30 text-purple-300 flex items-center justify-center">
                     <Mail size={18} />
                   </div>
                 </div>
 
+                {/* 2. New & Unmailed Users (Special Highlight) */}
+                <div
+                  onClick={() => setEmailFilter('unmailed')}
+                  className={`border p-4 flex items-center justify-between shadow-xl cursor-pointer transition-all ${
+                    emailFilter === 'unmailed'
+                      ? 'bg-amber-950/30 border-amber-500/60 ring-1 ring-amber-500/30'
+                      : 'bg-[#0c0a14] border-amber-500/30 hover:border-amber-500/50'
+                  }`}
+                >
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                      <span>New & Unmailed</span>
+                    </div>
+                    <div className="text-xl font-bold text-amber-200 mt-1 font-mono">
+                      {unmailedUsersCount}
+                    </div>
+                    <div className="text-[10px] text-amber-400/80 mt-0.5">
+                      Never received any email
+                    </div>
+                  </div>
+                  <div className="w-10 h-10 rounded-none bg-amber-950/50 border border-amber-500/40 text-amber-300 flex items-center justify-center">
+                    <Sparkles size={18} />
+                  </div>
+                </div>
+
+                {/* 3. Selected Recipients */}
                 <div className="bg-[#0c0a14] border border-purple-950/50 p-4 flex items-center justify-between shadow-xl">
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Selected Recipients</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Target Recipients</div>
                     <div className="text-xl font-bold text-white mt-1 font-mono">
-                      {selectedEmailUserIds.size > 0 ? selectedEmailUserIds.size : 'All (' + filteredEmailUsers.length + ')'}
+                      {selectedEmailUserIds.size > 0 ? selectedEmailUserIds.size : filteredEmailUsers.length}
                     </div>
                     <div className="text-[10px] text-zinc-400 mt-0.5">
-                      {selectedEmailUserIds.size > 0 ? 'Custom batch selection' : 'Targeting all displayed users'}
+                      {selectedEmailUserIds.size > 0 ? 'Custom checked batch' : `Active tab (${emailFilter})`}
                     </div>
                   </div>
                   <div className="w-10 h-10 rounded-none bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 flex items-center justify-center">
@@ -1706,27 +2011,42 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* 4. Quick Actions */}
                 <div className="bg-[#0c0a14] border border-purple-950/50 p-4 flex flex-col justify-between shadow-xl">
                   <div className="flex items-center justify-between">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Quick Actions</div>
-                    <span className="text-[10px] text-emerald-400 font-mono">Instant BCC Ready</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">BCC Ready</span>
                   </div>
                   <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={() => handleOpenComposer('all')}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all shadow-sm cursor-pointer"
-                      title="Mail all users at once via BCC"
-                    >
-                      <Send size={12} />
-                      <span>Mail All</span>
-                    </button>
+                    {unmailedUsersCount > 0 ? (
+                      <button
+                        onClick={() => {
+                          setEmailFilter('unmailed');
+                          handleOpenComposer('all');
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold transition-all shadow-sm cursor-pointer"
+                        title="Mail all unmailed users at once"
+                      >
+                        <Sparkles size={12} />
+                        <span>Mail Unmailed ({unmailedUsersCount})</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleOpenComposer('all')}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all shadow-sm cursor-pointer"
+                        title="Mail all users in view at once"
+                      >
+                        <Send size={12} />
+                        <span>Mail All</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => handleCopyEmails(filteredEmailUsers.map(u => u.email), 'user emails')}
                       className="px-3 py-1.5 bg-[#07050e] hover:bg-white/10 text-zinc-300 hover:text-white border border-purple-950/60 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-                      title="Copy all emails to clipboard"
+                      title="Copy all currently filtered emails to clipboard"
                     >
                       <Copy size={12} />
-                      <span>Copy All</span>
+                      <span>Copy</span>
                     </button>
                   </div>
                 </div>
@@ -1743,9 +2063,47 @@ export default function AdminDashboard() {
                       <span className="text-zinc-500 font-normal">({filteredEmailUsers.length})</span>
                     </span>
 
-                    {/* Filter Chips */}
-                    <div className="flex items-center gap-1 ml-0 sm:ml-2">
-                      {['all', 'active', 'excluded', 'google', 'email'].map((tabKey) => (
+                    {/* Filter Tabs / Chips */}
+                    <div className="flex items-center gap-1 ml-0 sm:ml-2 flex-wrap">
+                      <button
+                        onClick={() => setEmailFilter('unmailed')}
+                        className={`px-2.5 py-1 text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                          emailFilter === 'unmailed'
+                            ? 'bg-amber-950/70 text-amber-200 border-amber-500/60 shadow-sm'
+                            : 'bg-black/40 text-amber-400/90 border-amber-950/50 hover:bg-amber-950/30'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span>New & Unmailed</span>
+                        <span className={`px-1.5 py-0.2 rounded text-[10px] ${emailFilter === 'unmailed' ? 'bg-amber-500/20 text-amber-300' : 'bg-black/60 text-zinc-400'}`}>
+                          {unmailedUsersCount}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => setEmailFilter('all')}
+                        className={`px-2.5 py-1 text-[11px] font-semibold border transition-all cursor-pointer ${
+                          emailFilter === 'all'
+                            ? 'bg-purple-950/60 text-purple-200 border-purple-500/50'
+                            : 'bg-black/40 text-zinc-400 border-purple-950/40 hover:text-zinc-200'
+                        }`}
+                      >
+                        All ({usersWithEmail.length})
+                      </button>
+
+                      <button
+                        onClick={() => setEmailFilter('mailed')}
+                        className={`px-2.5 py-1 text-[11px] font-semibold border transition-all cursor-pointer flex items-center gap-1 ${
+                          emailFilter === 'mailed'
+                            ? 'bg-emerald-950/60 text-emerald-200 border-emerald-500/50'
+                            : 'bg-black/40 text-zinc-400 border-purple-950/40 hover:text-zinc-200'
+                        }`}
+                      >
+                        <Check size={11} className="text-emerald-400" />
+                        <span>Mailed ({mailedUsersCount})</span>
+                      </button>
+
+                      {['active', 'excluded', 'google', 'email'].map((tabKey) => (
                         <button
                           key={tabKey}
                           onClick={() => setEmailFilter(tabKey)}
@@ -1758,6 +2116,7 @@ export default function AdminDashboard() {
                           {tabKey}
                         </button>
                       ))}
+
                       {stats.totalExcluded > 0 && (
                         <button
                           onClick={handleIncludeAllUsers}
@@ -1773,13 +2132,32 @@ export default function AdminDashboard() {
 
                   <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                     {selectedEmailUserIds.size > 0 && (
-                      <button
-                        onClick={() => handleOpenComposer('selected')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-colors cursor-pointer"
-                      >
-                        <Send size={12} />
-                        <span>Mail Selected ({selectedEmailUserIds.size})</span>
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleOpenComposer('selected')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          <Send size={12} />
+                          <span>Mail Selected ({selectedEmailUserIds.size})</span>
+                        </button>
+
+                        <button
+                          onClick={handleMarkSelectedAsMailed}
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-950/50 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 text-xs font-medium transition-colors cursor-pointer"
+                          title="Mark selected users as mailed"
+                        >
+                          <Check size={12} />
+                          <span>Mark Mailed</span>
+                        </button>
+
+                        <button
+                          onClick={handleUnmarkSelectedAsMailed}
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 text-xs font-medium transition-colors cursor-pointer"
+                          title="Unmark selected users from mailed"
+                        >
+                          <span>Unmark</span>
+                        </button>
+                      </div>
                     )}
 
                     <button
@@ -1787,7 +2165,11 @@ export default function AdminDashboard() {
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-colors cursor-pointer"
                     >
                       <Send size={12} />
-                      <span>Mail All Users ({filteredEmailUsers.length})</span>
+                      <span>
+                        {emailFilter === 'unmailed'
+                          ? `Mail Unmailed (${filteredEmailUsers.length})`
+                          : `Mail All (${filteredEmailUsers.length})`}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -1808,6 +2190,7 @@ export default function AdminDashboard() {
                         </th>
                         <th className="px-4 py-3">User</th>
                         <th className="px-4 py-3">Email Address</th>
+                        <th className="px-4 py-3">Mail Status</th>
                         <th className="px-4 py-3">Auth Method</th>
                         <th className="px-4 py-3">Registered</th>
                         <th className="px-4 py-3">Activity</th>
@@ -1817,8 +2200,10 @@ export default function AdminDashboard() {
                     <tbody className="divide-y divide-purple-950/20">
                       {filteredEmailUsers.length === 0 ? (
                         <tr>
-                          <td colSpan="7" className="px-4 py-12 text-center text-zinc-500">
-                            No user emails found matching criteria.
+                          <td colSpan="8" className="px-4 py-12 text-center text-zinc-500">
+                            {emailFilter === 'unmailed'
+                              ? '🎉 Great job! All registered users have been mailed.'
+                              : 'No user emails found matching criteria.'}
                           </td>
                         </tr>
                       ) : (
@@ -1878,6 +2263,24 @@ export default function AdminDashboard() {
                                 </div>
                               </td>
                               <td className="px-4 py-3.5 whitespace-nowrap">
+                                {u.isMailed ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span
+                                      className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"
+                                      title={u.mailedAt ? `Mailed on ${dayjs(u.mailedAt).format('YYYY-MM-DD HH:mm')}` : 'Mailed'}
+                                    >
+                                      <Check size={10} className="text-emerald-400" />
+                                      <span>Mailed {u.mailedAt ? dayjs(u.mailedAt).fromNow() : ''}</span>
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/40 flex items-center gap-1 w-fit">
+                                    <Sparkles size={10} className="text-amber-400" />
+                                    <span>Never Mailed</span>
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
                                 <span className="text-[10px] px-2 py-0.5 rounded-none font-semibold border bg-purple-950/40 text-purple-300 border-purple-500/30">
                                   {u.provider || 'Google'}
                                 </span>
@@ -1900,6 +2303,17 @@ export default function AdminDashboard() {
                                   >
                                     <Mail size={12} className="text-purple-400" />
                                     <span>Mail</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleToggleMarkMailed(u)}
+                                    className={`p-1 border transition-colors cursor-pointer ${
+                                      u.isMailed
+                                        ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20'
+                                        : 'text-zinc-500 border-purple-950/40 hover:text-amber-300 hover:border-amber-500/30'
+                                    }`}
+                                    title={u.isMailed ? "Click to mark as Unmailed" : "Click to mark as Mailed"}
+                                  >
+                                    <Check size={12} />
                                   </button>
                                   <a
                                     href={`mailto:${u.email}?subject=${encodeURIComponent('[Blasync] Video Collaboration')}`}
@@ -1935,7 +2349,7 @@ export default function AdminDashboard() {
                               ? `Send Email to ${singleTargetUser?.name || 'User'}`
                               : composerMode === 'selected'
                               ? `Mail Selected Recipients (${selectedEmailUserIds.size})`
-                              : `Broadcast to All Users (${filteredEmailUsers.length})`}
+                              : `Broadcast to Users (${filteredEmailUsers.length})`}
                           </h3>
                           <p className="text-[11px] text-zinc-400">
                             {composerMode === 'single'
@@ -2008,6 +2422,20 @@ export default function AdminDashboard() {
                           placeholder="Write your email message here..."
                           className="w-full bg-[#07050e] border border-purple-950/60 rounded-none p-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/60 font-sans leading-relaxed"
                         />
+                      </div>
+
+                      {/* Auto-mark as Mailed toggle */}
+                      <div className="p-2.5 bg-[#07050e] border border-purple-950/50 flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={autoMarkMailed}
+                            onChange={(e) => setAutoMarkMailed(e.target.checked)}
+                            className="rounded-none accent-purple-500 cursor-pointer"
+                          />
+                          <span>Automatically mark recipient(s) as <strong>Mailed</strong> upon sending</span>
+                        </label>
+                        <span className="text-[10px] text-emerald-400 font-mono">Syncs to DB</span>
                       </div>
                     </div>
 
