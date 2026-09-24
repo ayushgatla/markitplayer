@@ -262,6 +262,13 @@ export default function AdminDashboard() {
 
   // Real-time synchronization for Admin Console & Privilege Revocation
   useEffect(() => {
+    const handleLocalAdminUpdate = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setAdminList(e.detail);
+      }
+    };
+    window.addEventListener('markit_admin_update', handleLocalAdminUpdate);
+
     const channel = supabase
       .channel('admin-dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, async (payload) => {
@@ -281,6 +288,7 @@ export default function AdminDashboard() {
       .subscribe();
 
     return () => {
+      window.removeEventListener('markit_admin_update', handleLocalAdminUpdate);
       supabase.removeChannel(channel);
     };
   }, [userIsAdmin]);

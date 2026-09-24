@@ -1,6 +1,14 @@
 import { supabase } from '../supabaseClient.js';
 import { normalizeEmail } from './adminHelper.js';
 
+const SUPABASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || 
+                     (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) || 
+                     'https://yfhpubzwhrvvyspswizj.supabase.co';
+
+const SUPABASE_ANON_KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || 
+                          (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_ANON_KEY) || 
+                          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmaHB1Ynp3aHJ2dnlzcHN3aXpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NzA2OTcsImV4cCI6MjA5NzQ0NjY5N30.vPCSohWRyqsAnvjZD1ux4f1CldwmWGRg8IDI0N4j6XE';
+
 const REGISTRY_FOLDER = '__system_user_registry__';
 const REGISTRY_STORAGE_KEY = 'markit_user_profiles_cache';
 
@@ -694,6 +702,31 @@ export const getCachedExcludedUserIds = () => {
  * @returns {Promise<string[]>}
  */
 export const syncExcludedUsersWithDatabase = async () => {
+  // 1. Try REST API with anon key
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rooms?folder=eq.${EXCLUDED_FOLDER}&select=id,video_url,created_at&order=created_at.desc`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (Array.isArray(rows) && rows.length > 0 && rows[0].video_url) {
+        const parsed = JSON.parse(rows[0].video_url);
+        if (Array.isArray(parsed)) {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(EXCLUDED_STORAGE_KEY, JSON.stringify(parsed));
+          }
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {
+    console.debug('REST excluded sync fallback:', e);
+  }
+
+  // 2. Client fallback
   try {
     const { data, error } = await supabase
       .from('rooms')
@@ -799,6 +832,31 @@ export const getCachedMailedUsers = () => {
  * @returns {Promise<Record<string, { id?: string, email?: string, mailedAt: string, templateKey?: string }>>}
  */
 export const syncMailedUsersWithDatabase = async () => {
+  // 1. Try REST API with anon key
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rooms?folder=eq.${MAILED_FOLDER}&select=id,video_url,created_at&order=created_at.desc`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (Array.isArray(rows) && rows.length > 0 && rows[0].video_url) {
+        const parsed = JSON.parse(rows[0].video_url);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(MAILED_STORAGE_KEY, JSON.stringify(parsed));
+          }
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {
+    console.debug('REST mailed sync fallback:', e);
+  }
+
+  // 2. Client fallback
   try {
     const { data, error } = await supabase
       .from('rooms')

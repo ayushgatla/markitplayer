@@ -105,6 +105,13 @@ export default function Dashboard() {
       if (list) setAdminEmails(list);
     });
 
+    const handleLocalAdminUpdate = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setAdminEmails(e.detail);
+      }
+    };
+    window.addEventListener('markit_admin_update', handleLocalAdminUpdate);
+
     const channel = supabase
       .channel('admin_privileges_sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, async (payload) => {
@@ -116,6 +123,7 @@ export default function Dashboard() {
       .subscribe();
 
     return () => {
+      window.removeEventListener('markit_admin_update', handleLocalAdminUpdate);
       supabase.removeChannel(channel);
     };
   }, []);
