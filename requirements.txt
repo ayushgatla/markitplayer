@@ -1,0 +1,21 @@
+# MarkitPlayer Python Backend Requirements
+# Framework & Server
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# Async HTTP Client & Streaming (Persistent Connection Pooling & HTTP Range Streaming)
+httpx>=0.27.0
+aiofiles>=24.1.0
+
+# Google Drive API & Authentication
+google-api-python-client>=2.140.0
+google-auth>=2.30.0
+google-auth-httplib2>=0.2.0
+
+# Data Validation, Parsing & Utilities
+pydantic>=2.8.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.9
+
+# Media Extraction & Streaming (Instagram, Reels, Direct Video Resolving)
+yt-dlp>=2024.8.0
