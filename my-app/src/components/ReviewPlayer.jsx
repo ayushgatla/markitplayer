@@ -164,7 +164,6 @@ export const ReviewPlayer = ({
 
   const [hasFallenBack, setHasFallenBack] = useState(false);
   const [streamError, setStreamError] = useState(null);
-  const [useEmbedPlayer, setUseEmbedPlayer] = useState(false);
 
   const fallbackProxyUrlRef = useRef(fallbackProxyUrl);
   fallbackProxyUrlRef.current = fallbackProxyUrl;
@@ -177,7 +176,6 @@ export const ReviewPlayer = ({
     hasFallenBackRef.current = false;
     setHasFallenBack(false);
     setStreamError(null);
-    setUseEmbedPlayer(false);
     setCurrentTime(0);
     setIsPlaying(false);
     setIsDrawingMode(false);
@@ -691,94 +689,58 @@ export const ReviewPlayer = ({
               <div className={`w-full relative flex-shrink min-h-0 bg-black overflow-hidden pointer-events-auto ${
                 isFullscreen ? 'h-full w-full flex items-center justify-center' : 'aspect-video max-h-[calc(100vh-14rem)]'
               }`}>
-                {useEmbedPlayer && driveFileId ? (
-                  <div className="w-full h-full relative bg-black">
-                    <iframe
-                      src={`https://drive.google.com/file/d/${driveFileId}/preview`}
-                      className="w-full h-full border-0 absolute inset-0"
-                      allow="autoplay; encrypted-media; fullscreen"
-                      allowFullScreen
-                      title="Google Drive Embedded Player"
-                    />
-                    <div className="absolute top-3 right-3 z-30">
+                <VideoPlayer
+                  key={initialUrl}
+                  ref={playerRef}
+                  options={videoOptions}
+                  onReady={handlePlayerReady}
+                  onTimeUpdate={handleTimeUpdate}
+                />
+
+                {/* Google Drive / Streaming Error Recovery Overlay */}
+                {streamError && (
+                  <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950/95 backdrop-blur-md p-6 text-center animate-in fade-in duration-300">
+                    <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-3 text-amber-400">
+                      <AlertTriangle className="w-7 h-7" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white mb-2">Google Drive Stream Unavailable</h3>
+                    <p className="text-xs sm:text-sm text-zinc-300 max-w-md mb-6 leading-relaxed">
+                      Google Drive restricted automated streaming for this video. This happens when large files (&gt;100MB) hit Google's temporary download quota or virus scan gate.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      <a
+                        href={streamError.url || `https://drive.google.com/file/d/${streamError.fileId}/view`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black font-semibold text-xs sm:text-sm rounded-none shadow-sm transition-all"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Open in Google Drive
+                      </a>
                       <button
                         type="button"
-                        onClick={() => setUseEmbedPlayer(false)}
-                        className="px-3 py-1 bg-black/80 hover:bg-black text-white text-xs border border-white/20 rounded-none shadow-lg backdrop-blur-sm transition-all"
+                        onClick={() => {
+                          setStreamError(null);
+                          hasFallenBackRef.current = false;
+                          setHasFallenBack(false);
+                          const raw = playerRef.current?.getRawPlayer?.();
+                          if (raw) {
+                            raw.error(null);
+                            raw.src({ src: initialUrl, type: 'video/mp4' });
+                            raw.load();
+                            raw.play().catch(() => {});
+                          }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs sm:text-sm rounded-none border border-white/10 transition-all"
                       >
-                        Exit Embedded Mode
+                        <RefreshCw className="w-4 h-4" />
+                        Retry Playback
                       </button>
                     </div>
+                    <p className="text-[11px] text-zinc-500 mt-5 max-w-sm">
+                      Tip: For seamless playback with zero quota limits, consider adding a version using an unlisted YouTube link.
+                    </p>
                   </div>
-                ) : (
-                  <>
-                    <VideoPlayer
-                      key={initialUrl}
-                      ref={playerRef}
-                      options={videoOptions}
-                      onReady={handlePlayerReady}
-                      onTimeUpdate={handleTimeUpdate}
-                    />
-
-                    {/* Google Drive / Streaming Error Recovery Overlay */}
-                    {streamError && (
-                      <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950/95 backdrop-blur-md p-6 text-center animate-in fade-in duration-300">
-                        <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-3 text-amber-400">
-                          <AlertTriangle className="w-7 h-7" />
-                        </div>
-                        <h3 className="text-lg font-bold text-white mb-2">Google Drive Stream Unavailable</h3>
-                        <p className="text-xs sm:text-sm text-zinc-300 max-w-md mb-6 leading-relaxed">
-                          Google Drive restricted automated streaming for this video. This happens when large files (&gt;100MB) hit Google's temporary download quota or virus scan gate.
-                        </p>
-                        <div className="flex flex-wrap items-center justify-center gap-3">
-                          {driveFileId && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setStreamError(null);
-                                setUseEmbedPlayer(true);
-                              }}
-                              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs sm:text-sm rounded-none shadow-sm transition-all"
-                            >
-                              <Play className="w-4 h-4 fill-white" />
-                              Play in Embedded Player
-                            </button>
-                          )}
-                          <a
-                            href={streamError.url || `https://drive.google.com/file/d/${streamError.fileId}/view`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black font-semibold text-xs sm:text-sm rounded-none shadow-sm transition-all"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            Open in Google Drive
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setStreamError(null);
-                              hasFallenBackRef.current = false;
-                              setHasFallenBack(false);
-                              const raw = playerRef.current?.getRawPlayer?.();
-                              if (raw) {
-                                raw.error(null);
-                                raw.src({ src: initialUrl, type: 'video/mp4' });
-                                raw.load();
-                                raw.play().catch(() => {});
-                              }
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs sm:text-sm rounded-none border border-white/10 transition-all"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                            Retry Playback
-                          </button>
-                        </div>
-                        <p className="text-[11px] text-zinc-500 mt-5 max-w-sm">
-                          Tip: For seamless playback with zero quota limits, consider adding a version using an unlisted YouTube link.
-                        </p>
-                      </div>
-                    )}
-                  </>
                 )}
 
                 {/* Interactive Drawing Canvas Layer */}
