@@ -5,7 +5,6 @@ import CommentSidebar from './CommentSidebar';
 import PlayerControls from './PlayerControls';
 import AnnotationCanvas from './AnnotationCanvas';
 import DrawingToolbar from './DrawingToolbar';
-import RoomVersionBox from './RoomVersionBox';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { extractDrawingFromText, extractRangeFromText } from '../utils/drawingHelper';
@@ -625,49 +624,18 @@ export const ReviewPlayer = ({
 
   return (
     <div
-      className="flex flex-col lg:flex-row w-full h-full min-h-0 bg-[#0f0e17] overflow-y-auto lg:overflow-hidden relative"
+      className="flex flex-col lg:flex-row w-full h-full min-h-0 bg-black overflow-y-auto lg:overflow-hidden relative"
     >
-      {/* Dashboard Matching Background Image & Overlay */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-fixed z-0 opacity-40"
-        style={{ backgroundImage: 'url(/dashboard.jpg)' }}
-      ></div>
-      <div className="absolute inset-0 bg-[#0f0e17]/80 backdrop-blur-[2px] z-0 pointer-events-none"></div>
-
-      {/* Video Section Column with Sub-header Version Bar under Upper Bar */}
-      <div className="w-full lg:flex-1 flex flex-col min-h-0 lg:h-full relative z-10 flex-shrink-0">
-        {/* Version Bar under Upper Bar */}
-        {!isFullscreen && (
-          <RoomVersionBox
-            videoUrl={rawVideoUrl || videoUrl}
-            currentVersionNum={currentVersionNum}
-            onSwitchVersion={onSwitchVersion}
-            onOpenAddVersion={onOpenAddVersion}
-            onDeleteVersion={onDeleteVersion}
-            isClient={isClient}
-            comments={comments}
-          />
-        )}
-
-        {/* Centered Video + Control Bar Console Area */}
-        <div className="flex-1 min-h-0 w-full flex flex-col items-center justify-center p-2 sm:p-4 lg:p-6 overflow-hidden">
+      {/* Video Section Column - Fills width between left edge and comment bar */}
+      <div className="w-full lg:flex-1 flex flex-col min-h-0 lg:h-full relative z-10 flex-shrink-0 bg-black">
+        {/* Full-width Video + Control Bar Console Area (Touching left and comment bar) */}
+        <div className="flex-1 min-h-0 w-full flex flex-col items-center justify-center p-0 overflow-hidden bg-black">
           <div
             ref={wrapperRef}
-            style={{
-              maxWidth: isFullscreen
-                ? 'none'
-                : isExpanded
-                  ? 'min(1280px, 100%, calc((100vh - 12rem) * 16 / 9))'
-                  : 'min(1024px, 100%, calc((100vh - 14rem) * 16 / 9))',
-              maxHeight: isFullscreen
-                ? 'none'
-                : 'calc(100vh - 8rem)',
-              width: isFullscreen ? '100vw' : '100%'
-            }}
-            className={`relative select-none flex flex-col items-center my-auto transition-all ${
+            className={`relative select-none flex flex-col items-center w-full h-full justify-center transition-all ${
               isFullscreen
-                ? 'w-screen h-screen bg-black z-50 justify-center'
-                : 'w-full justify-center'
+                ? 'w-screen h-screen bg-black z-50'
+                : 'w-full h-full'
             } ${!isControlsActive && isMouseInside && !isDrawingMode && isFullscreen ? 'cursor-none' : ''}`}
             onMouseEnter={() => setIsMouseInside(true)}
             onMouseLeave={() => setIsMouseInside(false)}
@@ -679,16 +647,10 @@ export const ReviewPlayer = ({
             }}
             onDoubleClick={isDrawingMode ? undefined : handleToggleFullscreen}
           >
-            {/* Unified Video & Control Console (100% in-line on left and right) */}
-            <div className={`w-full flex flex-col ${
-              isFullscreen 
-                ? 'h-full w-full justify-center' 
-                : 'rounded-none border border-white/10 border-b-0 bg-zinc-950 shadow-[0_16px_48px_rgba(0,0,0,0.6)] overflow-hidden'
-            }`}>
-              {/* Video Container + Drawing Canvas Overlay */}
-              <div className={`w-full relative flex-shrink min-h-0 bg-black overflow-hidden pointer-events-auto ${
-                isFullscreen ? 'h-full w-full flex items-center justify-center' : 'aspect-video max-h-[calc(100vh-14rem)]'
-              }`}>
+            {/* Unified Video & Control Console (100% width touching left and comment sidebar) */}
+            <div className={`w-full h-full flex flex-col justify-between bg-black overflow-hidden`}>
+              {/* Video Container + Drawing Canvas Overlay - Touching left and right */}
+              <div className={`w-full relative flex-1 min-h-0 bg-black overflow-hidden flex items-center justify-center pointer-events-auto`}>
                 <VideoPlayer
                   key={initialUrl}
                   ref={playerRef}
@@ -804,10 +766,10 @@ export const ReviewPlayer = ({
               )}
             </div>
 
-            {/* Player Controls Bar - Positioned Down Below the Video, Perfectly in line */}
+            {/* Player Controls Bar - Positioned Down Below the Video, Perfectly touching left and comment bar */}
             <div className={`w-full z-50 flex justify-center flex-shrink-0 ${isFullscreen
               ? 'absolute bottom-3 sm:bottom-6 left-0 right-0 px-2 sm:px-4 pointer-events-none'
-              : 'relative w-full border-t border-white/10 bg-zinc-950/95 pointer-events-auto'
+              : 'relative w-full border-t border-white/10 bg-black pointer-events-auto'
             }`}>
               <PlayerControls
                 playerRef={playerRef}
