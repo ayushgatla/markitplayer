@@ -107,12 +107,13 @@ async function resolveDirectGoogleUrl(videoId) {
     return cached;
   }
 
-  let initialDriveUrl = `https://drive.google.com/uc?export=download&id=${videoId}`;
+  // Primary URL: direct usercontent with confirm=t bypasses >100MB virus scan screen
+  let targetUrl = `https://drive.usercontent.google.com/download?id=${videoId}&export=download&confirm=t`;
   let cookies = [];
 
   let response = await axiosClient({
     method: 'get',
-    url: initialDriveUrl,
+    url: targetUrl,
     responseType: 'stream',
     headers: { Range: 'bytes=0-100' },
     maxRedirects: 5,
@@ -123,13 +124,15 @@ async function resolveDirectGoogleUrl(videoId) {
     cookies = response.headers['set-cookie'];
   }
 
-  let targetUrl = response.request?.res?.responseUrl || initialDriveUrl;
-
-  // Check if Google Drive returned the virus scan warning HTML page (>100MB files)
+  // If Google still returned an HTML page (e.g. dynamic uuid requirement or quota exceeded)
   if (response.headers['content-type'] && response.headers['content-type'].includes('text/html')) {
     let html = '';
     for await (const chunk of response.data) {
       html += chunk;
+    }
+
+    if (html.includes('Quota exceeded') || html.includes('Too many users have viewed')) {
+      throw new Error('Google Drive quota exceeded: Too many users have downloaded this file recently.');
     }
 
     let confirmToken = 't';

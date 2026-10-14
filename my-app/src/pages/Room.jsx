@@ -165,7 +165,7 @@ export default function Room() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex flex-col font-sans text-white">
+    <div className="min-h-screen lg:h-screen bg-[#0a0a0f] flex flex-col font-sans text-white lg:overflow-hidden">
       {/* Minimal Add New Version Modal */}
       {updateModalConfig?.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -260,7 +260,7 @@ export default function Room() {
         onSwitchVersion={handleSwitchVersion}
         onDeleteVersion={handleDeleteVersion}
       />
-      <main className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
+      <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
         {activeVideoUrl ? (
           <ReviewPlayer
             key={`${roomId}_v${videoData.currentVersion}_${activeVideoUrl}`}
@@ -268,6 +268,9 @@ export default function Room() {
             rawVideoUrl={roomData?.video_url}
             roomId={roomId}
             currentVersionNum={videoData.currentVersion}
+            onSwitchVersion={handleSwitchVersion}
+            onOpenAddVersion={handleUpdateLink}
+            onDeleteVersion={handleDeleteVersion}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center p-6 bg-[#0a0a0f]">

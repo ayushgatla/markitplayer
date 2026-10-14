@@ -99,7 +99,7 @@ export default function ClientRoom() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col font-sans text-white">
+    <div className="min-h-screen lg:h-screen bg-zinc-950 flex flex-col font-sans text-white lg:overflow-hidden">
       <ProjectHeader 
         title={roomData?.title || 'Loading Session...'} 
         isClient={true}
@@ -107,7 +107,7 @@ export default function ClientRoom() {
         videoUrl={roomData?.video_url}
         onSwitchVersion={handleSwitchVersion}
       />
-      <main className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
+      <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
         {activeVideoUrl ? (
           <ReviewPlayer
             key={`${roomId}_v${currentVersion}_${activeVideoUrl}`}
@@ -117,6 +117,7 @@ export default function ClientRoom() {
             isClient={true}
             guestName={guestName}
             currentVersionNum={currentVersion}
+            onSwitchVersion={handleSwitchVersion}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center p-6 bg-zinc-950">

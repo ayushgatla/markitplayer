@@ -46,28 +46,119 @@ This document preserves the architecture plan, cost calculations, and step-by-st
 In Cloudflare Dashboard → **Workers & Pages** → **Create Worker** (`markit-video-proxy`):
 ```javascript
 export default {
-  async fetch(request) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // 1. Handle CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': 'Range, Content-Type, Accept, Cache-Control, Pragma',
+          'Access-Control-Max-Age': '86400',
+        }
+      });
+    }
+
     const match = url.pathname.match(/\/api\/video\/([a-zA-Z0-9_-]+)/);
     if (!match) return new Response("Not found", { status: 404 });
 
     const videoId = match[1];
-    const driveUrl = `https://drive.google.com/uc?export=download&id=${videoId}`;
 
-    const response = await fetch(driveUrl, {
-      headers: request.headers,
-      cf: { cacheEverything: true, cacheTtl: 86400 }
+    // Enforce bounded chunks for large Google Drive files (>100MB)
+    // Prevents Google Drive from returning virus scan warnings or quota errors on unbounded (bytes=0-) requests
+    const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunk
+    const rawRange = request.headers.get('range');
+    let effectiveRange = rawRange;
+
+    if (!rawRange) {
+      effectiveRange = `bytes=0-${CHUNK_SIZE - 1}`;
+    } else {
+      const rangeMatch = rawRange.match(/bytes=(\d+)-(\d*)/);
+      if (rangeMatch) {
+        const start = parseInt(rangeMatch[1], 10);
+        let end = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : (start + CHUNK_SIZE - 1);
+        if (!rangeMatch[2] || (end - start + 1) > (20 * 1024 * 1024)) {
+          end = start + CHUNK_SIZE - 1;
+        }
+        effectiveRange = `bytes=${start}-${end}`;
+      }
+    }
+
+    const requestHeaders = new Headers();
+    requestHeaders.set('Range', effectiveRange);
+    requestHeaders.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+
+    // Primary: direct usercontent with confirm=t (bypasses >100MB virus scan screen)
+    let driveUrl = `https://drive.usercontent.google.com/download?id=${videoId}&export=download&confirm=t`;
+
+    let driveRes = await fetch(driveUrl, {
+      headers: requestHeaders,
+      redirect: 'follow',
     });
 
-    return new Response(response.body, {
-      status: response.status,
-      headers: {
-        'Content-Type': response.headers.get('content-type') || 'video/mp4',
-        'Accept-Ranges': 'bytes',
-        'Content-Range': response.headers.get('content-range') || '',
-        'Content-Length': response.headers.get('content-length') || '',
-        'Access-Control-Allow-Origin': '*',
+    let contentType = driveRes.headers.get('content-type') || '';
+
+    // If Google returned an HTML page (virus scan form or quota exceeded)
+    if (contentType.includes('text/html')) {
+      const htmlText = await driveRes.text();
+      const uuidMatch = htmlText.match(/name="uuid"\s+value="([^"]+)"/i);
+      const confirmMatch = htmlText.match(/name="confirm"\s+value="([^"]+)"/i) || htmlText.match(/confirm=([0-9A-Za-z_-]+)/i);
+
+      if (uuidMatch && uuidMatch[1]) {
+        const confirmToken = (confirmMatch && (confirmMatch[1] || confirmMatch[2])) || 't';
+        const actionMatch = htmlText.match(/<form[^>]*action="([^"]+)"/i);
+        const baseUrl = actionMatch ? actionMatch[1] : 'https://drive.usercontent.google.com/download';
+        const confirmedUrl = `${baseUrl}?id=${videoId}&export=download&confirm=${confirmToken}&uuid=${uuidMatch[1]}`;
+
+        driveRes = await fetch(confirmedUrl, {
+          headers: requestHeaders,
+          redirect: 'follow',
+        });
+        contentType = driveRes.headers.get('content-type') || '';
       }
+
+      // If still HTML (quota exceeded / permission restricted), NEVER CACHE
+      if (contentType.includes('text/html')) {
+        const isQuota = htmlText.includes('Quota exceeded') || htmlText.includes('Too many users');
+        return new Response(JSON.stringify({
+          error: isQuota ? 'quota_exceeded' : 'drive_blocked',
+          message: isQuota
+            ? 'Google Drive download quota exceeded for this file.'
+            : 'Google Drive blocked streaming.',
+          fileId: videoId
+        }), {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+    }
+
+    const responseHeaders = new Headers();
+    responseHeaders.set('Content-Type', driveRes.headers.get('content-type') || 'video/mp4');
+    responseHeaders.set('Accept-Ranges', 'bytes');
+    responseHeaders.set('Access-Control-Allow-Origin', '*');
+    responseHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    responseHeaders.set('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
+    responseHeaders.set('Cross-Origin-Resource-Policy', 'cross-origin');
+
+    if (driveRes.headers.get('content-range')) responseHeaders.set('Content-Range', driveRes.headers.get('content-range'));
+    if (driveRes.headers.get('content-length')) responseHeaders.set('Content-Length', driveRes.headers.get('content-length'));
+
+    if (driveRes.status === 200 || driveRes.status === 206) {
+      responseHeaders.set('Cache-Control', 'public, max-age=86400, immutable');
+    } else {
+      responseHeaders.set('Cache-Control', 'no-store');
+    }
+
+    return new Response(driveRes.body, {
+      status: driveRes.status,
+      headers: responseHeaders
     });
   }
 };

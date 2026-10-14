@@ -5,10 +5,11 @@ import CommentSidebar from './CommentSidebar';
 import PlayerControls from './PlayerControls';
 import AnnotationCanvas from './AnnotationCanvas';
 import DrawingToolbar from './DrawingToolbar';
+import RoomVersionBox from './RoomVersionBox';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { extractDrawingFromText, extractRangeFromText } from '../utils/drawingHelper';
-import { Pencil, Eye, X } from 'lucide-react';
+import { Pencil, Eye, X, AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react';
 
 const formatTime = (seconds) => {
   if (!seconds || seconds === -1 || isNaN(seconds)) return '00:00:00:00';
@@ -23,7 +24,17 @@ const formatTime = (seconds) => {
 // (e.g., files requiring virus scan confirmation or hitting quotas), avoiding redundant failed attempts
 const failedDirectFileIds = new Set();
 
-export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestName, currentVersionNum = 1 }) => {
+export const ReviewPlayer = ({
+  videoUrl,
+  rawVideoUrl,
+  roomId,
+  isClient,
+  guestName,
+  currentVersionNum = 1,
+  onSwitchVersion,
+  onOpenAddVersion,
+  onDeleteVersion
+}) => {
   const playerRef = useRef(null);
   const canvasRef = useRef(null);
   const { user } = useAuth();
@@ -152,6 +163,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
   }
 
   const [hasFallenBack, setHasFallenBack] = useState(false);
+  const [streamError, setStreamError] = useState(null);
 
   const fallbackProxyUrlRef = useRef(fallbackProxyUrl);
   fallbackProxyUrlRef.current = fallbackProxyUrl;
@@ -163,6 +175,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
   useEffect(() => {
     hasFallenBackRef.current = false;
     setHasFallenBack(false);
+    setStreamError(null);
     setCurrentTime(0);
     setIsPlaying(false);
     setIsDrawingMode(false);
@@ -178,6 +191,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     responsive: true,
     fill: true,
     preload: 'auto',
+    errorDisplay: false,
     techOrder: isYouTube ? ['youtube'] : ['html5'],
     sources: [{
       src: activeStreamUrl,
@@ -233,27 +247,28 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
     // seamlessly switch to Railway proxy stream without disrupting the user
     player.on('error', () => {
       const err = player.error();
-      console.warn('Player error encountered on direct stream:', err);
+      console.warn('Player error encountered on stream:', err);
 
       const targetFallbackUrl = fallbackProxyUrlRef.current;
       const targetFileId = driveFileIdRef.current;
 
+      // Suppress Video.js default black error screen
+      if (player.errorDisplay) {
+        player.errorDisplay.close();
+      }
+      player.error(null);
+
       if (targetFallbackUrl && !hasFallenBackRef.current) {
-        console.log('Switching from Direct Google Drive stream to Railway Proxy fallback...');
+        console.log('Switching to secondary fallback stream...');
         hasFallenBackRef.current = true;
+        setHasFallenBack(true);
         if (targetFileId) {
           failedDirectFileIds.add(targetFileId);
         }
 
         const savedTime = player.currentTime() || 0;
 
-        // Clear error modal on Video.js
-        player.error(null);
-        if (player.errorDisplay) {
-          player.errorDisplay.close();
-        }
-
-        // Change source to Railway proxy
+        // Change source to fallback proxy
         player.src({
           src: targetFallbackUrl,
           type: 'video/mp4'
@@ -266,6 +281,13 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
           });
         }
         player.play().catch(() => {});
+      } else {
+        // Both primary and fallback failed (e.g. Google Drive quota exceeded on >100MB files)
+        setStreamError({
+          isDrive,
+          url: rawVideoUrl || videoUrl,
+          fileId: driveFileIdRef.current
+        });
       }
     });
   };
@@ -603,7 +625,7 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
 
   return (
     <div
-      className="flex flex-col lg:flex-row w-full min-h-full lg:h-[calc(100vh-3.5rem)] sm:lg:h-[calc(100vh-4rem)] bg-[#0f0e17] lg:overflow-hidden relative"
+      className="flex flex-col lg:flex-row w-full h-full min-h-0 bg-[#0f0e17] overflow-y-auto lg:overflow-hidden relative"
     >
       {/* Dashboard Matching Background Image & Overlay */}
       <div 
@@ -612,120 +634,200 @@ export const ReviewPlayer = ({ videoUrl, rawVideoUrl, roomId, isClient, guestNam
       ></div>
       <div className="absolute inset-0 bg-[#0f0e17]/80 backdrop-blur-[2px] z-0 pointer-events-none"></div>
 
-      <div className={`w-full lg:flex-1 flex flex-col items-center justify-start lg:justify-center relative z-10 min-h-[40vh] lg:min-h-0 gap-6 lg:gap-0 ${isExpanded ? 'p-4 lg:p-0' : 'p-4 lg:p-6'}`}>
-        <div
-          ref={wrapperRef}
-          className={`relative shadow-2xl lg:overflow-hidden flex flex-col gap-6 lg:gap-0 select-none ${isFullscreen
-            ? 'w-screen h-screen bg-black z-50'
-            : isExpanded
-              ? 'w-full lg:h-full bg-black'
-              : 'w-full max-w-5xl lg:aspect-video rounded-xl lg:border border-white/10'
-            } ${!isControlsActive && isMouseInside && !isDrawingMode ? 'cursor-none' : ''}`}
-          onMouseEnter={() => setIsMouseInside(true)}
-          onMouseLeave={() => setIsMouseInside(false)}
-          onMouseMove={handleMouseMove}
-          onClick={handleScreenTap}
-          onTouchStart={() => {
-            setIsMouseInside(true);
-            resetIdleTimer();
-          }}
-          onDoubleClick={isDrawingMode ? undefined : handleToggleFullscreen}
-        >
-          {/* Video Container + Drawing Canvas Overlay */}
-          <div className={`w-full relative flex-shrink-0 bg-black rounded-2xl lg:rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:shadow-none overflow-hidden border border-white/10 lg:border-none pointer-events-auto ${isExpanded ? 'aspect-video lg:h-full lg:aspect-auto' : 'aspect-video'}`}>
-            <VideoPlayer
-              key={initialUrl}
-              ref={playerRef}
-              options={videoOptions}
-              onReady={handlePlayerReady}
-              onTimeUpdate={handleTimeUpdate}
-            />
+      {/* Video Section Column with Sub-header Version Bar under Upper Bar */}
+      <div className="w-full lg:flex-1 flex flex-col min-h-0 lg:h-full relative z-10 flex-shrink-0">
+        {/* Version Bar under Upper Bar */}
+        {!isFullscreen && (
+          <RoomVersionBox
+            videoUrl={rawVideoUrl || videoUrl}
+            currentVersionNum={currentVersionNum}
+            onSwitchVersion={onSwitchVersion}
+            onOpenAddVersion={onOpenAddVersion}
+            onDeleteVersion={onDeleteVersion}
+            isClient={isClient}
+            comments={comments}
+          />
+        )}
 
-            {/* Interactive Drawing Canvas Layer */}
-            <AnnotationCanvas
-              ref={canvasRef}
-              isDrawingMode={isDrawingMode}
-              activeTool={activeTool}
-              currentColor={currentColor}
-              currentWidth={currentWidth}
-              onStrokesChange={handleStrokesChange}
-              initialStrokes={attachedDrawingStrokes}
-              readOnlyStrokes={activeCommentDrawing}
-              showAnnotations={showAnnotations}
-            />
-
-            {/* Floating Glassmorphic Drawing Toolbar */}
-            {isDrawingMode && (
-              <DrawingToolbar
-                activeTool={activeTool}
-                setActiveTool={setActiveTool}
-                currentColor={currentColor}
-                setCurrentColor={setCurrentColor}
-                currentWidth={currentWidth}
-                setCurrentWidth={setCurrentWidth}
-                canUndo={strokeHistoryState.canUndo}
-                canRedo={strokeHistoryState.canRedo}
-                onUndo={() => canvasRef.current?.undo()}
-                onRedo={() => canvasRef.current?.redo()}
-                onClear={handleClearDrawing}
-                onDone={handleDoneDrawing}
-                onClose={handleCloseDrawing}
-                strokeCount={strokeHistoryState.count}
-              />
-            )}
-
-            {/* Read-Only Annotation Indicator Pill */}
-            {!isDrawingMode && activeCommentDrawing && showAnnotations && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-1.5 bg-black/80 backdrop-blur-xl border border-white/20 rounded-full shadow-2xl animate-in fade-in duration-200">
-                <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-                  <Pencil className="w-3 h-3 text-white" />
-                  <span>Annotation by {activeCommentObj?.author_name || activeCommentObj?.author || 'User'}</span>
-                  {isRangeComment && (
-                    <span className="text-[10px] font-mono text-white bg-white/10 px-1.5 py-0.2 rounded border border-white/20">
-                      ↔ {formatTime(activeCommentObj.timestamp)} - {formatTime(activeRange.endTime)}
-                    </span>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveCommentDrawing(null);
-                    setActiveCommentId(null);
-                  }}
-                  className="text-zinc-400 hover:text-white ml-1 p-0.5 rounded-full hover:bg-white/10"
-                  title="Dismiss annotation overlay"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Player Controls Bar */}
-          <div className={`w-full z-50 flex justify-center pointer-events-none ${isFullscreen
-            ? 'absolute bottom-3 sm:bottom-6 left-0 right-0 px-2 sm:px-4'
-            : isExpanded
-              ? 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-4 pb-6 lg:pb-0'
-              : 'lg:absolute lg:bottom-6 left-0 right-0 px-2 lg:px-0 pb-6 lg:pb-0'
+        {/* Centered Video + Control Bar Console Area */}
+        <div className="flex-1 min-h-0 w-full flex flex-col items-center justify-center p-2 sm:p-4 lg:p-6 overflow-hidden">
+          <div
+            ref={wrapperRef}
+            style={{
+              maxWidth: isFullscreen
+                ? 'none'
+                : isExpanded
+                  ? 'min(1280px, 100%, calc((100vh - 12rem) * 16 / 9))'
+                  : 'min(1024px, 100%, calc((100vh - 14rem) * 16 / 9))',
+              maxHeight: isFullscreen
+                ? 'none'
+                : 'calc(100vh - 8rem)',
+              width: isFullscreen ? '100vw' : '100%'
+            }}
+            className={`relative select-none flex flex-col items-center my-auto transition-all ${
+              isFullscreen
+                ? 'w-screen h-screen bg-black z-50 justify-center'
+                : 'w-full justify-center'
+            } ${!isControlsActive && isMouseInside && !isDrawingMode && isFullscreen ? 'cursor-none' : ''}`}
+            onMouseEnter={() => setIsMouseInside(true)}
+            onMouseLeave={() => setIsMouseInside(false)}
+            onMouseMove={handleMouseMove}
+            onClick={handleScreenTap}
+            onTouchStart={() => {
+              setIsMouseInside(true);
+              resetIdleTimer();
+            }}
+            onDoubleClick={isDrawingMode ? undefined : handleToggleFullscreen}
+          >
+            {/* Unified Video & Control Console (100% in-line on left and right) */}
+            <div className={`w-full flex flex-col ${
+              isFullscreen 
+                ? 'h-full w-full justify-center' 
+                : 'rounded-none border border-white/10 border-b-0 bg-zinc-950 shadow-[0_16px_48px_rgba(0,0,0,0.6)] overflow-hidden'
             }`}>
-            <PlayerControls
-              playerRef={playerRef}
-              comments={comments}
-              onMarkerClick={handleCommentClick}
-              isMouseInside={isControlsActive}
-              onToggleFullscreen={handleToggleFullscreen}
-              isFullscreen={isFullscreen}
-              onToggleExpand={() => setIsExpanded(!isExpanded)}
-              onToggleDraw={handleToggleDraw}
-              isDrawingMode={isDrawingMode}
-              showAnnotations={showAnnotations}
-              onToggleAnnotations={() => setShowAnnotations(!showAnnotations)}
-              activeRangePreview={activeRangePreview}
-            />
+              {/* Video Container + Drawing Canvas Overlay */}
+              <div className={`w-full relative flex-shrink min-h-0 bg-black overflow-hidden pointer-events-auto ${
+                isFullscreen ? 'h-full w-full flex items-center justify-center' : 'aspect-video max-h-[calc(100vh-14rem)]'
+              }`}>
+                <VideoPlayer
+                  key={initialUrl}
+                  ref={playerRef}
+                  options={videoOptions}
+                  onReady={handlePlayerReady}
+                  onTimeUpdate={handleTimeUpdate}
+                />
+
+                {/* Google Drive / Streaming Error Recovery Overlay */}
+                {streamError && (
+                  <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950/95 backdrop-blur-md p-6 text-center animate-in fade-in duration-300">
+                    <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-3 text-amber-400">
+                      <AlertTriangle className="w-7 h-7" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white mb-2">Google Drive Stream Unavailable</h3>
+                    <p className="text-xs sm:text-sm text-zinc-300 max-w-md mb-6 leading-relaxed">
+                      Google Drive restricted automated streaming for this video. This happens when large files (&gt;100MB) hit Google's temporary download quota or virus scan gate.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      <a
+                        href={streamError.url || `https://drive.google.com/file/d/${streamError.fileId}/view`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black font-semibold text-xs sm:text-sm rounded-none shadow-sm transition-all"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Open in Google Drive
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStreamError(null);
+                          hasFallenBackRef.current = false;
+                          setHasFallenBack(false);
+                          const raw = playerRef.current?.getRawPlayer?.();
+                          if (raw) {
+                            raw.error(null);
+                            raw.src({ src: initialUrl, type: 'video/mp4' });
+                            raw.load();
+                            raw.play().catch(() => {});
+                          }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs sm:text-sm rounded-none border border-white/10 transition-all"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Retry Playback
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 mt-5 max-w-sm">
+                      Tip: For seamless playback with zero quota limits, consider adding a version using an unlisted YouTube link.
+                    </p>
+                  </div>
+                )}
+
+                {/* Interactive Drawing Canvas Layer */}
+                <AnnotationCanvas
+                ref={canvasRef}
+                isDrawingMode={isDrawingMode}
+                activeTool={activeTool}
+                currentColor={currentColor}
+                currentWidth={currentWidth}
+                onStrokesChange={handleStrokesChange}
+                initialStrokes={attachedDrawingStrokes}
+                readOnlyStrokes={activeCommentDrawing}
+                showAnnotations={showAnnotations}
+              />
+
+              {/* Floating Glassmorphic Drawing Toolbar */}
+              {isDrawingMode && (
+                <DrawingToolbar
+                  activeTool={activeTool}
+                  setActiveTool={setActiveTool}
+                  currentColor={currentColor}
+                  setCurrentColor={setCurrentColor}
+                  currentWidth={currentWidth}
+                  setCurrentWidth={setCurrentWidth}
+                  canUndo={strokeHistoryState.canUndo}
+                  canRedo={strokeHistoryState.canRedo}
+                  onUndo={() => canvasRef.current?.undo()}
+                  onRedo={() => canvasRef.current?.redo()}
+                  onClear={handleClearDrawing}
+                  onDone={handleDoneDrawing}
+                  onClose={handleCloseDrawing}
+                  strokeCount={strokeHistoryState.count}
+                />
+              )}
+
+              {/* Read-Only Annotation Indicator Pill */}
+              {!isDrawingMode && activeCommentDrawing && showAnnotations && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-1.5 bg-black/80 backdrop-blur-xl border border-white/20 rounded-full shadow-2xl animate-in fade-in duration-200">
+                  <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <Pencil className="w-3 h-3 text-white" />
+                    <span>Annotation by {activeCommentObj?.author_name || activeCommentObj?.author || 'User'}</span>
+                    {isRangeComment && (
+                      <span className="text-[10px] font-mono text-white bg-white/10 px-1.5 py-0.2 rounded border border-white/20">
+                        ↔ {formatTime(activeCommentObj.timestamp)} - {formatTime(activeRange.endTime)}
+                      </span>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveCommentDrawing(null);
+                      setActiveCommentId(null);
+                    }}
+                    className="text-zinc-400 hover:text-white ml-1 p-0.5 rounded-full hover:bg-white/10"
+                    title="Dismiss annotation overlay"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Player Controls Bar - Positioned Down Below the Video, Perfectly in line */}
+            <div className={`w-full z-50 flex justify-center flex-shrink-0 ${isFullscreen
+              ? 'absolute bottom-3 sm:bottom-6 left-0 right-0 px-2 sm:px-4 pointer-events-none'
+              : 'relative w-full border-t border-white/10 bg-zinc-950/95 pointer-events-auto'
+            }`}>
+              <PlayerControls
+                playerRef={playerRef}
+                comments={comments}
+                onMarkerClick={handleCommentClick}
+                isMouseInside={isControlsActive}
+                onToggleFullscreen={handleToggleFullscreen}
+                isFullscreen={isFullscreen}
+                onToggleExpand={() => setIsExpanded(!isExpanded)}
+                onToggleDraw={handleToggleDraw}
+                isDrawingMode={isDrawingMode}
+                showAnnotations={showAnnotations}
+                onToggleAnnotations={() => setShowAnnotations(!showAnnotations)}
+                activeRangePreview={activeRangePreview}
+              />
+            </div>
           </div>
         </div>
       </div>
+    </div>
 
       {/* Comment & Chat Sidebar */}
       <div className="sidebar-container w-full flex-shrink-0 lg:border-l border-white/10 bg-black/40 backdrop-blur-xl relative z-10">

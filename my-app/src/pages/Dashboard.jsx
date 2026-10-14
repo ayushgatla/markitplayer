@@ -7,7 +7,7 @@ import {
   ChevronDown, Check, XCircle, MoreVertical, Edit2, Menu, X, Shield, 
   Pencil, RefreshCw, BarChart3, TrendingUp, Sparkles, Film, ArrowUpRight, 
   Layers, ExternalLink, Activity, Filter, ChevronRight, User as UserIcon,
-  ArrowLeft
+  ArrowLeft, Copy, CheckCheck, Play, Share2, ChevronUp, MessageCircle
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -78,6 +78,24 @@ export default function Dashboard() {
   const [notifications, setNotifications] = useState([]);
   const [reviewFilterTab, setReviewFilterTab] = useState('all');
   const [chartPeriod, setChartPeriod] = useState('monthly');
+
+  // Projects & Sessions tab state
+  const [projectSearchQuery, setProjectSearchQuery] = useState('');
+  const [projectStatusFilter, setProjectStatusFilter] = useState('all'); // 'all' | 'Approved' | 'In Progress' | 'Rejected'
+  const [projectFolderFilter, setProjectFolderFilter] = useState('all'); // 'all' | folder name
+  const [copiedRoomId, setCopiedRoomId] = useState(null);
+
+  // Client Feedback tab state
+  const [feedbackSearchQuery, setFeedbackSearchQuery] = useState('');
+  const [feedbackTypeFilter, setFeedbackTypeFilter] = useState('all'); // 'all' | 'drawings' | 'comments' | 'images' | 'chat'
+  const [expandedClients, setExpandedClients] = useState({}); // client name -> boolean (collapsed by default)
+
+  const toggleClientExpand = (clientName) => {
+    setExpandedClients(prev => ({
+      ...prev,
+      [clientName]: !prev[clientName]
+    }));
+  };
 
   const [adminEmails, setAdminEmails] = useState(getAdminEmails());
   const [customFolders, setCustomFolders] = useState(() => {
@@ -218,8 +236,8 @@ export default function Dashboard() {
     const roomIds = userRooms.map(r => r.id);
     if (roomIds.length === 0) return;
 
-    const roomMap = {};
-    userRooms.forEach(r => { roomMap[r.id] = r.title || 'Untitled Session'; });
+    const roomLookup = {};
+    userRooms.forEach(r => { roomLookup[r.id] = r; });
 
     try {
       const { data, error } = await supabase
@@ -227,13 +245,17 @@ export default function Dashboard() {
         .select('*')
         .in('room_id', roomIds)
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(300);
 
       if (!error && data) {
-        const formatted = data.map(c => ({
-          ...parseComment(c),
-          roomTitle: roomMap[c.room_id] || 'Room'
-        }));
+        const formatted = data.map(c => {
+          const roomObj = roomLookup[c.room_id];
+          return {
+            ...parseComment(c),
+            roomTitle: roomObj?.title || 'Untitled Session',
+            room: roomObj || null
+          };
+        });
         setNotifications(formatted);
       }
     } catch (err) {
@@ -379,6 +401,117 @@ export default function Dashboard() {
     };
   }, [rooms, notifications]);
 
+  const handleCopyClientLink = (e, roomId) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/room/${roomId}/client`;
+    navigator.clipboard.writeText(url);
+    setCopiedRoomId(roomId);
+    setTimeout(() => {
+      setCopiedRoomId(null);
+    }, 2000);
+  };
+
+  // Filtered rooms for Projects & Sessions tab in profile dashboard
+  const filteredProjectRooms = useMemo(() => {
+    return rooms
+      .filter(room => {
+        if (room.folder && room.folder.startsWith('__system_')) return false;
+        if (room.title && room.title.startsWith('Profile:')) return false;
+        
+        if (projectStatusFilter !== 'all') {
+          if ((room.state || 'In Progress') !== projectStatusFilter) return false;
+        }
+        if (projectFolderFilter !== 'all') {
+          if ((room.folder || 'Default') !== projectFolderFilter) return false;
+        }
+        if (projectSearchQuery.trim()) {
+          const q = projectSearchQuery.toLowerCase();
+          const matchTitle = (room.title || '').toLowerCase().includes(q);
+          const matchFolder = (room.folder || '').toLowerCase().includes(q);
+          const matchId = (room.id || '').toLowerCase().includes(q);
+          return matchTitle || matchFolder || matchId;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }, [rooms, projectStatusFilter, projectFolderFilter, projectSearchQuery]);
+
+  // Grouped feedback by client and room for Client Feedback tab
+  const clientGroups = useMemo(() => {
+    const map = {};
+
+    const filteredComments = notifications.filter(c => {
+      if (feedbackTypeFilter === 'drawings' && !c.hasDrawing) return false;
+      if (feedbackTypeFilter === 'images' && !c.hasImage) return false;
+      if (feedbackTypeFilter === 'comments' && c.isChat) return false;
+      if (feedbackTypeFilter === 'chat' && !c.isChat) return false;
+
+      if (feedbackSearchQuery.trim()) {
+        const q = feedbackSearchQuery.toLowerCase();
+        const authorMatch = (c.author_name || '').toLowerCase().includes(q);
+        const roomMatch = (c.roomTitle || '').toLowerCase().includes(q);
+        const textMatch = (c.plainText || c.cleanText || c.comment_text || '').toLowerCase().includes(q);
+        return authorMatch || roomMatch || textMatch;
+      }
+      return true;
+    });
+
+    filteredComments.forEach(comment => {
+      const rawName = (comment.author_name || '').trim() || 'Client';
+      const clientKey = rawName.toLowerCase();
+
+      if (!map[clientKey]) {
+        const initials = rawName
+          .split(' ')
+          .filter(Boolean)
+          .map(w => w[0])
+          .join('')
+          .substring(0, 2)
+          .toUpperCase() || 'CL';
+
+        map[clientKey] = {
+          name: rawName,
+          initials,
+          totalComments: 0,
+          roomsMap: {},
+          latestCommentDate: comment.created_at
+        };
+      }
+
+      const client = map[clientKey];
+      client.totalComments += 1;
+      if (new Date(comment.created_at) > new Date(client.latestCommentDate)) {
+        client.latestCommentDate = comment.created_at;
+      }
+
+      const roomId = comment.room_id || 'unknown';
+      if (!client.roomsMap[roomId]) {
+        const roomObj = comment.room || rooms.find(r => r.id === roomId);
+        client.roomsMap[roomId] = {
+          roomId,
+          title: roomObj?.title || comment.roomTitle || 'Untitled Session',
+          video_url: roomObj?.video_url,
+          state: roomObj?.state || 'In Progress',
+          folder: roomObj?.folder || 'Default',
+          created_at: roomObj?.created_at,
+          comments: []
+        };
+      }
+
+      client.roomsMap[roomId].comments.push(comment);
+    });
+
+    return Object.values(map)
+      .map(client => ({
+        ...client,
+        roomList: Object.values(client.roomsMap).map(r => ({
+          ...r,
+          comments: r.comments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        }))
+      }))
+      .sort((a, b) => new Date(b.latestCommentDate) - new Date(a.latestCommentDate));
+  }, [notifications, rooms, feedbackTypeFilter, feedbackSearchQuery]);
+
   // Filtered rooms for standard workspace
   const filteredRooms = useMemo(() => {
     return rooms
@@ -446,11 +579,11 @@ export default function Dashboard() {
                 <img 
                   src={avatarUrl} 
                   alt="Profile" 
-                  className="w-10 h-10 rounded-none object-cover border border-purple-500/40 shadow-sm shrink-0"
+                  className="w-10 h-10 rounded-full object-cover border-2 border-purple-500/50 shadow-md shadow-purple-950/50 shrink-0 ring-2 ring-purple-500/20"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-10 h-10 bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400/40 text-white rounded-none flex items-center justify-center font-bold text-sm uppercase shrink-0">
+                <div className="w-10 h-10 bg-gradient-to-tr from-purple-700 via-indigo-600 to-purple-500 border-2 border-purple-400/50 text-white rounded-full flex items-center justify-center font-bold text-sm uppercase shrink-0 shadow-md shadow-purple-950/50 ring-2 ring-purple-500/20">
                   {userName.substring(0, 2)}
                 </div>
               )}
@@ -562,107 +695,928 @@ export default function Dashboard() {
           {/* Profile Main Body */}
           <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 custom-scrollbar bg-[#0a0a0f]">
             
-            {/* Header Banner */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-[#201140] via-[#160d2b] to-[#0c0a14] border border-purple-950/60 p-6 md:p-8 rounded-none shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="space-y-2 max-w-xl z-10">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-purple-500/20 border border-purple-500/40 text-purple-300 text-[10px] font-mono font-semibold uppercase">
-                  <Sparkles className="w-3 h-3 text-purple-400" />
-                  <span>Profile & Workspace Stats</span>
-                </div>
-                <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
-                  Welcome back, {userName}
-                </h1>
-                <p className="text-xs md:text-sm text-zinc-300 leading-relaxed">
-                  Review precision cuts, invite clients for real-time frame annotations, and track review approvals in one unified dashboard.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 z-10">
-                <button 
-                  onClick={handleCreateRoom}
-                  className="bg-white hover:bg-zinc-200 text-black font-semibold text-xs px-4 py-2.5 rounded-none shadow-lg flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <Plus className="w-4 h-4 text-black font-bold" />
-                  <span>Create Session +</span>
-                </button>
-                <button 
-                  onClick={() => setCurrentMode('workspace')}
-                  className="bg-[#07050e] hover:bg-white/10 text-zinc-200 font-semibold text-xs px-4 py-2.5 rounded-none border border-purple-950/60 flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <LayoutGrid className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Open Rooms Workspace</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 4 KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl flex flex-col justify-between">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total Projects</span>
-                <span className="text-2xl font-black text-white font-mono mt-3">{stats.totalProjects}</span>
-                <span className="text-[10px] text-zinc-500 font-mono mt-2 pt-2 border-t border-purple-950/40">{customFolders.length + 1} Folders</span>
-              </div>
-
-              <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl flex flex-col justify-between">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Client Feedback</span>
-                <span className="text-2xl font-black text-white font-mono mt-3">{stats.totalFeedback}</span>
-                <span className="text-[10px] text-purple-300 font-mono mt-2 pt-2 border-t border-purple-950/40">{stats.drawingsCount} Drawings</span>
-              </div>
-
-              <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl flex flex-col justify-between">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Approval Rate</span>
-                <span className="text-2xl font-black text-emerald-400 font-mono mt-3">{stats.approvalRate}%</span>
-                <span className="text-[10px] text-emerald-300 font-mono mt-2 pt-2 border-t border-purple-950/40">{stats.approvedRooms} Approved</span>
-              </div>
-
-              <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl flex flex-col justify-between">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total Versions</span>
-                <span className="text-2xl font-black text-pink-300 font-mono mt-3">{stats.totalVersions}</span>
-                <span className="text-[10px] text-zinc-500 font-mono mt-2 pt-2 border-t border-purple-950/40">{stats.totalProjects > 0 ? (stats.totalVersions / stats.totalProjects).toFixed(1) : '1.0'}x avg</span>
-              </div>
-            </div>
-
-            {/* Analytics & Reviews Dual Column */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-[#0c0a14] border border-purple-950/50 p-5 md:p-6 rounded-none shadow-xl space-y-4">
-                <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-purple-400" />
-                  <span>Project Velocity & Reviews</span>
-                </h2>
-                <div className="h-48 flex items-end justify-between gap-3 pt-4">
-                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, idx) => (
-                    <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-                      <div 
-                        className="w-4 bg-purple-500/80 hover:bg-purple-400 rounded-none transition-all"
-                        style={{ height: `${Math.min(100, ((idx + 1) / 6) * 100)}%` }}
-                      ></div>
-                      <span className="text-[10px] font-mono text-zinc-500">{month}</span>
+            {/* ============================================================= */}
+            {/* SUB-TAB 1: OVERVIEW                                           */}
+            {/* ============================================================= */}
+            {profileActiveSubTab === 'overview' && (
+              <div className="space-y-8 animate-in fade-in duration-200">
+                {/* Header Banner */}
+                <div className="relative overflow-hidden bg-gradient-to-r from-[#201140] via-[#160d2b] to-[#0c0a14] border border-purple-950/60 p-6 md:p-8 rounded-none shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="space-y-2 max-w-xl z-10">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-purple-500/20 border border-purple-500/40 text-purple-300 text-[10px] font-mono font-semibold uppercase">
+                      <Sparkles className="w-3 h-3 text-purple-400" />
+                      <span>Profile & Workspace Stats</span>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
+                      Welcome back, {userName}
+                    </h1>
+                    <p className="text-xs md:text-sm text-zinc-300 leading-relaxed">
+                      Review precision cuts, invite clients for real-time frame annotations, and track review approvals in one unified dashboard.
+                    </p>
+                  </div>
 
-              <div className="bg-[#0c0a14] border border-purple-950/50 p-5 md:p-6 rounded-none shadow-xl space-y-4">
-                <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  <span>Status Breakdown</span>
-                </h2>
-                <div className="space-y-3 pt-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-zinc-400">Approved</span>
-                    <span className="font-mono text-emerald-400 font-bold">{stats.approvedRooms}</span>
+                  <div className="flex flex-wrap items-center gap-3 z-10">
+                    <button 
+                      onClick={handleCreateRoom}
+                      className="bg-white hover:bg-zinc-200 text-black font-semibold text-xs px-4 py-2.5 rounded-none shadow-lg flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 text-black font-bold" />
+                      <span>Create Session +</span>
+                    </button>
+                    <button 
+                      onClick={() => setCurrentMode('workspace')}
+                      className="bg-[#07050e] hover:bg-white/10 text-zinc-200 font-semibold text-xs px-4 py-2.5 rounded-none border border-purple-950/60 flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Open Rooms Workspace</span>
+                    </button>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-zinc-400">In Progress</span>
-                    <span className="font-mono text-amber-400 font-bold">{stats.inProgressRooms}</span>
+                </div>
+
+                {/* 4 KPI Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div 
+                    onClick={() => setProfileActiveSubTab('projects')}
+                    className="bg-[#0c0a14] hover:bg-[#120e20] border border-purple-950/50 hover:border-purple-500/40 p-5 rounded-none shadow-xl flex flex-col justify-between transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider group-hover:text-purple-300">Total Projects</span>
+                      <Layers className="w-4 h-4 text-purple-400/50 group-hover:text-purple-400" />
+                    </div>
+                    <span className="text-2xl font-black text-white font-mono mt-3">{stats.totalProjects}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono mt-2 pt-2 border-t border-purple-950/40">{customFolders.length + 1} Folders</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-zinc-400">Needs Changes</span>
-                    <span className="font-mono text-red-400 font-bold">{stats.rejectedRooms}</span>
+
+                  <div 
+                    onClick={() => setProfileActiveSubTab('reviews')}
+                    className="bg-[#0c0a14] hover:bg-[#120e20] border border-purple-950/50 hover:border-purple-500/40 p-5 rounded-none shadow-xl flex flex-col justify-between transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider group-hover:text-purple-300">Client Feedback</span>
+                      <MessageSquare className="w-4 h-4 text-purple-400/50 group-hover:text-purple-400" />
+                    </div>
+                    <span className="text-2xl font-black text-white font-mono mt-3">{stats.totalFeedback}</span>
+                    <span className="text-[10px] text-purple-300 font-mono mt-2 pt-2 border-t border-purple-950/40">{stats.drawingsCount} Drawings</span>
+                  </div>
+
+                  <div 
+                    onClick={() => setProfileActiveSubTab('analytics')}
+                    className="bg-[#0c0a14] hover:bg-[#120e20] border border-purple-950/50 hover:border-purple-500/40 p-5 rounded-none shadow-xl flex flex-col justify-between transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider group-hover:text-emerald-300">Approval Rate</span>
+                      <CheckCircle className="w-4 h-4 text-emerald-400/50 group-hover:text-emerald-400" />
+                    </div>
+                    <span className="text-2xl font-black text-emerald-400 font-mono mt-3">{stats.approvalRate}%</span>
+                    <span className="text-[10px] text-emerald-300 font-mono mt-2 pt-2 border-t border-purple-950/40">{stats.approvedRooms} Approved</span>
+                  </div>
+
+                  <div 
+                    onClick={() => setProfileActiveSubTab('projects')}
+                    className="bg-[#0c0a14] hover:bg-[#120e20] border border-purple-950/50 hover:border-purple-500/40 p-5 rounded-none shadow-xl flex flex-col justify-between transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider group-hover:text-pink-300">Total Versions</span>
+                      <Film className="w-4 h-4 text-pink-400/50 group-hover:text-pink-400" />
+                    </div>
+                    <span className="text-2xl font-black text-pink-300 font-mono mt-3">{stats.totalVersions}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono mt-2 pt-2 border-t border-purple-950/40">{stats.totalProjects > 0 ? (stats.totalVersions / stats.totalProjects).toFixed(1) : '1.0'}x avg</span>
+                  </div>
+                </div>
+
+                {/* Analytics & Reviews Dual Column */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 bg-[#0c0a14] border border-purple-950/50 p-5 md:p-6 rounded-none shadow-xl space-y-4">
+                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-purple-400" />
+                      <span>Project Velocity & Reviews</span>
+                    </h2>
+                    <div className="h-48 flex items-end justify-between gap-3 pt-4">
+                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, idx) => (
+                        <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                          <div 
+                            className="w-4 bg-purple-500/80 hover:bg-purple-400 rounded-none transition-all"
+                            style={{ height: `${Math.min(100, ((idx + 1) / 6) * 100)}%` }}
+                          ></div>
+                          <span className="text-[10px] font-mono text-zinc-500">{month}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 md:p-6 rounded-none shadow-xl space-y-4">
+                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      <span>Status Breakdown</span>
+                    </h2>
+                    <div className="space-y-3 pt-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-400">Approved</span>
+                        <span className="font-mono text-emerald-400 font-bold">{stats.approvedRooms}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-400">In Progress</span>
+                        <span className="font-mono text-amber-400 font-bold">{stats.inProgressRooms}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-400">Needs Changes</span>
+                        <span className="font-mono text-red-400 font-bold">{stats.rejectedRooms}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Shortcuts to Projects & Feedback */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Recent Review Sessions Preview */}
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-purple-950/40">
+                      <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                        <Film className="w-4 h-4 text-purple-400" />
+                        <span>Recent Review Sessions</span>
+                      </h3>
+                      <button
+                        onClick={() => setProfileActiveSubTab('projects')}
+                        className="text-[11px] text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>View All ({rooms.length})</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {rooms.slice(0, 3).map((room) => {
+                        const thumb = getThumbnailUrl(room.video_url);
+                        return (
+                          <div
+                            key={room.id}
+                            onClick={() => navigate(`/room/${room.id}`)}
+                            className="p-2.5 rounded-lg bg-[#07050e] hover:bg-white/[0.04] border border-purple-950/40 hover:border-purple-500/30 transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-14 h-9 rounded overflow-hidden bg-black/60 border border-purple-900/40 shrink-0 flex items-center justify-center">
+                                {thumb ? (
+                                  <img src={thumb} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <Film className="w-4 h-4 text-purple-400/60" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="font-bold text-xs text-white group-hover:text-purple-300 truncate">
+                                  {room.title || 'Untitled Session'}
+                                </h4>
+                                <span className="text-[10px] text-zinc-500 font-mono">
+                                  {room.folder || 'Default'} · {dayjs(room.created_at).fromNow()}
+                                </span>
+                              </div>
+                            </div>
+                            <span className={`text-[10px] px-2 py-0.5 rounded border font-medium shrink-0 ${
+                              (room.state || 'In Progress') === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                              (room.state || 'In Progress') === 'Rejected' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                              'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                            }`}>
+                              {room.state || 'In Progress'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {rooms.length === 0 && (
+                        <p className="text-xs text-zinc-500 py-3 text-center">No review sessions yet.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Recent Client Feedback Stream */}
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-purple-950/40">
+                      <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-indigo-400" />
+                        <span>Recent Client Notes</span>
+                      </h3>
+                      <button
+                        onClick={() => setProfileActiveSubTab('reviews')}
+                        className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>View Client Boxes ({clientGroups.length})</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {notifications.slice(0, 3).map((notif) => (
+                        <div
+                          key={notif.id}
+                          onClick={() => notif.room_id && navigate(`/room/${notif.room_id}`)}
+                          className="p-2.5 rounded-lg bg-[#07050e] hover:bg-white/[0.04] border border-purple-950/40 hover:border-purple-500/30 transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-white group-hover:text-purple-300 truncate">
+                                {notif.author_name || 'Client'}
+                              </span>
+                              <span className="text-[10px] font-mono text-purple-400 bg-purple-500/20 px-1.5 py-0.2 rounded border border-purple-500/30">
+                                {notif.formattedTime}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-zinc-300 truncate mt-0.5">
+                              {notif.plainText || notif.previewText}
+                            </p>
+                          </div>
+                          <span className="text-[10px] text-zinc-500 font-mono shrink-0">
+                            {dayjs(notif.created_at).fromNow()}
+                          </span>
+                        </div>
+                      ))}
+                      {notifications.length === 0 && (
+                        <p className="text-xs text-zinc-500 py-3 text-center">No client feedback yet.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* ============================================================= */}
+            {/* SUB-TAB 2: PROJECTS & SESSIONS (LIST VIEW WITH PREVIEW PICTURE)*/}
+            {/* ============================================================= */}
+            {profileActiveSubTab === 'projects' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {/* Header Banner */}
+                <div className="relative overflow-hidden bg-gradient-to-r from-[#201140] via-[#160d2b] to-[#0c0a14] border border-purple-950/60 p-6 md:p-8 rounded-none shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="space-y-2 max-w-xl z-10">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-purple-500/20 border border-purple-500/40 text-purple-300 text-[10px] font-mono font-semibold uppercase">
+                      <Layers className="w-3 h-3 text-purple-400" />
+                      <span>Projects & Sessions</span>
+                    </div>
+                    <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
+                      Review Sessions ({filteredProjectRooms.length})
+                    </h1>
+                    <p className="text-xs md:text-sm text-zinc-300 leading-relaxed">
+                      All your video review rooms displayed in a structured list with real-time preview, version control, and client interaction details.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 z-10">
+                    <button 
+                      onClick={handleCreateRoom}
+                      className="bg-white hover:bg-zinc-200 text-black font-semibold text-xs px-4 py-2.5 rounded-none shadow-lg flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 text-black font-bold" />
+                      <span>Create Session +</span>
+                    </button>
+                    <button 
+                      onClick={() => setCurrentMode('workspace')}
+                      className="bg-[#07050e] hover:bg-white/10 text-zinc-200 font-semibold text-xs px-4 py-2.5 rounded-none border border-purple-950/60 flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Open Workspace</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search & Filter Toolbar */}
+                <div className="bg-[#0c0a14] border border-purple-950/50 p-4 rounded-none shadow-xl flex flex-wrap items-center justify-between gap-4">
+                  {/* Search Input */}
+                  <div className="relative flex-1 min-w-[240px] max-w-md">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input 
+                      type="text"
+                      value={projectSearchQuery}
+                      onChange={(e) => setProjectSearchQuery(e.target.value)}
+                      placeholder="Search rooms by title, folder, ID..."
+                      className="w-full bg-[#07050e] border border-purple-950/60 rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+                    />
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Status filter tabs */}
+                    <div className="flex items-center gap-1 bg-[#07050e] p-1 rounded-lg border border-purple-950/60">
+                      {[
+                        { id: 'all', label: `All (${rooms.length})` },
+                        { id: 'In Progress', label: `In Progress (${stats.inProgressRooms})` },
+                        { id: 'Approved', label: `Approved (${stats.approvedRooms})` },
+                        { id: 'Rejected', label: `Needs Changes (${stats.rejectedRooms})` }
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setProjectStatusFilter(tab.id)}
+                          className={`px-2.5 py-1 text-xs font-semibold rounded transition-all cursor-pointer ${
+                            projectStatusFilter === tab.id
+                              ? 'bg-purple-600 text-white shadow-sm'
+                              : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Folder dropdown */}
+                    <select
+                      value={projectFolderFilter}
+                      onChange={(e) => setProjectFolderFilter(e.target.value)}
+                      className="bg-[#07050e] border border-purple-950/60 text-zinc-300 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-purple-500/60 cursor-pointer"
+                    >
+                      <option value="all">All Folders</option>
+                      <option value="Default">Default</option>
+                      {customFolders.map(f => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* THE ROOMS LIST MANNER WITH PREVIEW PICTURE AT START */}
+                <div className="space-y-3">
+                  {filteredProjectRooms.map((room) => {
+                    const thumb = getThumbnailUrl(room.video_url);
+                    const fallback = getFallbackIcon(room.video_url);
+                    const vObj = getActiveVersionObj(room.video_url);
+                    const vData = parseVideoData(room.video_url);
+                    const commentsCount = room.comments?.[0]?.count || 0;
+
+                    return (
+                      <div 
+                        key={room.id}
+                        onClick={() => navigate(`/room/${room.id}`)}
+                        className="bg-[#0c0a14] hover:bg-[#120e20] border border-purple-950/50 hover:border-purple-500/40 p-4 transition-all duration-200 rounded-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4 cursor-pointer group shadow-xl hover:shadow-purple-950/30"
+                      >
+                        {/* Left Section: Preview Picture at Start + Essential Details */}
+                        <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
+                          
+                          {/* 1. Preview Picture at Start */}
+                          <div className="w-32 h-20 sm:w-40 sm:h-24 md:w-48 md:h-28 rounded-lg overflow-hidden bg-black/60 border border-purple-900/40 shrink-0 relative group/thumb flex items-center justify-center">
+                            {thumb ? (
+                              <img 
+                                src={thumb} 
+                                alt={room.title}
+                                className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-purple-950/40 via-[#100d1c] to-[#07050e] flex flex-col items-center justify-center text-purple-400/60 gap-1.5 p-2 text-center">
+                                {fallback ? (
+                                  <img src={fallback} alt="" className="w-6 h-6 object-contain opacity-70" />
+                                ) : (
+                                  <Film className="w-6 h-6" />
+                                )}
+                                <span className="text-[10px] font-mono text-zinc-500 truncate max-w-full">
+                                  {room.folder || 'Video Room'}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Hover Play Button Overlay */}
+                            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-lg shadow-purple-900/50 transform group-hover:scale-110 transition-transform">
+                                <Play className="w-4 h-4 ml-0.5 fill-white" />
+                              </div>
+                            </div>
+
+                            {/* Version Badge on Thumbnail */}
+                            <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[9px] font-mono text-purple-300 border border-purple-500/30">
+                              {vObj?.title || `V${vData.currentVersion || 1}`}
+                            </span>
+                          </div>
+
+                          {/* 2. Essential Details */}
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-purple-300 transition-colors truncate">
+                                {room.title || 'Untitled Session'}
+                              </h3>
+                            </div>
+
+                            {/* Badges Row */}
+                            <div className="flex items-center gap-2.5 flex-wrap text-xs">
+                              {/* Folder Badge */}
+                              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded">
+                                <Folder className="w-3 h-3 text-purple-400" />
+                                <span>{room.folder || 'Default'}</span>
+                              </span>
+
+                              {/* Version Title Badge */}
+                              <span className="inline-flex items-center gap-1 text-[11px] font-mono text-purple-300 bg-purple-500/20 border border-purple-500/30 px-2 py-0.5 rounded">
+                                <Layers className="w-3 h-3 text-purple-400" />
+                                <span>{vObj?.title || `Version ${vData.currentVersion || 1}`}</span>
+                              </span>
+
+                              {/* State / Review Status Badge */}
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded border ${
+                                (room.state || 'In Progress') === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                                (room.state || 'In Progress') === 'Rejected' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                                'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                              }`}>
+                                {(room.state || 'In Progress') === 'Approved' && <CheckCircle className="w-3 h-3" />}
+                                {(room.state || 'In Progress') === 'Rejected' && <XCircle className="w-3 h-3" />}
+                                {(room.state || 'In Progress') === 'In Progress' && <Clock className="w-3 h-3" />}
+                                <span>{room.state || 'In Progress'}</span>
+                              </span>
+
+                              {/* Client Comments Badge */}
+                              <span className="inline-flex items-center gap-1 text-[11px] font-mono text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
+                                <MessageSquare className="w-3 h-3 text-indigo-400" />
+                                <span>{commentsCount} comments</span>
+                              </span>
+
+                              {/* Date Created */}
+                              <span className="text-[11px] font-mono text-zinc-500 flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-zinc-600" />
+                                <span>{dayjs(room.created_at).format('MMM D, YYYY')}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right Section: Action Buttons */}
+                        <div className="flex items-center gap-2 shrink-0 self-end md:self-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => navigate(`/room/${room.id}`)}
+                            className="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs rounded transition-all shadow-md shadow-purple-950/50 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>Open Room</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={(e) => handleCopyClientLink(e, room.id)}
+                            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 text-xs rounded transition-colors flex items-center gap-1.5 cursor-pointer"
+                            title="Copy Client Review Link"
+                          >
+                            {copiedRoomId === room.id ? (
+                              <>
+                                <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-emerald-400 font-medium">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                                <span>Client Link</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            onClick={(e) => handleDeleteRoom(e, room.id)}
+                            className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                            title="Delete room"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {filteredProjectRooms.length === 0 && (
+                    <div className="text-center py-16 bg-[#0c0a14] border border-purple-950/40 rounded-none p-8 space-y-4">
+                      <Film className="w-10 h-10 text-zinc-600 mx-auto" />
+                      <h3 className="text-sm font-bold text-zinc-300">No review rooms found</h3>
+                      <p className="text-xs text-zinc-500 max-w-md mx-auto">
+                        {projectSearchQuery ? `No rooms match "${projectSearchQuery}".` : 'No rooms match your filter. Create your first session!'}
+                      </p>
+                      <button
+                        onClick={handleCreateRoom}
+                        className="bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4 py-2 rounded-none cursor-pointer"
+                      >
+                        Create Session +
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================= */}
+            {/* SUB-TAB 3: CLIENT FEEDBACK (BOXES PER CLIENT & ROOM BOXES)    */}
+            {/* ============================================================= */}
+            {profileActiveSubTab === 'reviews' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {/* Header Banner */}
+                <div className="relative overflow-hidden bg-gradient-to-r from-[#201140] via-[#160d2b] to-[#0c0a14] border border-purple-950/60 p-6 md:p-8 rounded-none shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="space-y-2 max-w-xl z-10">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-purple-500/20 border border-purple-500/40 text-purple-300 text-[10px] font-mono font-semibold uppercase">
+                      <MessageSquare className="w-3 h-3 text-purple-400" />
+                      <span>Client Feedback Hub</span>
+                    </div>
+                    <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
+                      Client Feedback & Review Threads
+                    </h1>
+                    <p className="text-xs md:text-sm text-zinc-300 leading-relaxed">
+                      All feedback neatly organized into separate client boxes, each displaying room cards with all comments left by that client.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 z-10 font-mono text-xs">
+                    <div className="px-3 py-2 rounded bg-purple-950/40 border border-purple-500/30 text-purple-300">
+                      <span className="font-bold text-white text-sm">{clientGroups.length}</span> Clients
+                    </div>
+                    <div className="px-3 py-2 rounded bg-indigo-950/40 border border-indigo-500/30 text-indigo-300">
+                      <span className="font-bold text-white text-sm">{notifications.length}</span> Comments
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search & Filter Toolbar */}
+                <div className="bg-[#0c0a14] border border-purple-950/50 p-4 rounded-none shadow-xl flex flex-wrap items-center justify-between gap-4">
+                  {/* Search Input */}
+                  <div className="relative flex-1 min-w-[240px] max-w-md">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input 
+                      type="text"
+                      value={feedbackSearchQuery}
+                      onChange={(e) => setFeedbackSearchQuery(e.target.value)}
+                      placeholder="Search client name, room title, or comment text..."
+                      className="w-full bg-[#07050e] border border-purple-950/60 rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+                    />
+                  </div>
+
+                  {/* Type Filter Tabs (No Emojis, Clean Lucide Icons) */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[
+                      { id: 'all', label: `All (${notifications.length})`, icon: ListFilter },
+                      { id: 'drawings', label: `Drawings (${stats.drawingsCount})`, icon: Pencil },
+                      { id: 'comments', label: 'Notes', icon: MessageSquare },
+                      { id: 'images', label: 'Images', icon: ImageIcon },
+                      { id: 'chat', label: 'Chat', icon: MessageCircle }
+                    ].map((tab) => {
+                      const TabIcon = tab.icon;
+                      const isActive = feedbackTypeFilter === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setFeedbackTypeFilter(tab.id)}
+                          className={`px-3 py-1.5 rounded text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isActive
+                              ? 'bg-purple-600 text-white shadow-sm'
+                              : 'bg-[#07050e] border border-purple-950/60 text-zinc-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          <TabIcon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-purple-400'}`} />
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
+
+                    {/* Expand All / Collapse All Toggle Button */}
+                    {clientGroups.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const allExpanded = clientGroups.every(c => expandedClients[c.name]);
+                          const updated = {};
+                          if (!allExpanded) {
+                            clientGroups.forEach(c => { updated[c.name] = true; });
+                          }
+                          setExpandedClients(updated);
+                        }}
+                        className="px-2.5 py-1.5 rounded text-xs font-semibold bg-[#07050e] border border-purple-950/60 text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1.5 ml-auto"
+                        title="Toggle all client cards"
+                      >
+                        <ChevronDown className={`w-3.5 h-3.5 text-purple-400 transition-transform ${clientGroups.every(c => expandedClients[c.name]) ? 'rotate-180 text-white' : ''}`} />
+                        <span>{clientGroups.every(c => expandedClients[c.name]) ? 'Collapse All' : 'Expand All'}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* DIFFERENT BOXES FOR EACH CLIENT (COLLAPSED BY DEFAULT WITH DOWN ARROW EXPAND OPTION) */}
+                <div className="space-y-4">
+                  {clientGroups.map((client) => {
+                    const isExpanded = !!expandedClients[client.name];
+
+                    return (
+                      <div 
+                        key={client.name}
+                        className="bg-[#0c0a14] border border-purple-950/60 hover:border-purple-500/40 rounded-none shadow-2xl transition-all overflow-hidden"
+                      >
+                        {/* Client Box Header (Click to expand / collapse) */}
+                        <div 
+                          onClick={() => toggleClientExpand(client.name)}
+                          className="flex items-center justify-between gap-4 p-5 md:p-6 cursor-pointer select-none group hover:bg-white/[0.02] transition-colors"
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {/* Circular Client Avatar */}
+                            <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-purple-500 text-white font-bold text-sm flex items-center justify-center border-2 border-purple-400/50 shadow-md shadow-purple-950/50 shrink-0 ring-2 ring-purple-500/20">
+                              {client.initials}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h2 className="font-bold text-base text-white group-hover:text-purple-300 transition-colors truncate">
+                                  {client.name}
+                                </h2>
+                                <span className="text-[10px] font-mono uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-semibold">
+                                  Client
+                                </span>
+                              </div>
+                              <p className="text-xs text-zinc-400 font-mono mt-0.5 truncate">
+                                {client.totalComments} {client.totalComments === 1 ? 'comment' : 'comments'} across {client.roomList.length} {client.roomList.length === 1 ? 'room' : 'rooms'} · Last active {dayjs(client.latestCommentDate).fromNow()}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Right Controls: Notes pill + Down Arrow expand option */}
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-xs font-mono text-purple-300 bg-purple-950/60 border border-purple-500/30 px-3 py-1.5 rounded-none font-semibold">
+                              {client.totalComments} Notes
+                            </span>
+
+                            {/* Down Arrow Expand Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleClientExpand(client.name);
+                              }}
+                              className="p-1.5 rounded bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/30 text-purple-300 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                              title={isExpanded ? "Collapse client review rooms" : "Expand client review rooms"}
+                              aria-expanded={isExpanded}
+                            >
+                              <span className="text-[11px] font-mono text-zinc-400 hidden sm:inline px-1">
+                                {isExpanded ? 'Collapse' : 'Expand'}
+                              </span>
+                              <ChevronDown 
+                                className={`w-4 h-4 text-purple-400 group-hover:text-white transition-transform duration-200 ${
+                                  isExpanded ? 'rotate-180 text-white' : ''
+                                }`} 
+                              />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* SEPARATE ROOM BOXES IN THIS CLIENT BOX (SHOWN ONLY WHEN EXPANDED) */}
+                        {isExpanded && (
+                          <div className="p-5 md:p-6 pt-0 space-y-4 border-t border-purple-950/40 animate-in fade-in duration-200">
+                            <div className="pt-4 grid grid-cols-1 gap-4">
+                              {client.roomList.map((room) => {
+                                const thumb = getThumbnailUrl(room.video_url);
+
+                                return (
+                                  <div 
+                                    key={room.roomId}
+                                    className="bg-[#07050e] border border-purple-900/40 hover:border-purple-600/40 rounded-none p-4 space-y-4 transition-colors"
+                                  >
+                                    {/* Room Box Header */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-950/30">
+                                      <div className="flex items-center gap-3 min-w-0">
+                                        {/* Room Preview Thumbnail */}
+                                        <div className="w-16 h-10 rounded overflow-hidden bg-black/60 border border-purple-900/40 shrink-0 flex items-center justify-center">
+                                          {thumb ? (
+                                            <img src={thumb} alt="" className="w-full h-full object-cover" />
+                                          ) : (
+                                            <Film className="w-4 h-4 text-purple-400/60" />
+                                          )}
+                                        </div>
+
+                                        <div className="min-w-0">
+                                          <div className="flex items-center gap-2">
+                                            <h4 
+                                              onClick={() => navigate(`/room/${room.roomId}`)}
+                                              className="font-bold text-xs sm:text-sm text-white hover:text-purple-300 transition-colors truncate cursor-pointer"
+                                            >
+                                              {room.title}
+                                            </h4>
+                                            <span className={`text-[10px] px-2 py-0.2 rounded border font-medium ${
+                                              room.state === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                                              room.state === 'Rejected' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                                              'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                            }`}>
+                                              {room.state}
+                                            </span>
+                                          </div>
+                                          <span className="text-[11px] text-zinc-500 font-mono">
+                                            Folder: {room.folder || 'Default'} · {room.comments.length} {room.comments.length === 1 ? 'comment' : 'comments'}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <button
+                                        onClick={() => navigate(`/room/${room.roomId}`)}
+                                        className="self-end sm:self-center px-3 py-1 bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 hover:text-white border border-purple-500/30 text-xs rounded transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
+                                      >
+                                        <span>Open Room</span>
+                                        <ArrowRight className="w-3 h-3" />
+                                      </button>
+                                    </div>
+
+                                    {/* Messages Commented By Him In This Room */}
+                                    <div className="space-y-2.5">
+                                      {room.comments.map((comment) => (
+                                        <div 
+                                          key={comment.id}
+                                          onClick={() => navigate(`/room/${room.roomId}`)}
+                                          className="p-3 rounded bg-white/[0.02] hover:bg-white/[0.05] border border-purple-950/30 hover:border-purple-500/30 transition-all cursor-pointer space-y-2 group"
+                                        >
+                                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              {/* Video Timestamp Badge */}
+                                              <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-[11px] font-semibold border border-purple-500/30 flex items-center gap-1">
+                                                <Clock className="w-3 h-3 text-purple-400" />
+                                                <span>{comment.formattedTime}</span>
+                                              </span>
+
+                                              {comment.version && (
+                                                <span className="text-[10px] font-mono text-zinc-400 px-1.5 py-0.5 rounded bg-white/5 border border-white/10">
+                                                  V{comment.version}
+                                                </span>
+                                              )}
+
+                                              {comment.hasDrawing && (
+                                                <span className="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] rounded font-medium flex items-center gap-1">
+                                                  <Pencil className="w-2.5 h-2.5 text-indigo-400" />
+                                                  <span>Visual Drawing</span>
+                                                </span>
+                                              )}
+
+                                              {comment.hasImage && (
+                                                <span className="px-1.5 py-0.5 bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[10px] rounded font-medium flex items-center gap-1">
+                                                  <ImageIcon className="w-2.5 h-2.5 text-pink-400" />
+                                                  <span>Attached Image</span>
+                                                </span>
+                                              )}
+
+                                              {comment.isChat && (
+                                                <span className="px-1.5 py-0.5 bg-zinc-800 text-zinc-300 text-[10px] rounded font-medium flex items-center gap-1">
+                                                  <MessageCircle className="w-2.5 h-2.5 text-zinc-400" />
+                                                  <span>Chat</span>
+                                                </span>
+                                              )}
+                                            </div>
+
+                                            <span className="text-[11px] text-zinc-500 font-mono">
+                                              {dayjs(comment.created_at).fromNow()}
+                                            </span>
+                                          </div>
+
+                                          {/* Clean Comment Text */}
+                                          <p className="text-xs text-zinc-200 group-hover:text-white leading-relaxed">
+                                            {comment.plainText || comment.previewText}
+                                          </p>
+
+                                          {/* Attached Image Preview */}
+                                          {comment.hasImage && comment.imageUrl && (
+                                            <div className="mt-2 max-w-xs rounded overflow-hidden border border-purple-900/40">
+                                              <img 
+                                                src={comment.imageUrl} 
+                                                alt="Attached feedback" 
+                                                className="max-h-40 object-cover rounded" 
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {clientGroups.length === 0 && (
+                    <div className="text-center py-16 bg-[#0c0a14] border border-purple-950/40 rounded-none p-8 space-y-4">
+                      <MessageSquare className="w-10 h-10 text-zinc-600 mx-auto" />
+                      <h3 className="text-sm font-bold text-zinc-300">No client feedback found</h3>
+                      <p className="text-xs text-zinc-500 max-w-md mx-auto">
+                        {feedbackSearchQuery ? `No comments match "${feedbackSearchQuery}".` : 'Share your room links with clients to collect timestamped feedback and visual drawings.'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================= */}
+            {/* SUB-TAB 4: PROJECT ANALYTICS                                  */}
+            {/* ============================================================= */}
+            {profileActiveSubTab === 'analytics' && (
+              <div className="space-y-8 animate-in fade-in duration-200">
+                {/* Header Banner */}
+                <div className="relative overflow-hidden bg-gradient-to-r from-[#201140] via-[#160d2b] to-[#0c0a14] border border-purple-950/60 p-6 md:p-8 rounded-none shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="space-y-2 max-w-xl z-10">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-purple-500/20 border border-purple-500/40 text-purple-300 text-[10px] font-mono font-semibold uppercase">
+                      <BarChart3 className="w-3 h-3 text-purple-400" />
+                      <span>Project Analytics</span>
+                    </div>
+                    <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
+                      Workspace Analytics & Review Velocity
+                    </h1>
+                    <p className="text-xs md:text-sm text-zinc-300 leading-relaxed">
+                      Deep dive into client review velocity, approval rates, annotation patterns, and version iterations.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 z-10">
+                    <button 
+                      onClick={() => setProfileActiveSubTab('projects')}
+                      className="bg-white hover:bg-zinc-200 text-black font-semibold text-xs px-4 py-2.5 rounded-none shadow-lg flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Layers className="w-4 h-4 text-black font-bold" />
+                      <span>View Projects</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4 KPI Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl flex flex-col justify-between">
+                    <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total Projects</span>
+                    <span className="text-2xl font-black text-white font-mono mt-3">{stats.totalProjects}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono mt-2 pt-2 border-t border-purple-950/40">{customFolders.length + 1} Folders</span>
+                  </div>
+
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl flex flex-col justify-between">
+                    <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Client Feedback</span>
+                    <span className="text-2xl font-black text-white font-mono mt-3">{stats.totalFeedback}</span>
+                    <span className="text-[10px] text-purple-300 font-mono mt-2 pt-2 border-t border-purple-950/40">{stats.drawingsCount} Drawings</span>
+                  </div>
+
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl flex flex-col justify-between">
+                    <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Approval Rate</span>
+                    <span className="text-2xl font-black text-emerald-400 font-mono mt-3">{stats.approvalRate}%</span>
+                    <span className="text-[10px] text-emerald-300 font-mono mt-2 pt-2 border-t border-purple-950/40">{stats.approvedRooms} Approved</span>
+                  </div>
+
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl flex flex-col justify-between">
+                    <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total Versions</span>
+                    <span className="text-2xl font-black text-pink-300 font-mono mt-3">{stats.totalVersions}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono mt-2 pt-2 border-t border-purple-950/40">{stats.totalProjects > 0 ? (stats.totalVersions / stats.totalProjects).toFixed(1) : '1.0'}x avg</span>
+                  </div>
+                </div>
+
+                {/* Velocity and Status breakdown */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 bg-[#0c0a14] border border-purple-950/50 p-5 md:p-6 rounded-none shadow-xl space-y-4">
+                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-purple-400" />
+                      <span>Project Velocity & Reviews</span>
+                    </h2>
+                    <div className="h-48 flex items-end justify-between gap-3 pt-4">
+                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, idx) => (
+                        <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                          <div 
+                            className="w-4 bg-purple-500/80 hover:bg-purple-400 rounded-none transition-all"
+                            style={{ height: `${Math.min(100, ((idx + 1) / 6) * 100)}%` }}
+                          ></div>
+                          <span className="text-[10px] font-mono text-zinc-500">{month}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 md:p-6 rounded-none shadow-xl space-y-4">
+                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      <span>Status Breakdown</span>
+                    </h2>
+                    <div className="space-y-3 pt-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-400">Approved</span>
+                        <span className="font-mono text-emerald-400 font-bold">{stats.approvedRooms}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-400">In Progress</span>
+                        <span className="font-mono text-amber-400 font-bold">{stats.inProgressRooms}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-400">Needs Changes</span>
+                        <span className="font-mono text-red-400 font-bold">{stats.rejectedRooms}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Analytics Breakdown */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl space-y-2">
+                    <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Visual Annotations</span>
+                    <div className="text-2xl font-black text-indigo-400 font-mono mt-1">
+                      {stats.totalFeedback > 0 ? Math.round((stats.drawingsCount / stats.totalFeedback) * 100) : 0}%
+                    </div>
+                    <p className="text-[11px] text-zinc-500">of all comments include frame drawings</p>
+                  </div>
+
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl space-y-2">
+                    <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Avg Comments / Room</span>
+                    <div className="text-2xl font-black text-purple-300 font-mono mt-1">
+                      {stats.totalProjects > 0 ? (stats.totalFeedback / stats.totalProjects).toFixed(1) : '0'}
+                    </div>
+                    <p className="text-[11px] text-zinc-500">average notes recorded per session</p>
+                  </div>
+
+                  <div className="bg-[#0c0a14] border border-purple-950/50 p-5 rounded-none shadow-xl space-y-2">
+                    <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total Active Clients</span>
+                    <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
+                      {clientGroups.length}
+                    </div>
+                    <p className="text-[11px] text-zinc-500">unique commenters across all rooms</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </main>
         </div>
       ) : (
@@ -1232,77 +2186,80 @@ export default function Dashboard() {
             </main>
           </div>
 
-          {/* Right Floating Quick Action Sidebar */}
-          <div className="hidden md:flex w-14 flex-shrink-0 bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-2xl flex-col items-center py-4 mr-4 mb-6 z-20 shadow-xl h-[calc(100%-1rem)]">
+          {/* Right Floating Quick Action Dock */}
+          <div className="hidden md:flex w-14 flex-shrink-0 bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-2xl flex-col items-center justify-between py-5 mr-4 self-center my-auto z-20 shadow-2xl h-[470px] max-h-[85vh]">
             
             {/* Top Avatar: Click opens the Profile Dashboard Command Center! */}
-            <button 
-              onClick={() => setCurrentMode('profile_dashboard')}
-              className="p-0.5 rounded-md hover:ring-2 hover:ring-purple-400 transition-all mb-8 group relative cursor-pointer"
-              title="Click to open Profile Overview & Analytics"
-            >
-              {avatarUrl ? (
-                <img 
-                  src={avatarUrl} 
-                  alt="Profile" 
-                  className="w-8 h-8 rounded-md object-cover shadow-sm border border-white/10"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="w-8 h-8 bg-white text-black rounded-md flex items-center justify-center font-bold text-sm uppercase">
-                  {userName.substring(0, 2)}
-                </div>
-              )}
-              <span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                Profile & Analytics
-              </span>
-            </button>
+            <div className="flex flex-col items-center gap-3 w-full">
+              <button 
+                onClick={() => setCurrentMode('profile_dashboard')}
+                className="p-0.5 rounded-full hover:ring-2 hover:ring-purple-400 transition-all group relative cursor-pointer"
+                title="Click to open Profile Overview & Analytics"
+              >
+                {avatarUrl ? (
+                  <img 
+                    src={avatarUrl} 
+                    alt="Profile" 
+                    className="w-8 h-8 rounded-full object-cover shadow-sm border border-purple-500/40 ring-1 ring-purple-500/30"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-gradient-to-tr from-purple-700 to-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-xs uppercase border border-purple-400/40">
+                    {userName.substring(0, 2)}
+                  </div>
+                )}
+                <span className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900/95 border border-white/10 text-xs text-zinc-200 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50">
+                  Profile & Analytics
+                </span>
+              </button>
+              <div className="w-6 h-px bg-white/10" />
+            </div>
 
             {/* Quick Nav Icons */}
-            <div className="flex flex-col gap-6 w-full items-center flex-1 relative">
+            <div className="flex flex-col gap-3.5 w-full items-center relative">
               <button 
                 onClick={() => { setActiveFolder('All Rooms'); setActiveState(null); setSearchQuery(''); }} 
-                className="p-2 text-zinc-500 hover:text-white transition-colors group relative"
+                className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-xl transition-all group relative cursor-pointer"
                 title="Home"
               >
                 <Home className="w-5 h-5" />
-                <span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Home</span>
+                <span className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900/95 border border-white/10 text-xs text-zinc-200 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50">Home</span>
               </button>
 
               <button 
                 onClick={() => document.getElementById('search-input')?.focus()} 
-                className="p-2 text-zinc-500 hover:text-white transition-colors group relative"
+                className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-xl transition-all group relative cursor-pointer"
                 title="Search"
               >
                 <Search className="w-5 h-5" />
-                <span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Search</span>
+                <span className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900/95 border border-white/10 text-xs text-zinc-200 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50">Search</span>
               </button>
 
               <button 
                 onClick={handleManualRefresh} 
                 disabled={refreshing} 
-                className={`p-2 transition-colors group relative ${refreshing ? 'text-indigo-400' : 'text-zinc-500 hover:text-white'}`} 
+                className={`p-2 hover:bg-white/10 rounded-xl transition-all group relative cursor-pointer ${refreshing ? 'text-indigo-400' : 'text-zinc-400 hover:text-white'}`} 
                 title="Refresh data"
               >
                 <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-                <span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Refresh</span>
+                <span className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900/95 border border-white/10 text-xs text-zinc-200 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50">Refresh</span>
               </button>
 
               {/* Notifications */}
               <div className="relative flex justify-center">
                 <button 
                   onClick={() => setShowNotifications(!showNotifications)} 
-                  className={`p-2 transition-colors relative ${showNotifications ? 'text-white' : 'text-zinc-500 hover:text-white'}`}
+                  className={`p-2 hover:bg-white/10 rounded-xl transition-all relative cursor-pointer ${showNotifications ? 'text-white bg-white/10' : 'text-zinc-400 hover:text-white'}`}
                   title="Client Feedback"
                 >
                   <Bell className="w-5 h-5" />
                   {notifications.length > 0 && (
-                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-indigo-500 rounded-full border border-[#1a1b23]"></span>
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full border border-[#1a1b23]"></span>
                   )}
                 </button>
 
                 {showNotifications && (
-                  <div className="absolute top-0 right-full mr-4 w-80 bg-[#1a1b23] border border-white/10 rounded-xl shadow-2xl z-50 p-4 max-h-96 overflow-y-auto">
+                  <div className="absolute top-1/2 -translate-y-1/2 right-full mr-3.5 w-80 bg-[#1a1b23] border border-white/10 rounded-xl shadow-2xl z-50 p-4 max-h-96 overflow-y-auto">
                     <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
                       <h4 className="text-white font-semibold text-xs flex items-center gap-2">
                         <Bell className="w-3.5 h-3.5 text-indigo-400" /> Client Messages
@@ -1337,7 +2294,7 @@ export default function Dashboard() {
                               </span>
                             </div>
                             <p className="text-xs text-zinc-300 line-clamp-2">
-                              {notif.plainText ? `"${notif.plainText}"` : (notif.hasDrawing ? '🎨 Visual Drawing' : notif.previewText)}
+                              {notif.plainText ? `"${notif.plainText}"` : (notif.hasDrawing ? 'Visual Drawing' : notif.previewText)}
                             </p>
                           </div>
                         ))}
@@ -1349,33 +2306,36 @@ export default function Dashboard() {
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex flex-col gap-6 w-full items-center mt-auto">
-              {userIsAdmin && (
+            <div className="flex flex-col items-center gap-3 w-full">
+              <div className="w-6 h-px bg-white/10" />
+              <div className="flex flex-col gap-3.5 w-full items-center">
+                {userIsAdmin && (
+                  <button 
+                    onClick={() => navigate('/admin')} 
+                    className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-white/10 rounded-xl transition-all relative group cursor-pointer"
+                    title="Admin Console"
+                  >
+                    <Shield className="w-5 h-5" />
+                    <span className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900/95 border border-white/10 text-xs text-zinc-200 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50">Admin Console</span>
+                  </button>
+                )}
                 <button 
-                  onClick={() => navigate('/admin')} 
-                  className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-white/5 rounded-lg transition-colors relative group"
-                  title="Admin Console"
+                  onClick={() => navigate('/help')} 
+                  className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-xl transition-all relative group cursor-pointer"
+                  title="Features & Help"
                 >
-                  <Shield className="w-5 h-5" />
-                  <span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Admin Console</span>
+                  <HelpCircle className="w-5 h-5" />
+                  <span className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900/95 border border-white/10 text-xs text-zinc-200 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50">Features & Help</span>
                 </button>
-              )}
-              <button 
-                onClick={() => navigate('/help')} 
-                className="p-2 text-zinc-500 hover:text-white transition-colors relative group"
-                title="Features & Help"
-              >
-                <HelpCircle className="w-5 h-5" />
-                <span className="absolute left-full ml-4 px-2 py-1 bg-zinc-800 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Features & Help</span>
-              </button>
-              <button 
-                onClick={handleLogout} 
-                className="p-2 text-zinc-500 hover:text-red-400 transition-colors relative group" 
-                title="Sign Out"
-              >
-                <LogOut className="w-5 h-5" />
-                <span className="absolute left-full ml-4 px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-red-500/20">Sign Out</span>
-              </button>
+                <button 
+                  onClick={handleLogout} 
+                  className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all relative group cursor-pointer" 
+                  title="Sign Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-red-950/90 border border-red-500/30 text-red-300 text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50">Sign Out</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
