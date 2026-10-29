@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Globe, MoreHorizontal, CheckCircle, Search, Menu, ListFilter, Trash2, Image as ImageIcon, X, Loader2, Pencil, Clock, Plus, Minus, RotateCcw } from 'lucide-react';
+import { Send, Globe, Check, MoreHorizontal, CheckCircle, Search, Menu, ListFilter, Trash2, Image as ImageIcon, X, Loader2, Pencil, Clock, Plus, Minus, RotateCcw } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { supabase } from '../supabaseClient';
@@ -259,56 +259,56 @@ export const CommentSidebar = ({
   };
 
   return (
-    <div className="w-full h-full bg-[#0c0a14] border-l border-purple-950/40 flex flex-col font-sans">
+    <div className="w-full h-full bg-[#0e0e11] border-l border-white/[0.08] flex flex-col font-sans select-none">
       {/* Top Tabs */}
-      <div className="flex items-center gap-1 p-2 border-b border-purple-950/40 bg-[#07050e]">
+      <div className="flex items-center gap-1.5 p-2.5 border-b border-white/[0.08] bg-zinc-950/60">
         <button 
           onClick={() => setActiveTab('comments')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-none transition-colors ${activeTab === 'comments' ? 'bg-[#0c0a14] text-white border-b-2 border-purple-400' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'comments' ? 'bg-zinc-800 text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:bg-white/[0.04] hover:text-white'}`}
         >
           Comments
         </button>
         <button 
           onClick={() => setActiveTab('chat')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-none transition-colors ${activeTab === 'chat' ? 'bg-[#0c0a14] text-white border-b-2 border-purple-400' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'chat' ? 'bg-zinc-800 text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:bg-white/[0.04] hover:text-white'}`}
         >
           Chat
         </button>
       </div>
 
       {/* Toolbar */}
-      <div className="px-4 py-2.5 flex items-center justify-between border-b border-purple-950/40 relative text-xs bg-[#0c0a14]">
+      <div className="px-4 py-2.5 flex items-center justify-between border-b border-white/[0.06] relative text-xs bg-[#0e0e11]">
         <div className="flex items-center gap-2">
           <button 
             type="button"
             onClick={() => setShowVersionFilterMenu(!showVersionFilterMenu)}
-            className="text-purple-300 hover:text-white bg-[#07050e] hover:bg-white/10 border border-purple-950/50 px-2.5 py-1 rounded-none flex items-center gap-1.5 transition-colors cursor-pointer font-semibold"
+            className="text-zinc-200 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-white/[0.08] px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer font-medium text-xs shadow-sm"
           >
             <span>
               {versionFilter === 'all'
                 ? `All ${activeTab}`
                 : `V${currentVersionNum} only`}
             </span>
-            <ListFilter className="w-3 h-3 text-purple-400" />
+            <ListFilter className="w-3 h-3 text-zinc-400" />
           </button>
 
           {showVersionFilterMenu && (
-            <div className="absolute top-full left-4 mt-1 bg-[#0c0a14] border border-purple-950/60 rounded-none shadow-2xl z-50 py-1 w-44">
+            <div className="absolute top-full left-4 mt-1 bg-[#141417] border border-white/[0.1] rounded-xl shadow-2xl z-50 py-1 w-44 backdrop-blur-md">
               <button
                 type="button"
                 onClick={() => { setVersionFilter('all'); setShowVersionFilterMenu(false); }}
-                className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-white/5 transition-colors ${versionFilter === 'all' ? 'text-white bg-purple-950/40 font-semibold' : 'text-zinc-400'}`}
+                className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-white/[0.04] transition-colors ${versionFilter === 'all' ? 'text-white bg-purple-500/10 font-semibold' : 'text-zinc-400'}`}
               >
                 <span>All Versions</span>
-                {versionFilter === 'all' && <span className="text-purple-400">✓</span>}
+                {versionFilter === 'all' && <Check size={12} className="text-purple-400" />}
               </button>
               <button
                 type="button"
                 onClick={() => { setVersionFilter('current'); setShowVersionFilterMenu(false); }}
-                className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-white/5 transition-colors ${versionFilter === 'current' ? 'text-white bg-purple-950/40 font-semibold' : 'text-zinc-400'}`}
+                className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-white/[0.04] transition-colors ${versionFilter === 'current' ? 'text-white bg-purple-500/10 font-semibold' : 'text-zinc-400'}`}
               >
                 <span>V{currentVersionNum} only</span>
-                {versionFilter === 'current' && <span className="text-purple-400">✓</span>}
+                {versionFilter === 'current' && <Check size={12} className="text-purple-400" />}
               </button>
             </div>
           )}
@@ -356,7 +356,7 @@ export const CommentSidebar = ({
 
           if (displayComments.length === 0) {
             return (
-              <div className="text-zinc-500 text-xs text-center mt-10 bg-[#07050e] p-4 rounded-none border border-purple-950/50">
+              <div className="text-zinc-400 text-xs text-center mt-10 bg-zinc-900/60 p-5 rounded-xl border border-white/[0.08] leading-relaxed">
                 No {activeTab === 'chat' ? 'messages' : 'comments'} yet. {activeTab === 'comments' && 'Pause the video or set a range to add one!'}
               </div>
             );
@@ -383,10 +383,10 @@ export const CommentSidebar = ({
                       <img 
                         src={avatarImg} 
                         alt={comment.author_name || comment.author || 'User'} 
-                        className="w-8 h-8 rounded-full object-cover border border-purple-500/30 shadow-sm shrink-0" 
+                        className="w-8 h-8 rounded-full object-cover border border-white/[0.1] shadow-sm shrink-0" 
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-[#1c182c] border border-purple-900/60 text-purple-200 flex items-center justify-center text-[10px] font-bold tracking-wider uppercase shadow-sm shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-zinc-800 border border-white/[0.1] text-zinc-300 flex items-center justify-center text-[10px] font-bold tracking-wider uppercase shadow-sm shrink-0">
                         {avatarInitials}
                       </div>
                     )}
@@ -395,14 +395,14 @@ export const CommentSidebar = ({
                   {/* Content Box */}
                   <div 
                     onClick={() => activeTab === 'comments' && onCommentClick(comment)}
-                    className={`flex-1 border rounded-none p-3 ${
-                      activeTab === 'comments' ? 'cursor-pointer hover:bg-[#130f22]' : ''
-                    } transition-all shadow-md ${
+                    className={`flex-1 border rounded-xl p-3.5 ${
+                      activeTab === 'comments' ? 'cursor-pointer hover:bg-zinc-850' : ''
+                    } transition-all shadow-sm ${
                       isSelected
-                        ? 'bg-purple-950/40 border-purple-500/60 ring-1 ring-purple-500/40'
+                        ? 'bg-purple-500/[0.08] border-purple-500/40 ring-1 ring-purple-500/30'
                         : comment.resolved && activeTab === 'comments'
-                          ? 'bg-[#0e1813] border-emerald-500/30 hover:bg-[#122019]'
-                          : 'bg-[#07050e] border-purple-950/50'
+                          ? 'bg-white/[0.03] border-white/[0.1] hover:bg-white/[0.05]'
+                          : 'bg-zinc-900/70 hover:bg-zinc-900 border-white/[0.07]'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -414,20 +414,20 @@ export const CommentSidebar = ({
                         <div className="flex items-center gap-1.5 text-zinc-500">
                           {hasDrawing && (
                             <span 
-                              className="text-[10px] font-semibold text-white bg-white/10 border border-white/20 px-1.5 py-0.5 rounded-none flex items-center gap-1 shadow-sm"
+                              className="text-[10px] font-medium text-purple-300 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm"
                               title={`${comment.drawingData.strokes.length} drawing annotations`}
                             >
-                              <Pencil className="w-2.5 h-2.5 text-white" />
+                              <Pencil className="w-2.5 h-2.5 text-purple-300" />
                               <span>Drawing</span>
                             </span>
                           )}
                           {comment.version && (
-                            <span className="text-[10px] text-purple-300 bg-purple-500/20 border border-purple-500/30 px-1.5 py-0.2 rounded-none font-mono font-semibold">
+                            <span className="text-[10px] text-zinc-300 bg-zinc-800 border border-white/[0.08] px-1.5 py-0.2 rounded-md font-mono font-medium">
                               v{comment.version}
                             </span>
                           )}
                           <span className="text-[11px] font-mono">#{index + 1}</span>
-                          <Globe className="w-3 h-3 text-purple-400" />
+                          <Globe className="w-3 h-3 text-zinc-400" />
                         </div>
                       )}
                     </div>
@@ -435,12 +435,12 @@ export const CommentSidebar = ({
                     <div className="flex items-start gap-2.5 mb-3">
                       {activeTab === 'comments' && (
                         comment.isRange ? (
-                          <span className="text-[10.5px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2.5 py-0.5 rounded-full font-semibold tracking-tight mt-0.5 whitespace-nowrap flex items-center gap-1 shadow-sm">
-                            <span>↔</span>
+                          <span className="text-[10.5px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/25 px-2.5 py-0.5 rounded-full font-medium tracking-tight mt-0.5 whitespace-nowrap flex items-center gap-1 shadow-sm">
+                            
                             <span>{formatTime(comment.timestamp)} - {formatTime(comment.endTime)}</span>
                           </span>
                         ) : (
-                          <span className="text-[11px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2.5 py-0.5 rounded-full font-semibold tracking-tight mt-0.5 whitespace-nowrap shadow-sm">
+                          <span className="text-[11px] font-mono bg-zinc-800 text-zinc-200 border border-white/[0.08] px-2.5 py-0.5 rounded-full font-medium tracking-tight mt-0.5 whitespace-nowrap shadow-sm">
                             {formatTime(comment.timestamp)}
                           </span>
                         )
@@ -457,7 +457,7 @@ export const CommentSidebar = ({
                     
                     <div className="flex items-center justify-between mt-3">
                       <span 
-                        className="text-[11px] font-bold text-purple-300 hover:text-white transition-colors cursor-pointer"
+                        className="text-[11px] font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           setInlineReplyingTo(comment.id);
@@ -470,7 +470,7 @@ export const CommentSidebar = ({
                       <div className="flex items-center gap-2.5 text-zinc-400">
                         {isMine ? (
                           <Trash2 
-                            className="w-3.5 h-3.5 hover:text-red-400 transition-colors cursor-pointer" 
+                            className="w-3.5 h-3.5 hover:text-purple-400 transition-colors cursor-pointer" 
                             onClick={(e) => { e.stopPropagation(); onDeleteComment(comment.id); }} 
                             title="Delete"
                           />
@@ -479,7 +479,7 @@ export const CommentSidebar = ({
                         )}
                         {activeTab === 'comments' && (
                           <CheckCircle 
-                            className={`w-3.5 h-3.5 transition-colors cursor-pointer ${comment.resolved ? 'text-emerald-400 hover:text-emerald-300' : 'hover:text-emerald-400'}`} 
+                            className={`w-3.5 h-3.5 transition-colors cursor-pointer ${comment.resolved ? 'text-purple-400 hover:text-purple-300' : 'hover:text-purple-400'}`} 
                             onClick={(e) => { e.stopPropagation(); onToggleResolve && onToggleResolve(comment.id); }}
                           />
                         )}
@@ -490,7 +490,7 @@ export const CommentSidebar = ({
 
                 {/* Replies Section */}
                 {replies.length > 0 && (
-                  <div className="ml-11 mt-3 flex flex-col gap-3 border-l-2 border-purple-950/60 pl-3">
+                  <div className="ml-11 mt-3 flex flex-col gap-3 border-l-2 border-zinc-800 pl-3">
                     {replies.map(reply => {
                       const isMineReply = currentUserIdentity?.isClient 
                         ? reply.author_name === currentUserIdentity.name 
@@ -499,15 +499,15 @@ export const CommentSidebar = ({
                       const replyAvatarImg = getCommentAvatar(reply);
                       
                       return (
-                        <div key={reply.id} className="flex gap-3 group relative bg-[#07050e] p-2.5 border border-purple-950/40 rounded-none shadow-sm">
+                        <div key={reply.id} className="flex gap-3 group relative bg-zinc-950/70 p-2.5 border border-white/[0.06] rounded-lg shadow-sm">
                           {replyAvatarImg ? (
                             <img 
                               src={replyAvatarImg} 
                               alt={reply.author_name || reply.author || 'User'} 
-                              className="w-6 h-6 rounded-full object-cover border border-purple-500/30 shadow-sm shrink-0 mt-0.5" 
+                              className="w-6 h-6 rounded-full object-cover border border-white/[0.1] shadow-sm shrink-0 mt-0.5" 
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-[#1c182c] border border-purple-900/60 text-purple-200 flex items-center justify-center text-[9px] font-bold tracking-wider shrink-0 mt-0.5 uppercase">
+                            <div className="w-6 h-6 rounded-full bg-zinc-800 border border-white/[0.1] text-zinc-300 flex items-center justify-center text-[9px] font-bold tracking-wider shrink-0 mt-0.5 uppercase">
                               {avatarInitialsReply}
                             </div>
                           )}
@@ -522,7 +522,7 @@ export const CommentSidebar = ({
                             
                             <div className="flex items-center justify-between mt-1.5">
                               <span 
-                                className="text-[10px] font-bold text-purple-300 hover:text-white transition-colors cursor-pointer"
+                                className="text-[10px] font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setInlineReplyingTo(comment.id);
@@ -534,7 +534,7 @@ export const CommentSidebar = ({
                               </span>
                               {isMineReply && (
                                 <Trash2 
-                                  className="w-3 h-3 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer" 
+                                  className="w-3 h-3 text-zinc-500 hover:text-purple-400 transition-colors cursor-pointer" 
                                   onClick={(e) => { e.stopPropagation(); onDeleteComment(reply.id); }} 
                                   title="Delete"
                                 />
@@ -554,10 +554,10 @@ export const CommentSidebar = ({
                       <img 
                         src={currentUserIdentity.avatar_url} 
                         alt={currentUserIdentity?.name || 'User'} 
-                        className="w-6 h-6 rounded-full object-cover border border-purple-500/40 shadow-sm shrink-0 mt-1" 
+                        className="w-6 h-6 rounded-full object-cover border border-white/[0.1] shadow-sm shrink-0 mt-1" 
                       />
                     ) : (
-                      <div className="w-6 h-6 rounded-full bg-[#1c182c] border border-purple-900/60 text-purple-200 flex items-center justify-center text-[9px] font-bold tracking-wider shrink-0 mt-1 uppercase">
+                      <div className="w-6 h-6 rounded-full bg-zinc-800 border border-white/[0.1] text-zinc-300 flex items-center justify-center text-[9px] font-bold tracking-wider shrink-0 mt-1 uppercase">
                         {(currentUserIdentity?.name || 'U').substring(0, 2).toUpperCase()}
                       </div>
                     )}
@@ -573,21 +573,21 @@ export const CommentSidebar = ({
                           }
                         }} 
                       />
-                      <div className="w-full bg-[#07050e] border border-purple-950/60 rounded-none shadow-inner overflow-hidden focus-within:border-purple-500/60 transition-colors">
+                      <div className="w-full bg-zinc-950 border border-white/[0.1] rounded-xl shadow-inner overflow-hidden focus-within:border-purple-500/60 transition-colors">
                         {inlineImageFile && (
-                          <div className="p-2 border-b border-purple-950/40 relative bg-black/40">
-                            <img src={URL.createObjectURL(inlineImageFile)} alt="preview" className="h-16 rounded-none object-cover" />
+                          <div className="p-2 border-b border-white/[0.08] relative bg-black/40">
+                            <img src={URL.createObjectURL(inlineImageFile)} alt="preview" className="h-16 rounded-lg object-cover" />
                             <button 
                               type="button" 
                               onClick={() => setInlineImageFile(null)} 
-                              className="absolute top-1 right-1 bg-black/70 p-1 rounded-none text-zinc-300 hover:text-white"
+                              className="absolute top-1 right-1 bg-black/70 p-1 rounded-full text-zinc-300 hover:text-white"
                             >
                               <X className="w-3 h-3" />
                             </button>
                           </div>
                         )}
                         <textarea
-                          className="w-full bg-transparent p-2 pr-16 text-[12px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none"
+                          className="w-full bg-transparent p-2.5 pr-16 text-[12px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none leading-relaxed"
                           rows={1}
                           placeholder="Add a reply..."
                           value={inlineReplyText}
@@ -601,11 +601,11 @@ export const CommentSidebar = ({
                           }}
                         />
                       </div>
-                      <div className="absolute bottom-1 right-1 flex items-center gap-1">
+                      <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => inlineFileInputRef.current?.click()}
-                          className="text-zinc-400 hover:text-purple-300 p-1 rounded-none transition-colors"
+                          className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.06] transition-colors"
                           title="Attach Image"
                         >
                           <ImageIcon className="w-3.5 h-3.5" />
@@ -613,7 +613,7 @@ export const CommentSidebar = ({
                         <button
                           type="submit"
                           disabled={(!inlineReplyText.trim() && !inlineImageFile) || isUploadingInline}
-                          className="text-zinc-400 hover:text-purple-300 disabled:opacity-50 disabled:hover:text-zinc-500 p-1 rounded-none transition-colors"
+                          className="text-zinc-400 hover:text-white disabled:opacity-40 disabled:hover:text-zinc-500 p-1 rounded-lg hover:bg-white/[0.06] transition-colors"
                         >
                           {isUploadingInline ? <Loader2 className="w-3 h-3 animate-spin text-purple-400" /> : <Send className="w-3 h-3" />}
                         </button>
@@ -638,18 +638,18 @@ export const CommentSidebar = ({
       </div>
 
       {/* Input Area with Enhanced Timeline Range and Custom +/- s Controls */}
-      <div className="p-3.5 border-t border-purple-950/40 bg-[#0c0a14]">
+      <div className="p-3.5 border-t border-white/[0.08] bg-[#0e0e11]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
           {activeTab === 'comments' && (
             <div className="flex flex-col gap-2 mb-1">
               {/* Single Frame vs Range Segmented Toggle */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center bg-[#07050e] p-0.5 rounded-none border border-purple-950/50 text-[11px]">
+                <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-white/[0.08] text-[11px]">
                   <button
                     type="button"
                     onClick={() => handleToggleRangeMode(false)}
-                    className={`px-2.5 py-1 rounded-none font-semibold transition-all ${
-                      !isRangeMode ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-zinc-200'
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      !isRangeMode ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
                     • Point
@@ -657,11 +657,11 @@ export const CommentSidebar = ({
                   <button
                     type="button"
                     onClick={() => handleToggleRangeMode(true)}
-                    className={`px-2.5 py-1 rounded-none font-semibold transition-all flex items-center gap-1 ${
-                      isRangeMode ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-zinc-200'
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all flex items-center gap-1 ${
+                      isRangeMode ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
-                    <span>↔</span>
+                    
                     <span>Range</span>
                   </button>
                 </div>
@@ -669,14 +669,14 @@ export const CommentSidebar = ({
                 {!isRangeMode ? (
                   <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 font-medium">
                     <span>At:</span>
-                    <span className="font-mono text-purple-300 font-semibold">{formatTime(currentTime)}</span>
+                    <span className="font-mono text-zinc-200 font-semibold">{formatTime(currentTime)}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-zinc-400 font-mono">
                       Playhead: <span className="text-zinc-200">{formatTime(currentTime)}</span>
                     </span>
-                    <span className="text-[11px] font-mono text-purple-300 font-bold bg-purple-500/20 px-2 py-0.5 rounded-none border border-purple-500/30 shadow-sm">
+                    <span className="text-[11px] font-mono text-purple-300 font-semibold bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-500/25 shadow-sm">
                       {(rangeEnd - rangeStart).toFixed(1)}s span
                     </span>
                   </div>
@@ -685,38 +685,38 @@ export const CommentSidebar = ({
 
               {/* Comprehensive Range Controls */}
               {isRangeMode && (
-                <div className="flex flex-col gap-2 p-2.5 bg-[#07050e] border border-purple-950/60 rounded-none animate-in fade-in duration-200 text-xs shadow-inner">
+                <div className="flex flex-col gap-2 p-2.5 bg-zinc-950/80 border border-white/[0.08] rounded-xl animate-in fade-in duration-200 text-xs shadow-inner">
                   {/* In & Out Point Boxes */}
                   <div className="grid grid-cols-2 gap-2">
                     {/* In Point Box */}
-                    <div className="flex flex-col gap-1.5 bg-black/40 p-2 rounded-none border border-purple-950/40 overflow-hidden">
+                    <div className="flex flex-col gap-1.5 bg-zinc-900/90 p-2 rounded-lg border border-white/[0.06] overflow-hidden">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">In Point</span>
+                        <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">In Point</span>
                         <button
                           type="button"
                           onClick={handleSetInToPlayhead}
-                          className="text-[9px] text-purple-400 hover:text-purple-300 transition-colors cursor-pointer font-semibold"
+                          className="text-[9px] text-purple-400 hover:text-purple-300 transition-colors cursor-pointer font-medium"
                           title="Snap In point to current playhead"
                         >
                           Snap
                         </button>
                       </div>
-                      <div className="flex items-center justify-between gap-1 bg-[#0c0a14] p-1 rounded-none border border-purple-950/40">
+                      <div className="flex items-center justify-between gap-1 bg-zinc-950 p-1 rounded-lg border border-white/[0.08]">
                         <button
                           type="button"
                           onClick={() => handleNudgeIn(-1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-none transition-colors shrink-0"
+                          className="w-6 h-6 flex items-center justify-center bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white rounded transition-colors shrink-0"
                           title="Decrease In by 1s"
                         >
                           <Minus size={11} />
                         </button>
-                        <span className="font-mono text-[11px] font-semibold text-zinc-100 flex-1 text-center truncate">
+                        <span className="font-mono text-[10px] sm:text-[11px] font-semibold text-zinc-100 flex-1 text-center truncate tracking-tighter sm:tracking-normal">
                           {formatTime(rangeStart)}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleNudgeIn(1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-none transition-colors shrink-0"
+                          className="w-6 h-6 flex items-center justify-center bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white rounded transition-colors shrink-0"
                           title="Increase In by 1s"
                         >
                           <Plus size={11} />
@@ -725,34 +725,34 @@ export const CommentSidebar = ({
                     </div>
 
                     {/* Out Point Box */}
-                    <div className="flex flex-col gap-1.5 bg-black/40 p-2 rounded-none border border-purple-950/40 overflow-hidden">
+                    <div className="flex flex-col gap-1.5 bg-zinc-900/90 p-2 rounded-lg border border-white/[0.06] overflow-hidden">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Out Point</span>
+                        <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Out Point</span>
                         <button
                           type="button"
                           onClick={handleSetOutToPlayhead}
-                          className="text-[9px] text-purple-400 hover:text-purple-300 transition-colors cursor-pointer font-semibold"
+                          className="text-[9px] text-purple-400 hover:text-purple-300 transition-colors cursor-pointer font-medium"
                           title="Snap Out point to current playhead"
                         >
                           Snap
                         </button>
                       </div>
-                      <div className="flex items-center justify-between gap-1 bg-[#0c0a14] p-1 rounded-none border border-purple-950/40">
+                      <div className="flex items-center justify-between gap-1 bg-zinc-950 p-1 rounded-lg border border-white/[0.08]">
                         <button
                           type="button"
                           onClick={() => handleNudgeOut(-1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-none transition-colors shrink-0"
+                          className="w-6 h-6 flex items-center justify-center bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white rounded transition-colors shrink-0"
                           title="Decrease Out by 1s"
                         >
                           <Minus size={11} />
                         </button>
-                        <span className="font-mono text-[11px] font-semibold text-zinc-100 flex-1 text-center truncate">
+                        <span className="font-mono text-[10px] sm:text-[11px] font-semibold text-zinc-100 flex-1 text-center truncate tracking-tighter sm:tracking-normal">
                           {formatTime(rangeEnd)}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleNudgeOut(1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-none transition-colors shrink-0"
+                          className="w-6 h-6 flex items-center justify-center bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white rounded transition-colors shrink-0"
                           title="Increase Out by 1s"
                         >
                           <Plus size={11} />
@@ -767,12 +767,12 @@ export const CommentSidebar = ({
 
           {/* Attached Drawing Indicator Chip */}
           {activeTab === 'comments' && attachedDrawing && attachedDrawing.length > 0 && (
-            <div className="flex items-center justify-between bg-white/10 border border-white/20 text-white px-3 py-1.5 rounded-none text-xs mb-1 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 text-purple-200 px-3 py-1.5 rounded-lg text-xs mb-1 animate-in fade-in duration-200">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-none bg-white/10 flex items-center justify-center">
-                  <Pencil className="w-3 h-3 text-white" />
+                <div className="w-5 h-5 rounded-md bg-purple-500/20 flex items-center justify-center">
+                  <Pencil className="w-3 h-3 text-purple-300" />
                 </div>
-                <span className="font-medium text-white">
+                <span className="font-medium text-purple-200">
                   Drawing attached ({attachedDrawing.length} {attachedDrawing.length === 1 ? 'shape' : 'shapes'})
                   {isRangeMode ? ' • spans entire range' : ''}
                 </span>
@@ -782,7 +782,7 @@ export const CommentSidebar = ({
                   <button 
                     type="button" 
                     onClick={onOpenDrawing} 
-                    className="text-[11px] font-semibold text-white hover:text-zinc-200 underline transition-colors cursor-pointer"
+                    className="text-[11px] font-semibold text-purple-300 hover:text-white underline transition-colors cursor-pointer"
                   >
                     Edit
                   </button>
@@ -791,7 +791,7 @@ export const CommentSidebar = ({
                   <button 
                     type="button" 
                     onClick={onClearAttachedDrawing} 
-                    className="text-zinc-400 hover:text-red-400 p-0.5 rounded-none transition-colors"
+                    className="text-zinc-400 hover:text-purple-400 p-0.5 rounded transition-colors"
                     title="Remove drawing"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -812,21 +812,21 @@ export const CommentSidebar = ({
               }
             }} 
           />
-          <div className="relative bg-[#07050e] border border-purple-950/60 rounded-none shadow-inner focus-within:border-purple-500/60 transition-colors overflow-hidden">
+          <div className="relative bg-zinc-950 border border-white/[0.1] rounded-xl shadow-inner focus-within:border-purple-500/60 transition-colors overflow-hidden">
             {mainImageFile && (
-              <div className="p-3 border-b border-purple-950/40 relative bg-black/40">
-                <img src={URL.createObjectURL(mainImageFile)} alt="preview" className="h-24 rounded-none object-cover" />
+              <div className="p-3 border-b border-white/[0.08] relative bg-black/40">
+                <img src={URL.createObjectURL(mainImageFile)} alt="preview" className="h-24 rounded-lg object-cover" />
                 <button 
                   type="button" 
                   onClick={() => setMainImageFile(null)} 
-                  className="absolute top-2 right-2 bg-black/70 p-1.5 rounded-none text-zinc-300 hover:text-white"
+                  className="absolute top-2 right-2 bg-black/70 p-1.5 rounded-full text-zinc-300 hover:text-white"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             )}
             <textarea
-              className="w-full bg-transparent p-3 pr-24 text-[13px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none"
+              className="w-full bg-transparent p-3 pr-24 text-[13px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none leading-relaxed"
               rows={2}
               placeholder={activeTab === 'chat' ? 'Type a chat message...' : (attachedDrawing?.length > 0 ? (isRangeMode ? 'Add a note to your range drawing...' : 'Add a note to your drawing...') : (isRangeMode ? 'Type a note for this timeline range...' : 'Type a comment or draw on frame...'))}
               value={newComment}
@@ -838,16 +838,16 @@ export const CommentSidebar = ({
                 }
               }}
             />
-            <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-[#0c0a14] border border-purple-950/40 p-1 rounded-none">
+            <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-zinc-900/90 border border-white/[0.08] p-1 rounded-lg">
               {/* Draw on Frame Button */}
               {activeTab === 'comments' && onOpenDrawing && (
                 <button
                   type="button"
                   onClick={onOpenDrawing}
-                  className={`p-1.5 rounded-none transition-colors ${
+                  className={`p-1.5 rounded-md transition-colors ${
                     attachedDrawing?.length > 0 
                       ? 'text-white bg-white/20 hover:bg-white/30' 
-                      : 'text-zinc-400 hover:text-white hover:bg-white/10'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.06]'
                   }`}
                   title="Draw on frame (P)"
                 >
@@ -858,7 +858,7 @@ export const CommentSidebar = ({
               <button
                 type="button"
                 onClick={() => mainFileInputRef.current?.click()}
-                className="text-zinc-400 hover:text-purple-300 hover:bg-white/10 p-1.5 rounded-none transition-colors"
+                className="text-zinc-400 hover:text-white hover:bg-white/[0.06] p-1.5 rounded-md transition-colors"
                 title="Attach Image"
               >
                 <ImageIcon className="w-3.5 h-3.5" />
@@ -866,7 +866,7 @@ export const CommentSidebar = ({
               <button
                 type="submit"
                 disabled={(!newComment.trim() && !mainImageFile && (!attachedDrawing || attachedDrawing.length === 0)) || isUploadingMain}
-                className="text-zinc-400 hover:text-purple-300 disabled:opacity-50 disabled:hover:text-zinc-500 hover:bg-white/10 p-1.5 rounded-none transition-colors"
+                className="text-zinc-400 hover:text-white disabled:opacity-40 disabled:hover:text-zinc-500 hover:bg-white/[0.06] p-1.5 rounded-md transition-colors"
               >
                 {isUploadingMain ? <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" /> : <Send className="w-3.5 h-3.5" />}
               </button>

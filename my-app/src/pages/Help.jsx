@@ -108,49 +108,50 @@ export default function Help() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col font-sans selection:bg-purple-600 selection:text-white">
+    <div className="min-h-screen bg-[#09090b] text-white flex flex-col font-sans selection:bg-purple-600 selection:text-white">
       {/* Header */}
-      <header className="border-b border-purple-950/40 bg-[#0c0a14]/90 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="border-b border-white/[0.08] bg-[#0e0e11]/90 backdrop-blur-md sticky top-0 z-50 px-3 sm:px-6 py-3 sm:py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <button 
               onClick={() => navigate('/dashboard')}
-              className="p-2 rounded-none bg-[#07050e] hover:bg-white/10 text-zinc-400 hover:text-white transition-colors border border-purple-950/50 flex items-center gap-2 text-xs font-semibold cursor-pointer"
+              className="p-2 px-2.5 sm:px-3 rounded-lg bg-[#141417] hover:bg-[#1c1c21] text-zinc-300 hover:text-white transition-colors border border-white/[0.08] flex items-center gap-1.5 text-xs font-medium cursor-pointer shrink-0"
+              title="Back to Dashboard"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Dashboard</span>
+              <span className="hidden sm:inline">Back to Dashboard</span>
             </button>
-            <div className="h-5 w-px bg-purple-950/40"></div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight text-white">Platform Features Guide</h1>
+            <div className="h-5 w-px bg-white/[0.08] hidden sm:block"></div>
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-sm sm:text-lg font-bold tracking-tight text-white truncate">Platform Guide</h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button 
               onClick={expandAll}
-              className="px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#07050e] hover:bg-white/10 rounded-none transition-colors border border-purple-950/50 cursor-pointer"
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-[#141417] hover:bg-[#1c1c21] rounded-lg transition-colors border border-white/[0.08] cursor-pointer"
             >
-              Expand All
+              Expand
             </button>
             <button 
               onClick={collapseAll}
-              className="px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#07050e] hover:bg-white/10 rounded-none transition-colors border border-purple-950/50 cursor-pointer"
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-[#141417] hover:bg-[#1c1c21] rounded-lg transition-colors border border-white/[0.08] cursor-pointer"
             >
-              Contract All
+              Contract
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10">
-        <div className="mb-8 bg-[#0c0a14] border border-purple-950/50 p-6 rounded-none shadow-xl">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-6 sm:py-10">
+        <div className="mb-8 bg-[#0e0e11] border border-white/[0.08] p-6 rounded-xl shadow-sm">
           <h2 className="text-xl font-bold text-white mb-2">
-            Welcome to Feedplayer
+            Welcome to MarkItPlayer
           </h2>
           <p className="text-zinc-400 text-xs leading-relaxed max-w-3xl">
-            Explore all the features and capabilities of Feedplayer below. Click on any feature tab to expand or contract its detailed explanation, workflow tips, and capabilities.
+            Explore all the features and capabilities of MarkItPlayer below. Click on any feature tab to expand or contract its detailed explanation, workflow tips, and capabilities.
           </p>
         </div>
 
@@ -163,10 +164,10 @@ export default function Help() {
             return (
               <div 
                 key={feature.id}
-                className={`rounded-none border transition-all duration-200 overflow-hidden ${
+                className={`rounded-xl border transition-all duration-200 overflow-hidden ${
                   isOpen 
-                    ? 'bg-[#0c0a14] border-purple-500/40 shadow-2xl' 
-                    : 'bg-[#0c0a14] border-purple-950/50 hover:border-purple-500/30'
+                    ? 'bg-[#0e0e11] border-purple-500/30 shadow-md' 
+                    : 'bg-[#0e0e11] border-white/[0.08] hover:border-white/[0.14]'
                 }`}
               >
                 {/* Accordion Header / Tab Toggle Button */}
@@ -176,10 +177,10 @@ export default function Help() {
                 >
                   <div className="flex flex-col gap-1 pr-6">
                     <div className="flex items-center gap-3">
-                      <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
+                      <h3 className="text-base font-semibold text-white group-hover:text-purple-300 transition-colors">
                         {feature.title}
                       </h3>
-                      <span className="px-2 py-0.5 rounded-none text-[10px] font-semibold tracking-wide uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-purple-500/10 text-purple-300 border border-purple-500/20">
                         {feature.category}
                       </span>
                     </div>
@@ -188,8 +189,8 @@ export default function Help() {
                     </p>
                   </div>
 
-                  <div className={`p-1.5 rounded-none transition-transform duration-200 flex-shrink-0 ${
-                    isOpen ? 'rotate-180 text-white bg-purple-950/50' : 'text-zinc-500 group-hover:text-white'
+                  <div className={`p-1.5 rounded-md transition-transform duration-200 flex-shrink-0 ${
+                    isOpen ? 'rotate-180 text-white bg-purple-500/20' : 'text-zinc-500 group-hover:text-white'
                   }`}>
                     <ChevronDown className="w-4 h-4" />
                   </div>
@@ -197,15 +198,15 @@ export default function Help() {
 
                 {/* Collapsible Content */}
                 {isOpen && (
-                  <div className="px-5 pb-5 pt-2 border-t border-purple-950/40 bg-[#07050e]">
+                  <div className="px-5 pb-5 pt-2 border-t border-white/[0.06] bg-[#09090b]/40">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                       {feature.details.map((detail, dIdx) => {
                         const parts = detail.split(': ');
                         const title = parts[0];
                         const desc = parts.slice(1).join(': ');
                         return (
-                          <div key={dIdx} className="p-3.5 rounded-none bg-[#0c0a14] border border-purple-950/50 flex flex-col gap-1 shadow-sm">
-                            <span className="font-semibold text-zinc-100 text-xs">{title}</span>
+                          <div key={dIdx} className="p-3.5 rounded-lg bg-[#141417] border border-white/[0.06] flex flex-col gap-1 shadow-sm">
+                            <span className="font-semibold text-zinc-200 text-xs">{title}</span>
                             <span className="text-zinc-400 text-xs leading-relaxed">{desc}</span>
                           </div>
                         );

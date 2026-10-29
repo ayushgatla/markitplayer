@@ -239,13 +239,13 @@ export const PlayerControls = ({
                     </span>
                     <div className="flex items-center gap-1">
                       {parsed.version && (
-                        <span className="text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.2 rounded-full font-mono">
+                        <span className="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.2 rounded-full font-mono">
                           v{parsed.version}
                         </span>
                       )}
                       {parsed.isRange && (
                         <span className="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.2 rounded-full">
-                          ↔ Range
+                          Range
                         </span>
                       )}
                       {parsed.hasDrawing && (
@@ -277,7 +277,7 @@ export const PlayerControls = ({
             {/* Base Track */}
             <div className="absolute w-full h-1 sm:h-1.5 group-hover:h-2 bg-white/20 rounded-full overflow-hidden pointer-events-none shadow-inner transition-all duration-150">
               <div 
-                className="h-full bg-indigo-500 rounded-full transition-all duration-100"
+                className="h-full bg-purple-500 rounded-full transition-all duration-100"
                 style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
               />
             </div>
@@ -309,7 +309,7 @@ export const PlayerControls = ({
                       className={`absolute top-1/2 -translate-y-1/2 h-1.5 sm:h-2 rounded-full cursor-pointer pointer-events-auto transition-all z-25 border hover:scale-y-125 hover:z-30 shadow-md ${
                         hasDrawing
                           ? 'bg-white/90 border-white text-black shadow-[0_0_8px_rgba(255,255,255,0.8)] hover:bg-white'
-                          : 'bg-indigo-500/90 border-indigo-200 shadow-[0_0_8px_rgba(99,102,241,0.8)] hover:bg-indigo-400'
+                          : 'bg-purple-500/90 border-purple-200 shadow-[0_0_8px_rgba(168,85,247,0.8)] hover:bg-purple-400'
                       }`}
                       style={{ left: `${leftPercent}%`, width: `${Math.max(1, widthPercent)}%` }}
                       onClick={(e) => {
@@ -329,7 +329,7 @@ export const PlayerControls = ({
                     className={`absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full cursor-pointer pointer-events-auto transform -translate-x-1/2 hover:scale-150 transition-transform border z-30 ${
                       hasDrawing
                         ? 'bg-white border-zinc-900 shadow-[0_0_8px_rgba(255,255,255,0.9)]'
-                        : 'bg-indigo-400 border-white shadow-[0_0_6px_rgba(99,102,241,0.8)]'
+                        : 'bg-purple-400 border-white shadow-[0_0_6px_rgba(168,85,247,0.8)]'
                     }`}
                     style={{ left: `${leftPercent}%` }}
                     onClick={(e) => {
@@ -387,7 +387,7 @@ export const PlayerControls = ({
                     step={0.05}
                     value={isMuted ? 0 : volume}
                     onChange={handleVolume}
-                    className="hidden xl:block w-0 opacity-0 group-hover:w-16 group-hover:opacity-100 transition-all duration-300 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-indigo-500 shadow-inner"
+                    className="hidden xl:block w-0 opacity-0 group-hover:w-16 group-hover:opacity-100 transition-all duration-300 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-purple-500 shadow-inner"
                   />
                 </div>
               </div>
@@ -399,7 +399,7 @@ export const PlayerControls = ({
                 </button>
                 <button 
                   onClick={togglePlay} 
-                  className="text-white hover:text-indigo-300 transition-all bg-white/10 hover:bg-white/20 rounded-full border border-white/10 shadow-md hover:scale-105 p-1.5 sm:p-2 flex items-center justify-center" 
+                  className="text-white hover:text-purple-300 transition-all bg-white/10 hover:bg-white/20 rounded-full border border-white/10 shadow-md hover:scale-105 p-1.5 sm:p-2 flex items-center justify-center" 
                   title={isPlaying ? "Pause" : "Play"}
                 >
                   {isPlaying ? <Pause size={15} className="sm:w-4 sm:h-4" /> : <Play size={15} className="sm:w-4 sm:h-4 ml-0.5" />}
@@ -416,12 +416,12 @@ export const PlayerControls = ({
                   onClick={onToggleDraw} 
                   className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
                     isDrawingMode 
-                      ? 'bg-amber-400 text-black shadow-md shadow-amber-400/30' 
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30' 
                       : 'text-zinc-300 hover:text-white bg-white/5 hover:bg-white/15 border border-white/10'
                   }`}
                   title={isDrawingMode ? "Exit Drawing Mode" : "Draw on Video Frame (P)"}
                 >
-                  <Pencil size={13} className={isDrawingMode ? "text-black fill-black" : "text-white"} />
+                  <Pencil size={13} className={isDrawingMode ? "text-white fill-white" : "text-white"} />
                   <span className="hidden md:inline">{isDrawingMode ? 'Drawing' : 'Draw'}</span>
                 </button>
 

@@ -488,13 +488,13 @@ export default function AdminDashboard() {
       let tierColor = 'text-zinc-400 border-zinc-700 bg-zinc-800/40';
       if (activityScore >= 200) {
         activityTier = 'Elite Champion';
-        tierColor = 'text-amber-300 border-amber-500/40 bg-amber-500/10';
+        tierColor = 'text-purple-300 border-purple-500/40 bg-purple-500/10';
       } else if (activityScore >= 100) {
         activityTier = 'Power Editor';
         tierColor = 'text-purple-300 border-purple-500/40 bg-purple-500/10';
       } else if (activityScore >= 40) {
         activityTier = 'Active Contributor';
-        tierColor = 'text-pink-300 border-pink-500/40 bg-pink-500/10';
+        tierColor = 'text-purple-300 border-purple-500/40 bg-purple-500/10';
       }
 
       return {
@@ -1003,7 +1003,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center font-sans text-zinc-400 text-sm">
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center font-sans text-zinc-400 text-sm">
         <div className="flex flex-col items-center gap-3">
           <RefreshCw size={24} className="animate-spin text-purple-400" />
           <span>Loading Admin Console...</span>
@@ -1015,9 +1015,9 @@ export default function AdminDashboard() {
   // Access Denied State
   if (!userIsAdmin) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-6 text-zinc-100 font-sans">
-        <div className="bg-[#0c0a14] border border-purple-950/60 rounded-none p-6 md:p-8 max-w-md w-full text-center shadow-2xl">
-          <div className="w-12 h-12 rounded-none bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center p-6 text-zinc-100 font-sans">
+        <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg p-6 md:p-8 max-w-md w-full text-center shadow-2xl">
+          <div className="w-12 h-12 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto mb-4">
             <AlertCircle size={24} />
           </div>
           <h2 className="text-lg font-bold mb-2">Access Restricted</h2>
@@ -1036,14 +1036,14 @@ export default function AdminDashboard() {
                 }
                 setLoading(false);
               }}
-              className="w-full py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-none text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-lg text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <RefreshCw size={13} />
               <span>Check Admin Permissions</span>
             </button>
             <button
               onClick={() => navigate('/dashboard')}
-              className="w-full py-2.5 bg-[#07050e] hover:bg-white/5 text-zinc-300 border border-purple-950/50 rounded-none text-xs font-medium transition-colors cursor-pointer"
+              className="w-full py-2.5 bg-[#141417] hover:bg-white/5 text-zinc-300 border border-white/[0.08] rounded-lg text-xs font-medium transition-colors cursor-pointer"
             >
               Return to Dashboard
             </button>
@@ -1054,7 +1054,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-zinc-200 font-sans flex flex-col md:flex-row overflow-x-hidden">
+    <div className="min-h-screen bg-[#09090b] text-zinc-200 font-sans flex flex-col md:flex-row overflow-x-hidden">
       
       {/* Mobile Sidebar Backdrop Overlay */}
       {isSidebarOpen && (
@@ -1065,17 +1065,25 @@ export default function AdminDashboard() {
       )}
 
       {/* LEFT SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 max-w-[85vw] bg-[#0c0a14] border-r border-purple-950/40 flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 max-w-[85vw] bg-[#0e0e11] border-r border-white/[0.08] flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
         {/* Brand Header */}
-        <div className="h-16 px-5 border-b border-purple-950/40 flex items-center justify-between shrink-0">
+        <div className="h-16 px-5 border-b border-white/[0.08] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-none bg-gradient-to-tr from-purple-700 to-indigo-600 border border-purple-400/40 text-white flex items-center justify-center font-black text-sm shadow-md">
-              M
-            </div>
+            {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
+              <img
+                src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture}
+                alt="Account"
+                className="w-8 h-8 rounded-lg object-cover border border-white/10 shadow-md shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center font-black text-sm shadow-md shrink-0">
+                M
+              </div>
+            )}
             <div>
               <div className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
                 <span>markit.</span>
-                <span className="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1 py-0.2 rounded-none font-mono font-normal">
+                <span className="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1 py-0.2 rounded-lg font-mono font-normal">
                   ADMIN
                 </span>
               </div>
@@ -1084,7 +1092,7 @@ export default function AdminDashboard() {
           </div>
           <button 
             onClick={() => setIsSidebarOpen(false)} 
-            className="md:hidden text-zinc-400 hover:text-white p-2 rounded-none hover:bg-white/5 transition-colors cursor-pointer"
+            className="md:hidden text-zinc-400 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
             aria-label="Close Menu"
           >
             <X size={20} />
@@ -1098,9 +1106,9 @@ export default function AdminDashboard() {
             <nav className="space-y-1">
               <button
                 onClick={() => { setActiveTab('overview'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   activeTab === 'overview'
-                    ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
+                    ? 'bg-purple-500/10 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -1110,9 +1118,9 @@ export default function AdminDashboard() {
 
               <button
                 onClick={() => { setActiveTab('projects'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   activeTab === 'projects'
-                    ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
+                    ? 'bg-purple-500/10 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -1120,16 +1128,16 @@ export default function AdminDashboard() {
                   <Film size={15} className={activeTab === 'projects' ? 'text-purple-400' : 'text-zinc-500'} />
                   <span>Projects & Sessions</span>
                 </div>
-                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-none font-mono">
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-lg font-mono">
                   {stats.totalRooms}
                 </span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('users'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   activeTab === 'users'
-                    ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
+                    ? 'bg-purple-500/10 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -1137,34 +1145,34 @@ export default function AdminDashboard() {
                   <Users size={15} className={activeTab === 'users' ? 'text-purple-400' : 'text-zinc-500'} />
                   <span>Editors Directory</span>
                 </div>
-                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-none font-mono">
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-lg font-mono">
                   {stats.totalUsers}
                 </span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('rankings'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   activeTab === 'rankings'
-                    ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
+                    ? 'bg-purple-500/10 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Trophy size={15} className={activeTab === 'rankings' ? 'text-amber-400' : 'text-zinc-500'} />
+                  <Trophy size={15} className={activeTab === 'rankings' ? 'text-purple-400' : 'text-zinc-500'} />
                   <span>Active Rankings</span>
                 </div>
-                <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded-none font-mono flex items-center gap-0.5">
-                  <Flame size={10} className="text-amber-400" />
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.2 rounded-lg font-mono flex items-center gap-0.5">
+                  <Flame size={10} className="text-purple-400" />
                   <span>Ranked</span>
                 </span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('emails'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   activeTab === 'emails'
-                    ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
+                    ? 'bg-purple-500/10 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -1172,16 +1180,16 @@ export default function AdminDashboard() {
                   <Mail size={15} className={activeTab === 'emails' ? 'text-purple-400' : 'text-zinc-500'} />
                   <span>Mail Users</span>
                 </div>
-                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-none font-mono">
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-lg font-mono">
                   {usersWithEmail.length}
                 </span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('admins'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   activeTab === 'admins'
-                    ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
+                    ? 'bg-purple-500/10 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -1189,16 +1197,16 @@ export default function AdminDashboard() {
                   <UserCheck size={15} className={activeTab === 'admins' ? 'text-purple-400' : 'text-zinc-500'} />
                   <span>Admin Privileges</span>
                 </div>
-                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-none font-mono">
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded-lg font-mono">
                   {adminList.length}
                 </span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-none transition-all cursor-pointer ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   activeTab === 'analytics'
-                    ? 'bg-purple-950/40 text-white border-l-2 border-purple-400 shadow-sm'
+                    ? 'bg-purple-500/10 text-white border-l-2 border-purple-400 shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -1236,15 +1244,15 @@ export default function AdminDashboard() {
         </div>
 
         {/* Current Admin Footer in Sidebar */}
-        <div className="p-3 border-t border-purple-950/40 bg-[#07050e] shrink-0">
+        <div className="p-3 border-t border-white/[0.08] bg-[#141417] shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-purple-950/80 border border-purple-500/40 flex items-center justify-center font-bold text-xs text-purple-200">
+            <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/40 flex items-center justify-center font-bold text-xs text-purple-200">
               {(user?.email || 'A').slice(0, 2).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold text-zinc-200 truncate flex items-center gap-1">
                 <span>{user?.email?.split('@')[0] || 'Admin'}</span>
-                <Crown size={11} className="text-amber-400 shrink-0" />
+                <Crown size={11} className="text-purple-400 shrink-0" />
               </div>
               <div className="text-[10px] text-zinc-500 truncate font-mono">
                 {isPrimaryAdmin(user?.email) ? 'Primary Super Admin' : 'Administrator'}
@@ -1257,11 +1265,11 @@ export default function AdminDashboard() {
       {/* RIGHT MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header Bar */}
-        <header className="h-16 px-4 md:px-8 border-b border-purple-950/40 bg-[#0c0a14] flex items-center justify-between sticky top-0 z-30 shrink-0 gap-3">
+        <header className="h-16 px-4 md:px-8 border-b border-white/[0.08] bg-[#0e0e11] flex items-center justify-between sticky top-0 z-30 shrink-0 gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden text-zinc-300 hover:text-white p-2 rounded-none bg-[#07050e] border border-purple-950/60 transition-colors cursor-pointer shrink-0"
+              className="md:hidden text-zinc-300 hover:text-white p-2 rounded-lg bg-[#141417] border border-white/[0.08] transition-colors cursor-pointer shrink-0"
               aria-label="Open Navigation Menu"
             >
               <Menu size={18} />
@@ -1297,14 +1305,14 @@ export default function AdminDashboard() {
                 placeholder="Search here..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#07050e] border border-purple-950/60 rounded-none pl-9 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/60 transition-colors"
+                className="w-full bg-[#141417] border border-white/[0.08] rounded-lg pl-9 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 transition-colors"
               />
             </div>
 
             {/* Mobile Search Toggle Icon */}
             <button
               onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
-              className="md:hidden p-2 text-zinc-400 hover:text-white bg-[#07050e] border border-purple-950/50 rounded-none transition-colors cursor-pointer"
+              className="md:hidden p-2 text-zinc-400 hover:text-white bg-[#141417] border border-white/[0.08] rounded-lg transition-colors cursor-pointer"
               title="Search"
             >
               <Search size={14} />
@@ -1314,7 +1322,7 @@ export default function AdminDashboard() {
             <button
               onClick={fetchData}
               disabled={refreshing}
-              className="p-2 text-zinc-400 hover:text-white bg-[#07050e] hover:bg-white/5 border border-purple-950/50 rounded-none transition-colors cursor-pointer"
+              className="p-2 text-zinc-400 hover:text-white bg-[#141417] hover:bg-white/5 border border-white/[0.08] rounded-lg transition-colors cursor-pointer"
               title="Refresh database records"
             >
               <RefreshCw size={14} className={refreshing ? 'animate-spin text-purple-400' : ''} />
@@ -1323,7 +1331,7 @@ export default function AdminDashboard() {
             {/* Notifications Pill */}
             <button
               onClick={() => navigate('/notifications')}
-              className="p-2 text-zinc-400 hover:text-white bg-[#07050e] hover:bg-white/5 border border-purple-950/50 rounded-none transition-colors relative cursor-pointer"
+              className="p-2 text-zinc-400 hover:text-white bg-[#141417] hover:bg-white/5 border border-white/[0.08] rounded-lg transition-colors relative cursor-pointer"
               title="Notifications"
             >
               <Bell size={14} />
@@ -1335,10 +1343,10 @@ export default function AdminDashboard() {
               <img
                 src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture}
                 alt={userEmail}
-                className="w-8 h-8 rounded-full object-cover border border-purple-500/40 shadow-md shrink-0"
+                className="w-8 h-8 rounded-full object-cover border border-white/10 shadow-md shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-[#1c182c] border border-purple-900/60 text-purple-200 flex items-center justify-center font-bold text-xs shadow-md shrink-0">
+              <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center font-bold text-xs shadow-md shrink-0">
                 {(userEmail || 'A').slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -1347,7 +1355,7 @@ export default function AdminDashboard() {
 
         {/* Mobile Dropdown Search Input */}
         {mobileSearchOpen && (
-          <div className="md:hidden bg-[#0c0a14] border-b border-purple-950/50 p-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="md:hidden bg-[#0e0e11] border-b border-white/[0.08] p-3 animate-in slide-in-from-top-2 duration-200">
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
               <input
@@ -1356,12 +1364,10 @@ export default function AdminDashboard() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
-                className="w-full bg-[#07050e] border border-purple-950/60 rounded-none pl-9 pr-8 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+                className="w-full bg-[#141417] border border-white/[0.08] rounded-lg pl-9 pr-8 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white text-xs">
-                  ✕
-                </button>
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white text-xs"><X size={14} /></button>
               )}
             </div>
           </div>
@@ -1375,12 +1381,12 @@ export default function AdminDashboard() {
               {/* TOP HERO BANNER & STATS ROW */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 items-stretch">
                 {/* Hero Banner Card (7 cols) */}
-                <div className="lg:col-span-7 bg-gradient-to-r from-[#201140] via-[#160d2b] to-[#0c0a14] border border-purple-950/60 rounded-none p-5 sm:p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+                <div className="lg:col-span-7 bg-[#0e0e11] border border-white/[0.08] rounded-xl p-5 sm:p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between">
                   <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-purple-600/10 blur-3xl pointer-events-none"></div>
 
                   <div className="relative z-10 max-w-md">
                     <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white leading-tight mb-2 md:mb-3">
-                      Manage your project in <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">one touch</span>
+                      Manage your project in <span className="text-purple-300">one touch</span>
                     </h2>
                     <p className="text-xs md:text-sm text-zinc-300 mb-5 md:mb-6 leading-relaxed">
                       Let MarkIt Player manage your review projects automatically with live Supabase synchronization, timeline markers, and collaborative drawing tools.
@@ -1388,13 +1394,13 @@ export default function AdminDashboard() {
                     <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                       <button
                         onClick={() => navigate('/dashboard')}
-                        className="px-4 sm:px-5 py-2 sm:py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold text-xs rounded-none transition-colors shadow-lg cursor-pointer"
+                        className="px-4 sm:px-5 py-2 sm:py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold text-xs rounded-lg transition-colors shadow-lg cursor-pointer"
                       >
                         Back to Player
                       </button>
                       <button
                         onClick={fetchData}
-                        className="px-3.5 sm:px-4 py-2 sm:py-2.5 bg-white/5 hover:bg-white/10 text-white border border-purple-500/30 font-semibold text-xs rounded-none transition-colors cursor-pointer"
+                        className="px-3.5 sm:px-4 py-2 sm:py-2.5 bg-white/5 hover:bg-white/10 text-white border border-purple-500/30 font-semibold text-xs rounded-lg transition-colors cursor-pointer"
                       >
                         Live Sync
                       </button>
@@ -1403,18 +1409,18 @@ export default function AdminDashboard() {
 
                   {/* Visual Illustration on Desktop */}
                   <div className="hidden lg:block absolute right-6 bottom-6 opacity-90 pointer-events-none">
-                    <div className="w-36 h-24 bg-purple-950/40 border border-purple-500/20 p-2.5 backdrop-blur-md rounded-none shadow-xl flex flex-col justify-between">
+                    <div className="w-36 h-24 bg-purple-500/10 border border-purple-500/20 p-2.5 backdrop-blur-md rounded-lg shadow-xl flex flex-col justify-between">
                       <div className="flex items-center justify-between text-[10px] text-purple-300 font-mono">
                         <span>Realtime API</span>
-                        <Activity size={12} className="text-emerald-400 animate-pulse" />
+                        <Activity size={12} className="text-purple-400 animate-pulse" />
                       </div>
                       <div className="h-10 flex items-end gap-1 px-1">
                         <div className="flex-1 bg-purple-500/40 h-[40%]"></div>
                         <div className="flex-1 bg-purple-500/60 h-[70%]"></div>
-                        <div className="flex-1 bg-pink-500/60 h-[50%]"></div>
+                        <div className="flex-1 bg-purple-500/60 h-[50%]"></div>
                         <div className="flex-1 bg-purple-400 h-[90%]"></div>
-                        <div className="flex-1 bg-indigo-400 h-[65%]"></div>
-                        <div className="flex-1 bg-pink-400 h-[80%]"></div>
+                        <div className="flex-1 bg-purple-400 h-[65%]"></div>
+                        <div className="flex-1 bg-purple-400 h-[80%]"></div>
                       </div>
                       <div className="text-[9px] text-zinc-400 font-mono truncate">100% Supabase OK</div>
                     </div>
@@ -1424,37 +1430,37 @@ export default function AdminDashboard() {
                 {/* Right Top KPI Cards (5 cols) */}
                 <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                   {/* Total Registered Editors */}
-                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+                  <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg p-4 sm:p-5 shadow-xl flex flex-col justify-between">
                     <div>
                       <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Total Editors</div>
                       <div className="text-2xl md:text-3xl font-black text-white">{stats.totalUsers}</div>
-                      <div className="text-[11px] text-emerald-400 flex items-center gap-1 font-semibold mt-1">
+                      <div className="text-[11px] text-purple-400 flex items-center gap-1 font-semibold mt-1">
                         <TrendingUp size={12} />
                         <span>+0.5% active</span>
                       </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-purple-950/40 flex items-end gap-1.5 h-8">
+                    <div className="mt-4 pt-3 border-t border-white/[0.08] flex items-end gap-1.5 h-8">
                       <div className="w-2 bg-purple-600/40 h-[30%]"></div>
                       <div className="w-2 bg-purple-600/60 h-[50%]"></div>
                       <div className="w-2 bg-purple-500 h-[80%]"></div>
-                      <div className="w-2 bg-pink-500 h-[65%]"></div>
+                      <div className="w-2 bg-purple-500 h-[65%]"></div>
                       <div className="w-2 bg-purple-400 h-[95%]"></div>
                     </div>
                   </div>
 
                   {/* Total Sessions Target */}
-                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+                  <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg p-4 sm:p-5 shadow-xl flex flex-col justify-between">
                     <div>
                       <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Total Sessions</div>
                       <div className="text-2xl md:text-3xl font-black text-white">{stats.totalRooms}</div>
-                      <div className="text-[11px] text-pink-400 font-medium mt-1">
+                      <div className="text-[11px] text-purple-400 font-medium mt-1">
                         {stats.states.approved} approved
                       </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-purple-950/40">
-                      <div className="w-full h-1.5 bg-[#07050e] rounded-none overflow-hidden">
+                    <div className="mt-4 pt-3 border-t border-white/[0.08]">
+                      <div className="w-full h-1.5 bg-[#141417] rounded-lg overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                          className="h-full bg-purple-500 transition-all duration-500"
                           style={{ width: `${Math.min(100, (stats.totalRooms / 50) * 100)}%` }}
                         />
                       </div>
@@ -1465,7 +1471,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Total Comments */}
-                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+                  <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg p-4 sm:p-5 shadow-xl flex flex-col justify-between">
                     <div>
                       <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Feedback Comments</div>
                       <div className="text-2xl md:text-3xl font-black text-white">{stats.totalComments}</div>
@@ -1473,7 +1479,7 @@ export default function AdminDashboard() {
                         Across timeline markers
                       </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-purple-950/40">
+                    <div className="mt-4 pt-3 border-t border-white/[0.08]">
                       <svg className="w-full h-6 text-purple-400" viewBox="0 0 100 24" fill="none">
                         <path d="M0 18 Q 20 4, 40 14 T 80 8 T 100 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
@@ -1481,17 +1487,17 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Revisions & Versions */}
-                  <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+                  <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg p-4 sm:p-5 shadow-xl flex flex-col justify-between">
                     <div>
                       <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Total Versions</div>
                       <div className="text-2xl md:text-3xl font-black text-white">{stats.totalVersions}</div>
-                      <div className="text-[11px] text-emerald-400 flex items-center gap-1 font-semibold mt-1">
+                      <div className="text-[11px] text-purple-400 flex items-center gap-1 font-semibold mt-1">
                         <TrendingUp size={12} />
                         <span>+2% new uploads</span>
                       </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-purple-950/40">
-                      <svg className="w-full h-6 text-emerald-400" viewBox="0 0 100 24" fill="none">
+                    <div className="mt-4 pt-3 border-t border-white/[0.08]">
+                      <svg className="w-full h-6 text-purple-400" viewBox="0 0 100 24" fill="none">
                         <path d="M0 20 Q 25 18, 50 10 T 100 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
                     </div>
@@ -1502,32 +1508,32 @@ export default function AdminDashboard() {
               {/* USER ACQUISITION & DAILY SIGNUPS GROWTH SECTION */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 items-stretch">
                 {/* User Signups Bar Chart (8 cols) */}
-                <div className="lg:col-span-8 bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl flex flex-col justify-between">
+                <div className="lg:col-span-8 bg-[#0e0e11] border border-white/[0.08] rounded-lg p-4 sm:p-6 shadow-xl flex flex-col justify-between">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-bold text-white tracking-tight">User Signups & Daily Growth</h3>
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                          <Sparkles size={10} className="text-amber-400" />
+                        <span className="px-2 py-0.5 text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                          <Sparkles size={10} className="text-purple-400" />
                           <span>Live Signups</span>
                         </span>
                       </div>
                       <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-zinc-400 mt-2 flex-wrap">
-                        <span className="flex items-center gap-1.5 bg-amber-950/30 border border-amber-500/30 px-2 py-0.5">
-                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                          <strong className="text-amber-200 font-mono">{userGrowthStats.joinedToday}</strong> Joined Today
+                        <span className="flex items-center gap-1.5 bg-purple-950/30 border border-purple-500/30 px-2 py-0.5">
+                          <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
+                          <strong className="text-purple-200 font-mono">{userGrowthStats.joinedToday}</strong> Joined Today
                         </span>
                         <span className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-purple-400"></span>
                           <strong className="text-purple-200 font-mono">{userGrowthStats.joinedYesterday}</strong> Yesterday
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-pink-400"></span>
-                          <strong className="text-pink-200 font-mono">{userGrowthStats.joinedThisWeek}</strong> Past 7 Days
+                          <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                          <strong className="text-purple-200 font-mono">{userGrowthStats.joinedThisWeek}</strong> Past 7 Days
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-                          <strong className="text-indigo-200 font-mono">{userGrowthStats.joinedThisMonth}</strong> Past 30 Days
+                          <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                          <strong className="text-purple-200 font-mono">{userGrowthStats.joinedThisMonth}</strong> Past 30 Days
                         </span>
                         <span className="flex items-center gap-1.5 text-zinc-500">
                           <strong className="text-white font-mono">{userGrowthStats.totalUsers}</strong> Total Users
@@ -1536,7 +1542,7 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Period Filter Pills */}
-                    <div className="inline-flex p-1 bg-[#07050e] border border-purple-950/50 rounded-none text-xs overflow-x-auto max-w-full">
+                    <div className="inline-flex p-1 bg-[#141417] border border-white/[0.08] rounded-lg text-xs overflow-x-auto max-w-full">
                       {[
                         { key: 'today', label: 'Today' },
                         { key: 'weekly', label: '7 Days' },
@@ -1546,9 +1552,9 @@ export default function AdminDashboard() {
                         <button
                           key={key}
                           onClick={() => setChartPeriod(key)}
-                          className={`px-2.5 sm:px-3 py-1 text-xs font-semibold capitalize transition-colors rounded-none whitespace-nowrap cursor-pointer ${
+                          className={`px-2.5 sm:px-3 py-1 text-xs font-semibold capitalize transition-colors rounded-lg whitespace-nowrap cursor-pointer ${
                             chartPeriod === key
-                              ? 'bg-purple-950/80 text-white border border-purple-500/40 shadow-sm'
+                              ? 'bg-purple-500/10 text-white border border-purple-500/40 shadow-sm'
                               : 'text-zinc-400 hover:text-white'
                           }`}
                         >
@@ -1560,14 +1566,14 @@ export default function AdminDashboard() {
 
                   {/* SVG Bar Chart with Interactive Tooltips */}
                   <div className="overflow-x-auto">
-                    <div className="min-w-[320px] h-52 sm:h-56 w-full relative flex items-end justify-between gap-1 sm:gap-2 px-1 sm:px-2 pt-8 pb-2 border-b border-purple-950/40">
+                    <div className="min-w-[320px] h-52 sm:h-56 w-full relative flex items-end justify-between gap-1 sm:gap-2 px-1 sm:px-2 pt-8 pb-2 border-b border-white/[0.08]">
                       {userGrowthChartData.map((d, idx) => {
                         const hasUsers = d.count > 0;
 
                         return (
                           <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end group relative cursor-pointer">
                             {/* Hover Tooltip */}
-                            <div className="absolute -top-14 opacity-0 group-hover:opacity-100 transition-all duration-150 bg-[#120d24] border border-purple-500/40 text-white text-[10px] p-2 rounded-none shadow-2xl pointer-events-none whitespace-nowrap z-30 font-sans text-center min-w-[120px]">
+                            <div className="absolute -top-14 opacity-0 group-hover:opacity-100 transition-all duration-150 bg-[#120d24] border border-purple-500/40 text-white text-[10px] p-2 rounded-lg shadow-2xl pointer-events-none whitespace-nowrap z-30 font-sans text-center min-w-[120px]">
                               <div className="font-bold text-zinc-300">{d.fullLabel || d.label}</div>
                               <div className="text-purple-300 font-mono mt-0.5 font-bold">
                                 {d.count} {d.count === 1 ? 'new user joined' : 'new users joined'}
@@ -1583,7 +1589,7 @@ export default function AdminDashboard() {
                             {/* Value Label above Bar */}
                             {hasUsers && (
                               <span className={`text-[10px] font-mono font-bold mb-1 transition-transform group-hover:scale-110 ${
-                                d.isToday ? 'text-amber-300' : 'text-purple-300'
+                                d.isToday ? 'text-purple-300' : 'text-purple-300'
                               }`}>
                                 +{d.count}
                               </span>
@@ -1592,12 +1598,12 @@ export default function AdminDashboard() {
                             {/* Bar Column */}
                             <div className="w-full max-w-[32px] flex items-end justify-center h-full">
                               <div
-                                className={`w-full rounded-none transition-all duration-500 group-hover:brightness-125 ${
+                                className={`w-full rounded-lg transition-all duration-500 group-hover:brightness-125 ${
                                   d.isToday
-                                    ? 'bg-gradient-to-t from-amber-500 via-pink-500 to-purple-400 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                                    ? 'bg-white shadow-[0_0_12px_rgba(255,255,255,0.3)]'
                                     : hasUsers
-                                    ? 'bg-gradient-to-t from-purple-800 via-purple-600 to-indigo-400'
-                                    : 'bg-zinc-800/40 border-t border-purple-950/40'
+                                    ? 'bg-purple-600'
+                                    : 'bg-zinc-800/40 border-t border-white/[0.08]'
                                 }`}
                                 style={{ height: `${d.heightPercent}%` }}
                               />
@@ -1605,7 +1611,7 @@ export default function AdminDashboard() {
 
                             {/* X-Axis Date Label */}
                             <span className={`text-[9px] sm:text-[10px] font-mono mt-2 truncate max-w-full ${
-                              d.isToday ? 'text-amber-300 font-bold' : 'text-zinc-500'
+                              d.isToday ? 'text-purple-300 font-bold' : 'text-zinc-500'
                             }`}>
                               {d.label}
                             </span>
@@ -1617,7 +1623,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Project Completion Radial Donut Card (4 cols) */}
-                <div className="lg:col-span-4 bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl flex flex-col justify-between">
+                <div className="lg:col-span-4 bg-[#0e0e11] border border-white/[0.08] rounded-lg p-4 sm:p-6 shadow-xl flex flex-col justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-white tracking-tight mb-1">Session Completion</h3>
                     <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
@@ -1640,7 +1646,7 @@ export default function AdminDashboard() {
                         cx="50"
                         cy="50"
                         r="40"
-                        stroke="url(#radialGradient)"
+                        stroke="#a855f7"
                         strokeWidth="12"
                         strokeDasharray={251.2}
                         strokeDashoffset={251.2 - (251.2 * (stats.completionRate || 5)) / 100}
@@ -1648,12 +1654,7 @@ export default function AdminDashboard() {
                         fill="transparent"
                         className="transition-all duration-1000 ease-out"
                       />
-                      <defs>
-                        <linearGradient id="radialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#ec4899" />
-                          <stop offset="100%" stopColor="#8b5cf6" />
-                        </linearGradient>
-                      </defs>
+                      
                     </svg>
 
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -1662,13 +1663,13 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-4 border-t border-purple-950/40 text-center">
-                    <div className="bg-[#07050e] p-2 border border-purple-950/40 rounded-none">
-                      <div className="text-xs font-bold text-emerald-400">{stats.states.approved}</div>
+                  <div className="grid grid-cols-2 gap-2 pt-4 border-t border-white/[0.08] text-center">
+                    <div className="bg-[#141417] p-2 border border-white/[0.08] rounded-lg">
+                      <div className="text-xs font-bold text-purple-400">{stats.states.approved}</div>
                       <div className="text-[10px] text-zinc-500">Approved</div>
                     </div>
-                    <div className="bg-[#07050e] p-2 border border-purple-950/40 rounded-none">
-                      <div className="text-xs font-bold text-pink-400">{stats.states.inProgress}</div>
+                    <div className="bg-[#141417] p-2 border border-white/[0.08] rounded-lg">
+                      <div className="text-xs font-bold text-purple-400">{stats.states.inProgress}</div>
                       <div className="text-[10px] text-zinc-500">In Progress</div>
                     </div>
                   </div>
@@ -1676,7 +1677,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* RECENT SESSIONS TABLE SECTION */}
-              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl">
+              <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg p-4 sm:p-6 shadow-xl">
                 <div className="flex items-center justify-between mb-4 gap-2">
                   <div>
                     <h3 className="text-sm font-bold text-white tracking-tight">Recent Sessions & Projects</h3>
@@ -1693,7 +1694,7 @@ export default function AdminDashboard() {
 
                 <div className="overflow-x-auto -mx-4 sm:mx-0 custom-scrollbar">
                   <table className="w-full text-left text-xs min-w-[660px]">
-                    <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
+                    <thead className="bg-[#141417] border-b border-white/[0.08] text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
                       <tr>
                         <th className="px-4 py-3 min-w-[180px]">Session Title</th>
                         <th className="px-4 py-3 min-w-[160px]">Platform & Revisions</th>
@@ -1702,7 +1703,7 @@ export default function AdminDashboard() {
                         <th className="px-4 py-3 text-right min-w-[80px]">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-purple-950/30">
+                    <tbody className="divide-y divide-white/[0.06]">
                       {rooms.slice(0, 6).map((room) => {
                         const videoData = parseVideoData(room.video_url, room.created_at);
                         const activeUrl = getActiveVideoUrl(room.video_url);
@@ -1723,16 +1724,16 @@ export default function AdminDashboard() {
                                   ) : null}
                                   <span className="capitalize text-zinc-300">{platform || 'Direct'}</span>
                                 </div>
-                                <span className="text-[10px] font-mono text-purple-300 bg-purple-950/40 border border-purple-500/20 px-1.5 py-0.5 rounded-none shrink-0 whitespace-nowrap">
+                                <span className="text-[10px] font-mono text-purple-300 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded-lg shrink-0 whitespace-nowrap">
                                   V{videoData.currentVersion} ({videoData.versions.length} ver)
                                 </span>
                               </div>
                             </td>
                             <td className="px-4 py-3.5 whitespace-nowrap">
-                              <span className={`text-[10px] px-2 py-0.5 rounded-none font-semibold border inline-block whitespace-nowrap ${
+                              <span className={`text-[9px] px-2 py-0.5 rounded-lg font-semibold border inline-block whitespace-nowrap ${
                                 (room.state || 'In Progress') === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                (room.state || 'In Progress') === 'Rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                (room.state || 'In Progress') === 'Rejected' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
                               }`}>
                                 {room.state || 'In Progress'}
                               </span>
@@ -1762,7 +1763,7 @@ export default function AdminDashboard() {
           {/* TAB 2: PROJECTS & SESSIONS */}
           {activeTab === 'projects' && (
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0c0a14] p-4 border border-purple-950/50 rounded-none">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0e0e11] p-4 border border-white/[0.08] rounded-lg">
                 <div className="relative flex-1 max-w-md">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                   <input
@@ -1770,7 +1771,7 @@ export default function AdminDashboard() {
                     placeholder="Search sessions by title, URL or ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#07050e] border border-purple-950/60 rounded-none pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+                    className="w-full bg-[#141417] border border-white/[0.08] rounded-lg pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50"
                   />
                 </div>
 
@@ -1778,7 +1779,7 @@ export default function AdminDashboard() {
                   <select
                     value={selectedStatusFilter}
                     onChange={(e) => setSelectedStatusFilter(e.target.value)}
-                    className="bg-[#07050e] border border-purple-950/60 rounded-none px-3 py-2 text-xs text-zinc-300 focus:outline-none cursor-pointer"
+                    className="bg-[#141417] border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-300 focus:outline-none cursor-pointer"
                   >
                     <option value="all">All Statuses</option>
                     <option value="In Progress">In Progress</option>
@@ -1791,10 +1792,10 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none overflow-hidden shadow-xl">
+              <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg overflow-hidden shadow-xl">
                 <div className="overflow-x-auto custom-scrollbar">
                   <table className="w-full text-left text-xs min-w-[700px]">
-                    <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
+                    <thead className="bg-[#141417] border-b border-white/[0.08] text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
                       <tr>
                         <th className="px-4 py-3 min-w-[180px]">Session Details</th>
                         <th className="px-4 py-3 min-w-[180px]">Platform & Revisions</th>
@@ -1803,7 +1804,7 @@ export default function AdminDashboard() {
                         <th className="px-4 py-3 text-right min-w-[90px]">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-purple-950/30">
+                    <tbody className="divide-y divide-white/[0.06]">
                       {filteredRooms.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
@@ -1831,7 +1832,7 @@ export default function AdminDashboard() {
                                     ) : null}
                                     <span className="capitalize text-zinc-300">{platform || 'Direct'}</span>
                                   </div>
-                                  <span className="text-[10px] font-mono text-purple-300 bg-purple-950/40 border border-purple-500/20 px-1.5 py-0.5 rounded-none shrink-0 whitespace-nowrap">
+                                  <span className="text-[10px] font-mono text-purple-300 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded-lg shrink-0 whitespace-nowrap">
                                     V{videoData.currentVersion} ({videoData.versions.length} ver)
                                   </span>
                                 </div>
@@ -1840,7 +1841,7 @@ export default function AdminDashboard() {
                                 <select
                                   value={room.state || 'In Progress'}
                                   onChange={(e) => handleUpdateRoomState(room.id, e.target.value)}
-                                  className="bg-[#07050e] border border-purple-950/50 text-xs px-2.5 py-1.5 rounded-none text-zinc-200 cursor-pointer focus:outline-none min-w-[115px]"
+                                  className="bg-[#141417] border border-white/[0.08] text-xs px-2.5 py-1.5 rounded-lg text-zinc-200 cursor-pointer focus:outline-none min-w-[115px]"
                                 >
                                   <option value="In Progress">In Progress</option>
                                   <option value="Approved">Approved</option>
@@ -1860,7 +1861,7 @@ export default function AdminDashboard() {
                                 </button>
                                 <button
                                   onClick={() => handleDeleteRoom(room.id)}
-                                  className="text-xs text-red-400 hover:text-red-300 p-1 cursor-pointer"
+                                  className="text-xs text-purple-400 hover:text-purple-300 p-1 cursor-pointer"
                                   title="Delete session"
                                 >
                                   <Trash2 size={12} />
@@ -1880,13 +1881,13 @@ export default function AdminDashboard() {
           {/* TAB 3: USERS DIRECTORY */}
           {activeTab === 'users' && (
             <div className="space-y-4">
-              <div className="flex flex-col gap-3 bg-[#0c0a14] p-4 border border-purple-950/50 rounded-none">
+              <div className="flex flex-col gap-3 bg-[#0e0e11] p-4 border border-white/[0.08] rounded-lg">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   {/* Account Inclusion Filter Tabs */}
-                  <div className="flex items-center p-1 bg-[#07050e] border border-purple-950/50 rounded-none text-xs overflow-x-auto max-w-full">
+                  <div className="flex items-center p-1 bg-[#141417] border border-white/[0.08] rounded-lg text-xs overflow-x-auto max-w-full">
                     <button
                       onClick={() => setUserFilterTab('all')}
-                      className={`px-3 py-1.5 font-semibold rounded-none transition-all whitespace-nowrap cursor-pointer ${
+                      className={`px-3 py-1.5 font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                         userFilterTab === 'all'
                           ? 'bg-white text-black shadow-sm'
                           : 'text-zinc-400 hover:text-zinc-200'
@@ -1896,7 +1897,7 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       onClick={() => setUserFilterTab('active')}
-                      className={`px-3 py-1.5 font-semibold rounded-none transition-all whitespace-nowrap cursor-pointer ${
+                      className={`px-3 py-1.5 font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                         userFilterTab === 'active'
                           ? 'bg-white text-black shadow-sm'
                           : 'text-zinc-400 hover:text-zinc-200'
@@ -1906,9 +1907,9 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       onClick={() => setUserFilterTab('excluded')}
-                      className={`px-3 py-1.5 font-semibold rounded-none transition-all whitespace-nowrap cursor-pointer ${
+                      className={`px-3 py-1.5 font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                         userFilterTab === 'excluded'
-                          ? 'bg-amber-500 text-black shadow-sm'
+                          ? 'bg-purple-500 text-black shadow-sm'
                           : 'text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
@@ -1920,7 +1921,7 @@ export default function AdminDashboard() {
                     {stats.totalExcluded > 0 && (
                       <button
                         onClick={handleIncludeAllUsers}
-                        className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-none transition-colors cursor-pointer flex items-center gap-1"
+                        className="px-2.5 py-1 text-[11px] font-semibold bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
                         title="Include all excluded users"
                       >
                         <UserPlus size={12} />
@@ -1941,7 +1942,7 @@ export default function AdminDashboard() {
                       placeholder="Search editors by name, email or ID..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-[#07050e] border border-purple-950/60 rounded-none pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+                      className="w-full bg-[#141417] border border-white/[0.08] rounded-lg pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50"
                     />
                   </div>
 
@@ -1950,24 +1951,24 @@ export default function AdminDashboard() {
                     <select
                       value={userSortBy}
                       onChange={(e) => setUserSortBy(e.target.value)}
-                      className="bg-[#07050e] border border-purple-950/60 rounded-none px-3 py-1.5 text-xs text-zinc-200 focus:outline-none cursor-pointer w-full sm:w-auto"
+                      className="bg-[#141417] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-zinc-200 focus:outline-none cursor-pointer w-full sm:w-auto"
                     >
                       <option value="joined-desc">Joined: Newest First</option>
                       <option value="joined-asc">Joined: Oldest First</option>
                       <option value="active-desc">Last Active</option>
                       <option value="rooms-desc">Most Sessions Created</option>
                       <option value="comments-desc">Most Comments Left</option>
-                      <option value="activity-desc">🔥 Activity Score</option>
+                      <option value="activity-desc">Activity Score</option>
                     </select>
                   </div>
                 </div>
               </div>
 
               {/* Users Directory Table */}
-              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none overflow-hidden shadow-xl">
+              <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs min-w-[720px]">
-                    <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
+                    <thead className="bg-[#141417] border-b border-white/[0.08] text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
                       <tr>
                         <th className="px-4 py-3">Editor & Account</th>
                         <th className="px-4 py-3">Provider</th>
@@ -1979,7 +1980,7 @@ export default function AdminDashboard() {
                         <th className="px-4 py-3">Role</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-purple-950/30">
+                    <tbody className="divide-y divide-white/[0.06]">
                       {filteredUsers.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
@@ -1995,7 +1996,7 @@ export default function AdminDashboard() {
                               key={u.id}
                               className={`transition-colors ${
                                 u.isExcluded
-                                  ? 'bg-amber-950/10 hover:bg-amber-950/20 text-zinc-400'
+                                  ? 'bg-purple-950/10 hover:bg-purple-950/20 text-zinc-400'
                                   : 'hover:bg-white/[0.02]'
                               }`}
                             >
@@ -2008,11 +2009,7 @@ export default function AdminDashboard() {
                                       className="w-8 h-8 rounded-full object-cover border border-purple-500/40 shadow-sm shrink-0"
                                     />
                                   ) : (
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border ${
-                                      u.isExcluded
-                                        ? 'bg-zinc-800 text-zinc-500 border-zinc-700'
-                                        : 'bg-[#1c182c] border-purple-900/60 text-purple-200'
-                                    }`}>
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border bg-zinc-800 text-zinc-300 border-zinc-700">
                                       {(u.name || u.email || 'U').slice(0, 2).toUpperCase()}
                                     </div>
                                   )}
@@ -2021,7 +2018,7 @@ export default function AdminDashboard() {
                                       <span className={u.isExcluded ? 'text-zinc-400 line-through' : 'text-zinc-100'}>
                                         {u.name}
                                       </span>
-                                      {isUserAdmin && <Crown size={11} className="text-amber-400 shrink-0" />}
+                                      {isUserAdmin && <Crown size={11} className="text-purple-400 shrink-0" />}
                                     </div>
                                     <div className="text-[11px] text-zinc-400 truncate">{u.email || 'No email associated'}</div>
                                     <div className="text-[9px] font-mono text-zinc-600 truncate">ID: {u.id.slice(0, 16)}...</div>
@@ -2029,7 +2026,7 @@ export default function AdminDashboard() {
                                 </div>
                               </td>
                               <td className="px-4 py-3.5 whitespace-nowrap">
-                                <span className="text-[10px] px-2 py-0.5 rounded-none font-semibold border bg-purple-950/40 text-purple-300 border-purple-500/30">
+                                <span className="text-[10px] px-2 py-0.5 rounded-lg font-semibold border bg-purple-500/10 text-purple-300 border-purple-500/30">
                                   {provider}
                                 </span>
                               </td>
@@ -2040,17 +2037,17 @@ export default function AdminDashboard() {
                               <td className="px-4 py-3.5 font-mono text-purple-300 font-bold whitespace-nowrap">
                                 {u.roomsCount}
                               </td>
-                              <td className="px-4 py-3.5 font-mono text-pink-300 font-bold whitespace-nowrap">
+                              <td className="px-4 py-3.5 font-mono text-purple-300 font-bold whitespace-nowrap">
                                 {u.commentsCount}
                               </td>
                               <td className="px-4 py-3.5 text-zinc-400 whitespace-nowrap">{dayjs(u.lastActive).fromNow()}</td>
                               <td className="px-4 py-3.5 whitespace-nowrap">
                                 <button
                                   onClick={() => handleToggleUserExclusion(u.id, u.email)}
-                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[11px] font-semibold border transition-all cursor-pointer ${
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
                                     u.isExcluded
-                                      ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
-                                      : 'bg-emerald-500/10 hover:bg-white/10 text-emerald-300 hover:text-white border-emerald-500/20'
+                                      ? 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border-purple-500/30'
+                                      : 'bg-purple-500/10 hover:bg-white/10 text-purple-300 hover:text-white border-purple-500/20'
                                   }`}
                                 >
                                   {u.isExcluded ? (
@@ -2060,7 +2057,7 @@ export default function AdminDashboard() {
                                     </>
                                   ) : (
                                     <>
-                                      <Check size={12} className="text-emerald-400" />
+                                      <Check size={12} className="text-purple-400" />
                                       <span>Included</span>
                                     </>
                                   )}
@@ -2068,11 +2065,11 @@ export default function AdminDashboard() {
                               </td>
                               <td className="px-4 py-3.5 whitespace-nowrap">
                                 {isUserAdmin ? (
-                                  <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-none font-mono font-bold">
+                                  <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-lg font-mono font-bold">
                                     Admin
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/40 px-2 py-0.5 rounded-none">
+                                  <span className="text-[10px] text-zinc-400 bg-zinc-800/80 border border-zinc-700/40 px-2 py-0.5 rounded-lg">
                                     Member
                                   </span>
                                 )}
@@ -2092,15 +2089,15 @@ export default function AdminDashboard() {
           {activeTab === 'rankings' && (
             <div className="space-y-6">
               {/* Header Banner */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0c0a14] p-5 border border-purple-950/60 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0e0e11] p-5 border border-white/[0.08] shadow-xl">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <div className="w-10 h-10 bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
                     <Trophy size={20} />
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
                       Most Active Editors Leaderboard
-                      <span className="text-[10px] font-mono px-2 py-0.5 bg-amber-950/60 border border-amber-500/30 text-amber-300">
+                      <span className="text-[10px] font-mono px-2 py-0.5 bg-purple-950/60 border border-purple-500/30 text-purple-300">
                         Live Activity Ranking
                       </span>
                     </h2>
@@ -2112,15 +2109,15 @@ export default function AdminDashboard() {
 
                 {/* Top Quick Badges */}
                 <div className="flex items-center gap-2">
-                  <div className="text-xs font-mono text-amber-300 bg-amber-950/40 border border-amber-500/30 px-3 py-1.5 flex items-center gap-2">
-                    <Flame size={13} className="text-amber-400 animate-pulse" />
+                  <div className="text-xs font-mono text-purple-300 bg-purple-950/40 border border-purple-500/30 px-3 py-1.5 flex items-center gap-2">
+                    <Flame size={13} className="text-purple-400 animate-pulse" />
                     <span>{stats.topActiveUsers.length} Champions on Podium</span>
                   </div>
                 </div>
               </div>
 
               {/* Controls Bar: Search & Multi-Criteria Ordering */}
-              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-[#0c0a14] p-4 border border-purple-950/50">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-[#0e0e11] p-4 border border-white/[0.08]">
                 <div className="relative flex-1 max-w-md">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                   <input
@@ -2128,7 +2125,7 @@ export default function AdminDashboard() {
                     placeholder="Search editors by name, email or ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#07050e] border border-purple-950/60 rounded-none pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+                    className="w-full bg-[#141417] border border-white/[0.08] rounded-lg pl-9 pr-4 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50"
                   />
                 </div>
 
@@ -2141,15 +2138,15 @@ export default function AdminDashboard() {
                   <select
                     value={userSortBy}
                     onChange={(e) => setUserSortBy(e.target.value)}
-                    className="bg-[#07050e] border border-purple-950/60 rounded-none px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none cursor-pointer w-full sm:w-auto"
+                    className="bg-[#141417] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-purple-300 font-mono focus:outline-none cursor-pointer w-full sm:w-auto"
                   >
-                    <option value="activity-desc">🔥 Our Formula (Activity Score)</option>
-                    <option value="rooms-desc">🎬 Most Rooms / Sessions Created</option>
-                    <option value="comments-desc">💬 Most Comments / Notes Left</option>
-                    <option value="span-desc">⏳ Diff of Joined & Last Active (Active Span)</option>
-                    <option value="active-desc">🕒 Last Active (Recent First)</option>
-                    <option value="joined-desc">📅 Joined Date: Newest First</option>
-                    <option value="joined-asc">📅 Joined Date: Oldest First</option>
+                    <option value="activity-desc">Our Formula (Activity Score)</option>
+                    <option value="rooms-desc">Most Rooms / Sessions Created</option>
+                    <option value="comments-desc">Most Comments / Notes Left</option>
+                    <option value="span-desc">Diff of Joined & Last Active (Active Span)</option>
+                    <option value="active-desc">Last Active (Recent First)</option>
+                    <option value="joined-desc">Joined Date: Newest First</option>
+                    <option value="joined-asc">Joined Date: Oldest First</option>
                   </select>
                 </div>
               </div>
@@ -2158,8 +2155,8 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
                 {/* LEFT AREA: Full Rankings Table (7 cols) */}
                 <div className="xl:col-span-7 space-y-4">
-                  <div className="bg-[#0c0a14] border border-purple-950/50 overflow-hidden shadow-xl">
-                    <div className="p-3 border-b border-purple-950/40 flex items-center justify-between bg-[#07050e]">
+                  <div className="bg-[#0e0e11] border border-white/[0.08] overflow-hidden shadow-xl">
+                    <div className="p-3 border-b border-white/[0.08] flex items-center justify-between bg-[#141417]">
                       <div className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
                         <Users size={13} className="text-purple-400" />
                         <span>All Ranked Editors Directory</span>
@@ -2171,7 +2168,7 @@ export default function AdminDashboard() {
 
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs min-w-[620px]">
-                        <thead className="bg-[#07050e] border-b border-purple-950/50 text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
+                        <thead className="bg-[#141417] border-b border-white/[0.08] text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
                           <tr>
                             <th className="px-4 py-3">Rank & Score</th>
                             <th className="px-4 py-3">Editor</th>
@@ -2182,7 +2179,7 @@ export default function AdminDashboard() {
                             <th className="px-4 py-3">Last Active</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-purple-950/30">
+                        <tbody className="divide-y divide-white/[0.06]">
                           {filteredUsers.filter(u => !u.isExcluded).length === 0 ? (
                             <tr>
                               <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
@@ -2192,26 +2189,26 @@ export default function AdminDashboard() {
                           ) : (
                             filteredUsers.filter(u => !u.isExcluded).map((u, idx) => {
                               const isUserAdmin = u.email && isAdmin(u.email);
-                              const rankIcon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
+                              const rankIcon = null;
                               return (
                                 <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
                                   <td className="px-4 py-3 whitespace-nowrap">
                                     <div className="flex items-center gap-2">
                                       <span
-                                        className={`w-6 h-6 flex items-center justify-center font-mono font-bold text-xs rounded-none border ${
+                                        className={`w-6 h-6 flex items-center justify-center font-mono font-bold text-xs rounded-lg border ${
                                           idx === 0
-                                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                                            ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
                                             : idx === 1
                                             ? 'bg-zinc-700/30 border-zinc-500/40 text-zinc-200'
                                             : idx === 2
-                                            ? 'bg-amber-900/30 border-amber-700/50 text-amber-400'
-                                            : 'bg-[#07050e] border-purple-950/60 text-zinc-400'
+                                            ? 'bg-purple-950/30 border-purple-500/50 text-purple-400'
+                                            : 'bg-[#141417] border-white/[0.08] text-zinc-400'
                                         }`}
                                       >
                                         {rankIcon || `#${idx + 1}`}
                                       </span>
-                                      <div className="font-mono font-bold text-amber-300 flex items-center gap-1">
-                                        <Flame size={11} className="text-orange-400" />
+                                      <div className="font-mono font-bold text-purple-300 flex items-center gap-1">
+                                        <Flame size={11} className="text-purple-400" />
                                         <span>{u.activityScore} pts</span>
                                       </div>
                                     </div>
@@ -2225,14 +2222,14 @@ export default function AdminDashboard() {
                                           className="w-7 h-7 rounded-full object-cover border border-purple-500/40 shrink-0"
                                         />
                                       ) : (
-                                        <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 bg-[#1c182c] border border-purple-900/60 text-purple-200">
+                                        <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 bg-zinc-800 border border-zinc-700 text-zinc-300">
                                           {(u.name || u.email || 'U').slice(0, 2).toUpperCase()}
                                         </div>
                                       )}
                                       <div className="min-w-0">
                                         <div className="font-semibold text-zinc-100 truncate flex items-center gap-1">
                                           <span>{u.name}</span>
-                                          {isUserAdmin && <Crown size={11} className="text-amber-400 shrink-0" />}
+                                          {isUserAdmin && <Crown size={11} className="text-purple-400 shrink-0" />}
                                         </div>
                                         <div className="text-[10px] text-zinc-400 truncate">{u.email}</div>
                                       </div>
@@ -2249,7 +2246,7 @@ export default function AdminDashboard() {
                                   <td className="px-4 py-3 font-mono text-purple-300 font-bold whitespace-nowrap">
                                     {u.roomsCount}
                                   </td>
-                                  <td className="px-4 py-3 font-mono text-pink-300 font-bold whitespace-nowrap">
+                                  <td className="px-4 py-3 font-mono text-purple-300 font-bold whitespace-nowrap">
                                     {u.commentsCount}
                                   </td>
                                   <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">
@@ -2267,13 +2264,13 @@ export default function AdminDashboard() {
 
                 {/* RIGHT SIDE PANEL: Scrollable All-Editors Cards Feed (5 cols) */}
                 <div className="xl:col-span-5 space-y-4">
-                  <div className="bg-[#0c0a14] border border-purple-950/60 p-4 space-y-3 shadow-xl">
-                    <div className="flex items-center justify-between pb-2.5 border-b border-purple-950/40">
+                  <div className="bg-[#0e0e11] border border-white/[0.08] p-4 space-y-3 shadow-xl">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.08]">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-200">
-                        <Trophy size={14} className="text-amber-400" />
+                        <Trophy size={14} className="text-purple-400" />
                         <span>Ranked Editors Cards Feed</span>
                       </div>
-                      <span className="text-[9px] font-mono text-amber-400 bg-amber-950/30 px-2 py-0.5 border border-amber-500/20">
+                      <span className="text-[9px] font-mono text-purple-400 bg-purple-950/30 px-2 py-0.5 border border-purple-500/20">
                         {filteredUsers.filter(u => !u.isExcluded).length} Editors • Scrollable
                       </span>
                     </div>
@@ -2289,7 +2286,7 @@ export default function AdminDashboard() {
                           const isFirst = idx === 0;
                           const isSecond = idx === 1;
                           const isThird = idx === 2;
-                          const medalIcon = isFirst ? '🥇' : isSecond ? '🥈' : isThird ? '🥉' : null;
+                          const medalIcon = null;
                           const medalLabel = isFirst
                             ? 'Gold • #1 Overall'
                             : isSecond
@@ -2299,12 +2296,12 @@ export default function AdminDashboard() {
                             : `#${idx + 1} Contributor`;
 
                           const cardBorder = isFirst
-                            ? 'border-amber-500/50 bg-amber-950/15 shadow-sm'
+                            ? 'border-purple-500/50 bg-[#141417] shadow-sm'
                             : isSecond
                             ? 'border-zinc-400/40 bg-zinc-900/20'
                             : isThird
-                            ? 'border-amber-700/30 bg-amber-950/10'
-                            : 'border-purple-950/50 bg-[#07050e]/90 hover:border-purple-500/30';
+                            ? 'border-purple-500/30 bg-purple-950/10'
+                            : 'border-white/[0.08] bg-[#141417]/90 hover:border-purple-500/30';
 
                           return (
                             <div key={user.id} className={`p-3 border transition-all ${cardBorder}`}>
@@ -2326,16 +2323,12 @@ export default function AdminDashboard() {
                                     src={user.avatar_url}
                                     alt={user.name}
                                     className={`w-7 h-7 rounded-full object-cover shrink-0 border ${
-                                      isFirst ? 'border-amber-400' : 'border-purple-500/40'
+                                      isFirst ? 'border-purple-400' : 'border-purple-500/40'
                                     }`}
                                   />
                                 ) : (
                                   <div
-                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 border ${
-                                      isFirst
-                                        ? 'bg-amber-950/60 border-amber-400 text-amber-300'
-                                        : 'bg-[#1c182c] border-purple-500/40 text-purple-200'
-                                    }`}
+                                    className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 border bg-zinc-800 border-zinc-700 text-zinc-300"
                                   >
                                     {(user.name || user.email || 'U').slice(0, 2).toUpperCase()}
                                   </div>
@@ -2343,7 +2336,7 @@ export default function AdminDashboard() {
                                 <div className="min-w-0 flex-1">
                                   <div className="font-semibold text-zinc-100 text-[11px] truncate flex items-center gap-1">
                                     <span>{user.name}</span>
-                                    {user.email && isAdmin(user.email) && <Crown size={10} className="text-amber-400 shrink-0" />}
+                                    {user.email && isAdmin(user.email) && <Crown size={10} className="text-purple-400 shrink-0" />}
                                   </div>
                                   <div className="text-[10px] text-zinc-400 truncate">{user.email || 'No email'}</div>
                                   <div className="text-[9px] text-zinc-500 font-mono">
@@ -2353,19 +2346,19 @@ export default function AdminDashboard() {
                               </div>
 
                               {/* Score pill */}
-                              <div className="mb-2 px-2 py-1 bg-[#07050e] border border-purple-950/40 flex items-center justify-between text-xs">
+                              <div className="mb-2 px-2 py-1 bg-[#141417] border border-white/[0.08] flex items-center justify-between text-xs">
                                 <span className="text-[10px] text-zinc-400 flex items-center gap-1">
                                   <Zap size={10} className="text-purple-400" />
                                   Score:
                                 </span>
-                                <span className="font-bold font-mono text-amber-400 flex items-center gap-1 text-xs">
-                                  <Flame size={11} className="text-orange-500" />
+                                <span className="font-bold font-mono text-purple-400 flex items-center gap-1 text-xs">
+                                  <Flame size={11} className="text-purple-500" />
                                   {user.activityScore.toLocaleString()} pts
                                 </span>
                               </div>
 
                               {/* Mini Stats (Span, Rooms, Comments) */}
-                              <div className="grid grid-cols-3 gap-1 text-center pt-1.5 border-t border-purple-950/30">
+                              <div className="grid grid-cols-3 gap-1 text-center pt-1.5 border-t border-white/[0.08]">
                                 <div className="bg-white/[0.02] p-1">
                                   <div className="text-[8px] uppercase tracking-wider text-zinc-500 font-semibold" title="Diff of joined date and last active">
                                     Span
@@ -2384,7 +2377,7 @@ export default function AdminDashboard() {
                                   <div className="text-[8px] uppercase tracking-wider text-zinc-500 font-semibold" title="Comments and feedback left">
                                     Comments
                                   </div>
-                                  <div className="text-[11px] font-mono font-bold text-pink-300">{user.commentsCount}</div>
+                                  <div className="text-[11px] font-mono font-bold text-purple-300">{user.commentsCount}</div>
                                 </div>
                               </div>
                             </div>
@@ -2395,14 +2388,14 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Formula breakdown card */}
-                  <div className="bg-[#0c0a14] border border-purple-950/50 p-3.5 space-y-2 text-xs shadow-xl">
+                  <div className="bg-[#0e0e11] border border-white/[0.08] p-3.5 space-y-2 text-xs shadow-xl">
                     <div className="text-[11px] font-semibold text-purple-300 flex items-center gap-1.5">
                       <Activity size={13} />
                       <span>Ranking Formula Parameters</span>
                     </div>
-                    <div className="p-2 bg-[#07050e] border border-purple-950/40 text-[10px] font-mono text-zinc-300 space-y-1">
-                      <div className="text-amber-300 font-semibold">• Sessions Weight: 35 pts / room created</div>
-                      <div className="text-pink-300 font-semibold">• Comments Weight: 15 pts / note or comment</div>
+                    <div className="p-2 bg-[#141417] border border-white/[0.08] text-[10px] font-mono text-zinc-300 space-y-1">
+                      <div className="text-purple-300 font-semibold">• Sessions Weight: 35 pts / room created</div>
+                      <div className="text-purple-300 font-semibold">• Comments Weight: 15 pts / note or comment</div>
                       <div className="text-purple-300 font-semibold">• Retention Lifespan: 10 pts / active day (joined vs last active)</div>
                       <div className="text-zinc-400 font-semibold">• Recency Bonus: up to 1.6x multiplier for activity in last 24h</div>
                     </div>
@@ -2420,25 +2413,25 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               {/* Feedback toast notification */}
               {emailCopiedFeedback && (
-                <div className="p-3 bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center justify-between animate-in fade-in duration-200">
+                <div className="p-3 bg-purple-500/10 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center justify-between animate-in fade-in duration-200">
                   <div className="flex items-center gap-2">
-                    <CheckCircle size={14} className="text-emerald-400" />
+                    <CheckCircle size={14} className="text-purple-400" />
                     <span>{emailCopiedFeedback}</span>
                   </div>
-                  <button onClick={() => setEmailCopiedFeedback(null)} className="text-emerald-400 hover:text-white">✕</button>
+                  <button onClick={() => setEmailCopiedFeedback(null)} className="text-purple-400 hover:text-white"><X size={14} /></button>
                 </div>
               )}
 
               {/* Top Action Bar & Stat Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* 1. Reachable User Emails */}
-                <div className="bg-[#0c0a14] border border-purple-950/50 p-4 flex items-center justify-between shadow-xl">
+                <div className="bg-[#0e0e11] border border-white/[0.08] p-4 flex items-center justify-between shadow-xl">
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total User Emails</div>
                     <div className="text-xl font-bold text-white mt-1 font-mono">{usersWithEmail.length}</div>
                     <div className="text-[10px] text-purple-400 mt-0.5">Synced Supabase Auth</div>
                   </div>
-                  <div className="w-10 h-10 rounded-none bg-purple-950/40 border border-purple-500/30 text-purple-300 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 flex items-center justify-center">
                     <Mail size={18} />
                   </div>
                 </div>
@@ -2448,29 +2441,29 @@ export default function AdminDashboard() {
                   onClick={() => setEmailFilter('unmailed')}
                   className={`border p-4 flex items-center justify-between shadow-xl cursor-pointer transition-all ${
                     emailFilter === 'unmailed'
-                      ? 'bg-amber-950/30 border-amber-500/60 ring-1 ring-amber-500/30'
-                      : 'bg-[#0c0a14] border-amber-500/30 hover:border-amber-500/50'
+                      ? 'bg-purple-950/30 border-purple-500/60 ring-1 ring-purple-500/30'
+                      : 'bg-[#0e0e11] border-purple-500/30 hover:border-purple-500/50'
                   }`}
                 >
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
                       <span>New & Unmailed</span>
                     </div>
-                    <div className="text-xl font-bold text-amber-200 mt-1 font-mono">
+                    <div className="text-xl font-bold text-purple-200 mt-1 font-mono">
                       {unmailedUsersCount}
                     </div>
-                    <div className="text-[10px] text-amber-400/80 mt-0.5">
+                    <div className="text-[10px] text-purple-400/80 mt-0.5">
                       Never received any email
                     </div>
                   </div>
-                  <div className="w-10 h-10 rounded-none bg-amber-950/50 border border-amber-500/40 text-amber-300 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-purple-950/50 border border-purple-500/40 text-purple-300 flex items-center justify-center">
                     <Sparkles size={18} />
                   </div>
                 </div>
 
                 {/* 3. Selected Recipients */}
-                <div className="bg-[#0c0a14] border border-purple-950/50 p-4 flex items-center justify-between shadow-xl">
+                <div className="bg-[#0e0e11] border border-white/[0.08] p-4 flex items-center justify-between shadow-xl">
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Target Recipients</div>
                     <div className="text-xl font-bold text-white mt-1 font-mono">
@@ -2480,16 +2473,16 @@ export default function AdminDashboard() {
                       {selectedEmailUserIds.size > 0 ? 'Custom checked batch' : `Active tab (${emailFilter})`}
                     </div>
                   </div>
-                  <div className="w-10 h-10 rounded-none bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-purple-950/40 border border-purple-500/30 text-purple-300 flex items-center justify-center">
                     <Users size={18} />
                   </div>
                 </div>
 
                 {/* 4. Quick Actions */}
-                <div className="bg-[#0c0a14] border border-purple-950/50 p-4 flex flex-col justify-between shadow-xl">
+                <div className="bg-[#0e0e11] border border-white/[0.08] p-4 flex flex-col justify-between shadow-xl">
                   <div className="flex items-center justify-between">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Quick Actions</div>
-                    <span className="text-[10px] text-emerald-400 font-mono">BCC Ready</span>
+                    <span className="text-[10px] text-purple-400 font-mono">BCC Ready</span>
                   </div>
                   <div className="flex gap-2 mt-2">
                     {unmailedUsersCount > 0 ? (
@@ -2498,7 +2491,7 @@ export default function AdminDashboard() {
                           setEmailFilter('unmailed');
                           handleOpenComposer('all');
                         }}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold transition-all shadow-sm cursor-pointer"
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
                         title="Mail all unmailed users at once"
                       >
                         <Sparkles size={12} />
@@ -2516,7 +2509,7 @@ export default function AdminDashboard() {
                     )}
                     <button
                       onClick={() => handleCopyEmails(filteredEmailUsers.map(u => u.email), 'user emails')}
-                      className="px-3 py-1.5 bg-[#07050e] hover:bg-white/10 text-zinc-300 hover:text-white border border-purple-950/60 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                      className="px-3 py-1.5 bg-[#141417] hover:bg-white/10 text-zinc-300 hover:text-white border border-white/[0.08] text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
                       title="Copy all currently filtered emails to clipboard"
                     >
                       <Copy size={12} />
@@ -2527,9 +2520,9 @@ export default function AdminDashboard() {
               </div>
 
               {/* Table Container */}
-              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none shadow-xl overflow-hidden">
+              <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg shadow-xl overflow-hidden">
                 {/* Header Filter / Search Bar */}
-                <div className="p-4 border-b border-purple-950/40 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#07050e]">
+                <div className="p-4 border-b border-white/[0.08] flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#141417]">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
                       <Mail size={14} className="text-purple-400" />
@@ -2543,13 +2536,13 @@ export default function AdminDashboard() {
                         onClick={() => setEmailFilter('unmailed')}
                         className={`px-2.5 py-1 text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
                           emailFilter === 'unmailed'
-                            ? 'bg-amber-950/70 text-amber-200 border-amber-500/60 shadow-sm'
-                            : 'bg-black/40 text-amber-400/90 border-amber-950/50 hover:bg-amber-950/30'
+                            ? 'bg-purple-950/70 text-purple-200 border-purple-500/60 shadow-sm'
+                            : 'bg-black/40 text-purple-400/90 border-purple-500/30 hover:bg-purple-950/30'
                         }`}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
                         <span>New & Unmailed</span>
-                        <span className={`px-1.5 py-0.2 rounded text-[10px] ${emailFilter === 'unmailed' ? 'bg-amber-500/20 text-amber-300' : 'bg-black/60 text-zinc-400'}`}>
+                        <span className={`px-1.5 py-0.2 rounded text-[10px] ${emailFilter === 'unmailed' ? 'bg-purple-500/20 text-purple-300' : 'bg-black/60 text-zinc-400'}`}>
                           {unmailedUsersCount}
                         </span>
                       </button>
@@ -2558,8 +2551,8 @@ export default function AdminDashboard() {
                         onClick={() => setEmailFilter('all')}
                         className={`px-2.5 py-1 text-[11px] font-semibold border transition-all cursor-pointer ${
                           emailFilter === 'all'
-                            ? 'bg-purple-950/60 text-purple-200 border-purple-500/50'
-                            : 'bg-black/40 text-zinc-400 border-purple-950/40 hover:text-zinc-200'
+                            ? 'bg-purple-500/10 text-purple-200 border-purple-500/50'
+                            : 'bg-black/40 text-zinc-400 border-white/[0.08] hover:text-zinc-200'
                         }`}
                       >
                         All ({usersWithEmail.length})
@@ -2569,11 +2562,11 @@ export default function AdminDashboard() {
                         onClick={() => setEmailFilter('mailed')}
                         className={`px-2.5 py-1 text-[11px] font-semibold border transition-all cursor-pointer flex items-center gap-1 ${
                           emailFilter === 'mailed'
-                            ? 'bg-emerald-950/60 text-emerald-200 border-emerald-500/50'
-                            : 'bg-black/40 text-zinc-400 border-purple-950/40 hover:text-zinc-200'
+                            ? 'bg-purple-950/60 text-purple-200 border-purple-500/50'
+                            : 'bg-black/40 text-zinc-400 border-white/[0.08] hover:text-zinc-200'
                         }`}
                       >
-                        <Check size={11} className="text-emerald-400" />
+                        <Check size={11} className="text-purple-400" />
                         <span>Mailed ({mailedUsersCount})</span>
                       </button>
 
@@ -2583,8 +2576,8 @@ export default function AdminDashboard() {
                           onClick={() => setEmailFilter(tabKey)}
                           className={`px-2 py-0.5 text-[11px] font-semibold border transition-all cursor-pointer capitalize ${
                             emailFilter === tabKey
-                              ? 'bg-purple-950/60 text-purple-200 border-purple-500/50'
-                              : 'bg-black/40 text-zinc-400 border-purple-950/40 hover:text-zinc-200'
+                              ? 'bg-purple-500/10 text-purple-200 border-purple-500/50'
+                              : 'bg-black/40 text-zinc-400 border-white/[0.08] hover:text-zinc-200'
                           }`}
                         >
                           {tabKey}
@@ -2594,7 +2587,7 @@ export default function AdminDashboard() {
                       {stats.totalExcluded > 0 && (
                         <button
                           onClick={handleIncludeAllUsers}
-                          className="px-2 py-0.5 text-[11px] font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-colors cursor-pointer flex items-center gap-1"
+                          className="px-2 py-0.5 text-[11px] font-semibold bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 transition-colors cursor-pointer flex items-center gap-1"
                           title="Include all excluded users"
                         >
                           <UserPlus size={11} />
@@ -2617,7 +2610,7 @@ export default function AdminDashboard() {
 
                         <button
                           onClick={handleMarkSelectedAsMailed}
-                          className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-950/50 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 text-xs font-medium transition-colors cursor-pointer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-950/50 hover:bg-purple-900/60 text-purple-300 border border-purple-500/30 text-xs font-medium transition-colors cursor-pointer"
                           title="Mark selected users as mailed"
                         >
                           <Check size={12} />
@@ -2651,14 +2644,14 @@ export default function AdminDashboard() {
                 {/* Table */}
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-zinc-300">
-                    <thead className="bg-[#090712] border-b border-purple-950/40 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+                    <thead className="bg-[#090712] border-b border-white/[0.08] text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
                       <tr>
                         <th className="px-4 py-3 w-10">
                           <input
                             type="checkbox"
                             checked={filteredEmailUsers.length > 0 && selectedEmailUserIds.size === filteredEmailUsers.length}
                             onChange={handleToggleSelectAllEmails}
-                            className="rounded-none accent-purple-500 cursor-pointer"
+                            className="rounded-lg accent-purple-500 cursor-pointer"
                             title="Select / Deselect all"
                           />
                         </th>
@@ -2671,12 +2664,12 @@ export default function AdminDashboard() {
                         <th className="px-4 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-purple-950/20">
+                    <tbody className="divide-y divide-white/[0.06]">
                       {filteredEmailUsers.length === 0 ? (
                         <tr>
                           <td colSpan="8" className="px-4 py-12 text-center text-zinc-500">
                             {emailFilter === 'unmailed'
-                              ? '🎉 Great job! All registered users have been mailed.'
+                              ? 'Great job! All registered users have been mailed.'
                               : 'No user emails found matching criteria.'}
                           </td>
                         </tr>
@@ -2689,7 +2682,7 @@ export default function AdminDashboard() {
                             <tr
                               key={u.id}
                               className={`transition-colors ${
-                                isSelected ? 'bg-purple-950/30' : 'hover:bg-white/[0.02]'
+                                isSelected ? 'bg-purple-500/10' : 'hover:bg-white/[0.02]'
                               }`}
                             >
                               <td className="px-4 py-3.5">
@@ -2697,7 +2690,7 @@ export default function AdminDashboard() {
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => handleToggleUserEmail(u.id)}
-                                  className="rounded-none accent-purple-500 cursor-pointer"
+                                  className="rounded-lg accent-purple-500 cursor-pointer"
                                 />
                               </td>
                               <td className="px-4 py-3.5">
@@ -2709,14 +2702,14 @@ export default function AdminDashboard() {
                                       className="w-8 h-8 rounded-full object-cover border border-purple-500/30 shrink-0"
                                     />
                                   ) : (
-                                    <div className="w-8 h-8 rounded-full bg-[#1b172a] border border-purple-900/60 text-purple-200 flex items-center justify-center font-bold text-xs shrink-0">
+                                    <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center font-bold text-xs shrink-0">
                                       {(u.name || 'U').slice(0, 2).toUpperCase()}
                                     </div>
                                   )}
                                   <div className="min-w-0">
                                     <div className="font-semibold text-white truncate flex items-center gap-1.5">
                                       <span>{u.name || 'Anonymous User'}</span>
-                                      {isAdmin(u.email) && <Crown size={11} className="text-amber-400 shrink-0" />}
+                                      {isAdmin(u.email) && <Crown size={11} className="text-purple-400 shrink-0" />}
                                     </div>
                                     <div className="text-[10px] text-zinc-500 font-mono truncate">ID: {u.id.slice(0, 12)}...</div>
                                   </div>
@@ -2732,7 +2725,7 @@ export default function AdminDashboard() {
                                     className="text-zinc-500 hover:text-white transition-colors p-1 cursor-pointer"
                                     title="Copy email"
                                   >
-                                    {isCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                    {isCopied ? <Check size={12} className="text-purple-400" /> : <Copy size={12} />}
                                   </button>
                                 </div>
                               </td>
@@ -2740,22 +2733,22 @@ export default function AdminDashboard() {
                                 {u.isMailed ? (
                                   <div className="flex items-center gap-1.5">
                                     <span
-                                      className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"
+                                      className="px-2 py-0.5 text-[10px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/30 flex items-center gap-1"
                                       title={u.mailedAt ? `Mailed on ${dayjs(u.mailedAt).format('YYYY-MM-DD HH:mm')}` : 'Mailed'}
                                     >
-                                      <Check size={10} className="text-emerald-400" />
+                                      <Check size={10} className="text-purple-400" />
                                       <span>Mailed {u.mailedAt ? dayjs(u.mailedAt).fromNow() : ''}</span>
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/40 flex items-center gap-1 w-fit">
-                                    <Sparkles size={10} className="text-amber-400" />
+                                  <span className="px-2 py-0.5 text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/40 flex items-center gap-1 w-fit">
+                                    <Sparkles size={10} className="text-purple-400" />
                                     <span>Never Mailed</span>
                                   </span>
                                 )}
                               </td>
                               <td className="px-4 py-3.5 whitespace-nowrap">
-                                <span className="text-[10px] px-2 py-0.5 rounded-none font-semibold border bg-purple-950/40 text-purple-300 border-purple-500/30">
+                                <span className="text-[10px] px-2 py-0.5 rounded-lg font-semibold border bg-purple-500/10 text-purple-300 border-purple-500/30">
                                   {u.provider || 'Google'}
                                 </span>
                               </td>
@@ -2766,13 +2759,13 @@ export default function AdminDashboard() {
                               <td className="px-4 py-3.5 whitespace-nowrap font-mono text-xs">
                                 <span className="text-purple-300">{u.roomsCount} rooms</span>
                                 <span className="text-zinc-600 mx-1">•</span>
-                                <span className="text-pink-300">{u.commentsCount} notes</span>
+                                <span className="text-purple-300">{u.commentsCount} notes</span>
                               </td>
                               <td className="px-4 py-3.5 text-right whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-1.5">
                                   <button
                                     onClick={() => handleOpenComposer('single', u)}
-                                    className="flex items-center gap-1 px-2.5 py-1 bg-purple-950/60 hover:bg-purple-900/80 text-purple-200 border border-purple-500/40 rounded-none text-xs font-semibold transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-purple-500/10 hover:bg-purple-900/80 text-purple-200 border border-purple-500/40 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
                                     title={`Send email to ${u.email}`}
                                   >
                                     <Mail size={12} className="text-purple-400" />
@@ -2782,8 +2775,8 @@ export default function AdminDashboard() {
                                     onClick={() => handleToggleMarkMailed(u)}
                                     className={`p-1 border transition-colors cursor-pointer ${
                                       u.isMailed
-                                        ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20'
-                                        : 'text-zinc-500 border-purple-950/40 hover:text-amber-300 hover:border-amber-500/30'
+                                        ? 'text-purple-400 border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20'
+                                        : 'text-zinc-500 border-white/[0.08] hover:text-purple-300 hover:border-purple-500/30'
                                     }`}
                                     title={u.isMailed ? "Click to mark as Unmailed" : "Click to mark as Mailed"}
                                   >
@@ -2810,11 +2803,11 @@ export default function AdminDashboard() {
               {/* BROADCAST / COMPOSE EMAIL MODAL */}
               {emailComposerOpen && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                  <div className="bg-[#0c0a14] border border-purple-950/70 rounded-none p-5 sm:p-6 w-full max-w-2xl shadow-2xl relative animate-in fade-in duration-200 max-h-[90vh] flex flex-col">
+                  <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg p-5 sm:p-6 w-full max-w-2xl shadow-2xl relative animate-in fade-in duration-200 max-h-[90vh] flex flex-col">
                     {/* Modal Header */}
-                    <div className="flex items-center justify-between pb-3 border-b border-purple-950/40 shrink-0">
+                    <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] shrink-0">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-none bg-purple-950/60 border border-purple-500/40 text-purple-300 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/40 text-purple-300 flex items-center justify-center">
                           <Mail size={16} />
                         </div>
                         <div>
@@ -2837,9 +2830,7 @@ export default function AdminDashboard() {
                       <button
                         onClick={() => setEmailComposerOpen(false)}
                         className="text-zinc-500 hover:text-zinc-300 p-1.5 transition-colors cursor-pointer"
-                      >
-                        ✕
-                      </button>
+                      ><X size={14} /></button>
                     </div>
 
                     {/* Modal Body */}
@@ -2855,10 +2846,10 @@ export default function AdminDashboard() {
                               key={key}
                               type="button"
                               onClick={() => handleTemplateChange(key)}
-                              className={`px-2.5 py-2 text-left text-xs border rounded-none transition-all cursor-pointer ${
+                              className={`px-2.5 py-2 text-left text-xs border rounded-lg transition-all cursor-pointer ${
                                 emailTemplateKey === key
-                                  ? 'bg-purple-950/80 text-white border-purple-500/60 shadow-sm'
-                                  : 'bg-[#07050e] text-zinc-400 border-purple-950/40 hover:text-zinc-200 hover:bg-white/5'
+                                  ? 'bg-purple-500/10 text-white border-purple-500/60 shadow-sm'
+                                  : 'bg-[#141417] text-zinc-400 border-white/[0.08] hover:text-zinc-200 hover:bg-white/5'
                               }`}
                             >
                               <div className="font-semibold truncate">{t.name}</div>
@@ -2877,7 +2868,7 @@ export default function AdminDashboard() {
                           value={emailSubject}
                           onChange={(e) => setEmailSubject(e.target.value)}
                           placeholder="Enter email subject..."
-                          className="w-full bg-[#07050e] border border-purple-950/60 rounded-none px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+                          className="w-full bg-[#141417] border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/50"
                         />
                       </div>
 
@@ -2894,27 +2885,27 @@ export default function AdminDashboard() {
                           value={emailBody}
                           onChange={(e) => setEmailBody(e.target.value)}
                           placeholder="Write your email message here..."
-                          className="w-full bg-[#07050e] border border-purple-950/60 rounded-none p-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/60 font-sans leading-relaxed"
+                          className="w-full bg-[#141417] border border-white/[0.08] rounded-lg p-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 font-sans leading-relaxed"
                         />
                       </div>
 
                       {/* Auto-mark as Mailed toggle */}
-                      <div className="p-2.5 bg-[#07050e] border border-purple-950/50 flex items-center justify-between">
+                      <div className="p-2.5 bg-[#141417] border border-white/[0.08] flex items-center justify-between">
                         <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer select-none">
                           <input
                             type="checkbox"
                             checked={autoMarkMailed}
                             onChange={(e) => setAutoMarkMailed(e.target.checked)}
-                            className="rounded-none accent-purple-500 cursor-pointer"
+                            className="rounded-lg accent-purple-500 cursor-pointer"
                           />
                           <span>Automatically mark recipient(s) as <strong>Mailed</strong> upon sending</span>
                         </label>
-                        <span className="text-[10px] text-emerald-400 font-mono">Syncs to DB</span>
+                        <span className="text-[10px] text-purple-400 font-mono">Syncs to DB</span>
                       </div>
                     </div>
 
                     {/* Modal Footer */}
-                    <div className="pt-3 border-t border-purple-950/40 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0 bg-[#0c0a14]">
+                    <div className="pt-3 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0 bg-[#0e0e11]">
                       <button
                         type="button"
                         onClick={() => {
@@ -2926,7 +2917,7 @@ export default function AdminDashboard() {
                               : filteredEmailUsers.map(u => u.email);
                           handleCopyEmails(list.filter(Boolean), 'recipients');
                         }}
-                        className="w-full sm:w-auto px-3 py-2 bg-[#07050e] hover:bg-white/10 text-zinc-300 hover:text-white border border-purple-950/60 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="w-full sm:w-auto px-3 py-2 bg-[#141417] hover:bg-white/10 text-zinc-300 hover:text-white border border-white/[0.08] text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Copy size={13} />
                         <span>Copy Email List</span>
@@ -2944,7 +2935,7 @@ export default function AdminDashboard() {
                         <button
                           type="button"
                           onClick={handleLaunchEmailClient}
-                          className="px-3.5 py-2 bg-[#1b172a] hover:bg-purple-950/80 text-purple-200 border border-purple-500/40 font-semibold text-xs rounded-none transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="px-3.5 py-2 bg-[#1b172a] hover:bg-white/[0.08] text-purple-200 border border-purple-500/40 font-semibold text-xs rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                           title="Open default system mail client (Apple Mail, Thunderbird, Outlook)"
                         >
                           <Mail size={13} />
@@ -2954,7 +2945,7 @@ export default function AdminDashboard() {
                         <button
                           type="button"
                           onClick={handleLaunchGmailWeb}
-                          className="px-4 py-2 bg-white hover:bg-zinc-200 text-black font-bold text-xs rounded-none transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.02]"
+                          className="px-4 py-2 bg-white hover:bg-zinc-200 text-black font-bold text-xs rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.02]"
                           title="Open in Gmail Web in a new browser tab"
                         >
                           <Send size={13} />
@@ -2972,15 +2963,15 @@ export default function AdminDashboard() {
           {activeTab === 'admins' && (
             <div className="max-w-3xl space-y-6">
               {adminMessage && (
-                <div className={`p-3 rounded-none text-xs font-semibold ${
-                  adminMessage.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                <div className={`p-3 rounded-lg text-xs font-semibold ${
+                  adminMessage.type === 'success' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                 }`}>
                   {adminMessage.text}
                 </div>
               )}
 
               {/* Add New Admin Form */}
-              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl">
+              <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg p-4 sm:p-6 shadow-xl">
                 <h3 className="text-sm font-bold text-white tracking-tight mb-2">
                   Grant Administrator Access
                 </h3>
@@ -2995,12 +2986,12 @@ export default function AdminDashboard() {
                     placeholder="Enter email address (e.g. name@gmail.com)..."
                     value={newAdminInput}
                     onChange={(e) => setNewAdminInput(e.target.value)}
-                    className="flex-1 bg-[#07050e] border border-purple-950/60 rounded-none px-3 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/60"
+                    className="flex-1 bg-[#141417] border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/50"
                   />
                   <button
                     type="submit"
                     disabled={!newAdminInput.trim()}
-                    className="px-5 py-2 bg-white hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-500 text-black font-semibold text-xs rounded-none transition-colors shadow-sm shrink-0 cursor-pointer"
+                    className="px-5 py-2 bg-white hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-500 text-black font-semibold text-xs rounded-lg transition-colors shadow-sm shrink-0 cursor-pointer"
                   >
                     Add +
                   </button>
@@ -3008,21 +2999,21 @@ export default function AdminDashboard() {
               </div>
 
               {/* Current Admins List */}
-              <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-4 sm:p-6 shadow-xl">
+              <div className="bg-[#0e0e11] border border-white/[0.08] rounded-lg p-4 sm:p-6 shadow-xl">
                 <h3 className="text-sm font-bold text-white tracking-tight mb-4">
                   Active Administrators ({adminList.length})
                 </h3>
 
-                <div className="divide-y divide-purple-950/30">
+                <div className="divide-y divide-white/[0.06]">
                   {adminList.map((email) => {
                     const isPrimary = isPrimaryAdmin(email);
                     return (
                       <div key={email} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-none flex items-center justify-center font-bold text-xs shrink-0 ${
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                             isPrimary ? 'bg-purple-900/60 text-purple-200 border border-purple-400/40' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                           }`}>
-                            {isPrimary ? <Crown size={14} className="text-amber-400" /> : <UserCheck size={14} />}
+                            {isPrimary ? <Crown size={14} className="text-purple-400" /> : <UserCheck size={14} />}
                           </div>
                           <div className="min-w-0">
                             <div className="font-semibold text-zinc-100 truncate">{email}</div>
@@ -3037,7 +3028,7 @@ export default function AdminDashboard() {
                             <button
                               type="button"
                               onClick={() => handleRemoveAdmin(email)}
-                              className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-none transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-500 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors cursor-pointer"
                               title="Revoke admin access"
                             >
                               <Trash2 size={14} />

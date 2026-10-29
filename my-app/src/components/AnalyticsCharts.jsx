@@ -13,6 +13,13 @@ import {
   Zap,
   Filter
 } from 'lucide-react';
+import {
+  Icons8Activity,
+  Icons8Comments,
+  Icons8Film,
+  Icons8CheckCircle,
+  Icons8Zap
+} from './Icons8';
 import dayjs from 'dayjs';
 
 /**
@@ -145,15 +152,15 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
   return (
     <div className="space-y-6">
       {/* Chart 1: Interactive Activity & Review Velocity Area Chart */}
-      <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 md:p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-[#0e0e11] border border-white/[0.08] rounded-xl p-5 md:p-6 shadow-xl relative overflow-hidden">
         {/* Header with Title & Time Range Switcher */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="p-1.5 rounded-none bg-purple-500/15 text-purple-400 border border-purple-500/25">
-                <Activity size={15} />
+              <span className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                <Icons8Activity className="w-4 h-4" />
               </span>
-              <h3 className="text-sm font-bold text-white tracking-tight">Review Activity & Velocity</h3>
+              <h3 className="text-sm font-semibold text-white tracking-tight">Review Activity & Velocity</h3>
             </div>
             <p className="text-xs text-zinc-400">Timeline feedback and session creations over time</p>
           </div>
@@ -162,17 +169,17 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
             {/* Legend */}
             <div className="flex items-center gap-3 text-xs">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-purple-400 ring-2 ring-purple-400/20"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 ring-purple-500/20"></span>
                 <span className="text-zinc-300">Comments</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-400/20"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-white ring-2 ring-white/20"></span>
                 <span className="text-zinc-300">Sessions</span>
               </div>
             </div>
 
             {/* Time Filter Pills */}
-            <div className="bg-[#07050e] p-0.5 rounded-none border border-purple-950/60 flex items-center gap-0.5 text-xs">
+            <div className="bg-[#141417] p-1 rounded-lg border border-white/[0.08] flex items-center gap-1 text-xs">
               {[
                 { id: '7d', label: '7D' },
                 { id: '14d', label: '14D' },
@@ -181,7 +188,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                 <button
                   key={t.id}
                   onClick={() => setTimeRange(t.id)}
-                  className={`px-2.5 py-1 rounded-none font-medium transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
                     timeRange === t.id
                       ? 'bg-white text-black shadow-sm font-semibold'
                       : 'text-zinc-400 hover:text-zinc-200'
@@ -204,10 +211,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
             >
               <defs>
                 {/* Indigo Area Gradient */}
-                <linearGradient id="indigoAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#6366F1" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#6366F1" stopOpacity="0.0" />
-                </linearGradient>
+                
 
                 {/* Subtle Grid Line Stroke */}
                 <pattern id="gridLines" width="100" height="40" patternUnits="userSpaceOnUse">
@@ -242,13 +246,13 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
               })}
 
               {/* Area Gradient Fill */}
-              <path d={commentsAreaPath} fill="url(#indigoAreaGrad)" />
+              <path d={commentsAreaPath} fill="rgba(168, 85, 247, 0.12)" />
 
               {/* Comments Smooth Line */}
               <path 
                 d={commentsLinePath} 
                 fill="none" 
-                stroke="#6366F1" 
+                stroke="#A855F7" 
                 strokeWidth="2.5" 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 
@@ -258,7 +262,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
               <path 
                 d={roomsLinePath} 
                 fill="none" 
-                stroke="#10B981" 
+                stroke="#FFFFFF" 
                 strokeWidth="2" 
                 strokeDasharray="4 4" 
                 strokeLinecap="round" 
@@ -290,7 +294,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                         y1={paddingY}
                         x2={cPt.x}
                         y2={chartHeight - paddingY}
-                        stroke="rgba(99,102,241,0.5)"
+                        stroke="rgba(168,85,247,0.5)"
                         strokeWidth="1.5"
                         strokeDasharray="2 2"
                       />
@@ -301,7 +305,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                       cx={cPt.x}
                       cy={cPt.y}
                       r={isHovered ? 5 : 3}
-                      fill="#6366F1"
+                      fill="#A855F7"
                       stroke="#15161e"
                       strokeWidth="2"
                       className="transition-all"
@@ -312,7 +316,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                       cx={rPt.x}
                       cy={rPt.y}
                       r={isHovered ? 4.5 : 2.5}
-                      fill="#10B981"
+                      fill="#FFFFFF"
                       stroke="#15161e"
                       strokeWidth="1.5"
                       className="transition-all"
@@ -324,7 +328,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                         x={cPt.x}
                         y={chartHeight - paddingY + 16}
                         textAnchor="middle"
-                        className={`text-[10px] font-mono ${isHovered ? 'fill-indigo-300 font-semibold' : 'fill-zinc-500'}`}
+                        className={`text-[10px] font-mono ${isHovered ? 'fill-purple-300 font-semibold' : 'fill-zinc-500'}`}
                       >
                         {d.label}
                       </text>
@@ -337,25 +341,25 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
             {/* Floating Tooltip Card */}
             {hoveredPoint && (
               <div 
-                className="absolute -top-3 z-30 pointer-events-none transform -translate-x-1/2 -translate-y-full bg-[#07050e] border border-purple-500/40 rounded-none p-2.5 shadow-2xl backdrop-blur-md min-w-[140px]"
+                className="absolute -top-3 z-30 pointer-events-none transform -translate-x-1/2 -translate-y-full bg-[#141417]/95 border border-white/[0.12] rounded-xl p-2.5 shadow-2xl backdrop-blur-md min-w-[140px]"
                 style={{ left: `${(hoveredPoint.x / chartWidth) * 100}%` }}
               >
-                <div className="text-[11px] font-semibold text-zinc-300 mb-1 border-b border-purple-950/40 pb-1 flex items-center justify-between">
+                <div className="text-[11px] font-semibold text-zinc-300 mb-1 border-b border-white/[0.08] pb-1 flex items-center justify-between">
                   <span>{dayjs(hoveredPoint.data.date).format('MMM D, YYYY')}</span>
                 </div>
                 <div className="space-y-1 text-xs">
                   <div className="flex items-center justify-between gap-3 text-purple-300">
-                    <span className="flex items-center gap-1"><MessageSquare size={11} /> Comments:</span>
-                    <span className="font-mono font-bold">{hoveredPoint.data.comments}</span>
+                    <span className="flex items-center gap-1"><Icons8Comments className="w-3 h-3" /> Comments:</span>
+                    <span className="font-mono font-semibold">{hoveredPoint.data.comments}</span>
                   </div>
-                  <div className="flex items-center justify-between gap-3 text-emerald-300">
-                    <span className="flex items-center gap-1"><Film size={11} /> Sessions:</span>
-                    <span className="font-mono font-bold">{hoveredPoint.data.rooms}</span>
+                  <div className="flex items-center justify-between gap-3 text-white">
+                    <span className="flex items-center gap-1"><Icons8Film className="w-3 h-3" /> Sessions:</span>
+                    <span className="font-mono font-semibold">{hoveredPoint.data.rooms}</span>
                   </div>
                   {hoveredPoint.data.approved > 0 && (
-                    <div className="flex items-center justify-between gap-3 text-amber-300">
-                      <span className="flex items-center gap-1"><CheckCircle size={11} /> Approved:</span>
-                      <span className="font-mono font-bold">{hoveredPoint.data.approved}</span>
+                    <div className="flex items-center justify-between gap-3 text-zinc-300">
+                      <span className="flex items-center gap-1"><Icons8CheckCircle className="w-3 h-3" /> Approved:</span>
+                      <span className="font-mono font-semibold">{hoveredPoint.data.approved}</span>
                     </div>
                   )}
                 </div>
@@ -368,17 +372,17 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
       {/* Grid: 2 Side-by-Side Modern Visualizations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Chart 2: Platform Distribution Donut & Analytics */}
-        <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 md:p-6 shadow-xl flex flex-col justify-between">
+        <div className="bg-[#0e0e11] border border-white/[0.08] rounded-xl p-5 md:p-6 shadow-xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
                   <Layers size={14} className="text-purple-400" />
                   <span>Video Storage Ecosystem</span>
                 </h4>
                 <p className="text-[11px] text-zinc-400 mt-0.5">Asset source distribution across review sessions</p>
               </div>
-              <span className="text-xs font-mono px-2 py-0.5 rounded-none bg-[#07050e] text-zinc-300 border border-purple-950/50">
+              <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-[#141417] text-zinc-300 border border-white/[0.08]">
                 {platformStats.totalCount} Assets
               </span>
             </div>
@@ -396,7 +400,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                     cy="50" 
                     r="38" 
                     fill="none" 
-                    stroke="#10B981" 
+                    stroke="#A855F7" 
                     strokeWidth={activePlatformHover === 'drive' ? '14' : '12'}
                     strokeDasharray={`${(platformStats.drive.pct / 100) * 238.7} 238.7`}
                     strokeDashoffset="0"
@@ -409,7 +413,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                     cy="50" 
                     r="38" 
                     fill="none" 
-                    stroke="#EF4444" 
+                    stroke="#FFFFFF" 
                     strokeWidth={activePlatformHover === 'yt' ? '14' : '12'}
                     strokeDasharray={`${(platformStats.yt.pct / 100) * 238.7} 238.7`}
                     strokeDashoffset={`-${(platformStats.drive.pct / 100) * 238.7}`}
@@ -422,7 +426,7 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
                     cy="50" 
                     r="38" 
                     fill="none" 
-                    stroke="#EC4899" 
+                    stroke="#71717A" 
                     strokeWidth={activePlatformHover === 'insta' ? '14' : '12'}
                     strokeDasharray={`${((platformStats.insta.pct + platformStats.other.pct) / 100) * 238.7} 238.7`}
                     strokeDashoffset={`-${((platformStats.drive.pct + platformStats.yt.pct) / 100) * 238.7}`}
@@ -441,9 +445,9 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
               {/* Breakdown List */}
               <div className="flex-1 space-y-2">
                 {[
-                  { key: 'drive', stat: platformStats.drive, logo: '/drive.png', bg: 'bg-emerald-500' },
-                  { key: 'yt', stat: platformStats.yt, logo: '/youtube.png', bg: 'bg-red-500' },
-                  { key: 'insta', stat: platformStats.insta, logo: '/instagram.png', bg: 'bg-pink-500' },
+                  { key: 'drive', stat: platformStats.drive, logo: '/drive.png', bg: 'bg-zinc-600' },
+                  { key: 'yt', stat: platformStats.yt, logo: '/youtube.png', bg: 'bg-white' },
+                  { key: 'insta', stat: platformStats.insta, logo: '/instagram.png', bg: 'bg-zinc-400' },
                   { key: 'other', stat: platformStats.other, logo: null, bg: 'bg-purple-500' },
                 ].map(({ key, stat, logo, bg }) => (
                   <div 
@@ -468,22 +472,22 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
 
           <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-400">
             <span>Primary storage provider:</span>
-            <span className="font-semibold text-emerald-400">Google Drive API</span>
+            <span className="font-semibold text-purple-400">Google Drive API</span>
           </div>
         </div>
 
         {/* Chart 3: Review Lifecycle Status Funnel */}
-        <div className="bg-[#0c0a14] border border-purple-950/50 rounded-none p-5 md:p-6 shadow-xl flex flex-col justify-between">
+        <div className="bg-[#0e0e11] border border-white/[0.08] rounded-xl p-5 md:p-6 shadow-xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <CheckCircle size={14} className="text-emerald-400" />
+                <h4 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Icons8CheckCircle className="w-3.5 h-3.5 text-purple-400" />
                   <span>Review Lifecycle Funnel</span>
                 </h4>
                 <p className="text-[11px] text-zinc-400 mt-0.5">Real-time status progression of active projects</p>
               </div>
-              <span className="text-xs font-mono px-2 py-0.5 rounded-none bg-[#07050e] text-zinc-300 border border-purple-950/50">
+              <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-[#141417] text-zinc-300 border border-white/[0.08]">
                 {statusStats.totalRooms} Projects
               </span>
             </div>
@@ -494,16 +498,16 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
                     <span className="text-zinc-200 font-medium">In Active Review</span>
                   </div>
                   <span className="font-mono text-zinc-400">
                     {statusStats.inProgress.count} ({statusStats.inProgress.pct}%)
                   </span>
                 </div>
-                <div className="h-3 bg-[#07050e] rounded-none p-0.5 border border-purple-950/50 overflow-hidden">
+                <div className="h-2.5 bg-[#141417] rounded-full p-0.5 border border-white/[0.06] overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-none transition-all duration-500"
+                    className="h-full bg-purple-500 rounded-full transition-all duration-500"
                     style={{ width: `${Math.max(2, statusStats.inProgress.pct)}%` }}
                   />
                 </div>
@@ -513,16 +517,16 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span className="w-2 h-2 rounded-full bg-white"></span>
                     <span className="text-zinc-200 font-medium">Approved by Client</span>
                   </div>
                   <span className="font-mono text-zinc-400">
                     {statusStats.approved.count} ({statusStats.approved.pct}%)
                   </span>
                 </div>
-                <div className="h-3 bg-[#07050e] rounded-none p-0.5 border border-purple-950/50 overflow-hidden">
+                <div className="h-2.5 bg-[#141417] rounded-full p-0.5 border border-white/[0.06] overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-none transition-all duration-500"
+                    className="h-full bg-white rounded-full transition-all duration-500"
                     style={{ width: `${Math.max(2, statusStats.approved.pct)}%` }}
                   />
                 </div>
@@ -532,16 +536,16 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                    <span className="w-2 h-2 rounded-full bg-zinc-500"></span>
                     <span className="text-zinc-200 font-medium">Revisions Requested</span>
                   </div>
                   <span className="font-mono text-zinc-400">
                     {statusStats.rejected.count} ({statusStats.rejected.pct}%)
                   </span>
                 </div>
-                <div className="h-3 bg-[#07050e] rounded-none p-0.5 border border-purple-950/50 overflow-hidden">
+                <div className="h-2.5 bg-[#141417] rounded-full p-0.5 border border-white/[0.06] overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-none transition-all duration-500"
+                    className="h-full bg-zinc-500 rounded-full transition-all duration-500"
                     style={{ width: `${Math.max(2, statusStats.rejected.pct)}%` }}
                   />
                 </div>
@@ -549,10 +553,10 @@ export function AnalyticsCharts({ rooms = [], comments = [] }) {
             </div>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-purple-950/40 flex items-center justify-between text-[11px] text-zinc-400">
+          <div className="mt-3 pt-3 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-zinc-400">
             <span>Workflow efficiency:</span>
             <span className="font-semibold text-purple-400 flex items-center gap-1">
-              <Zap size={11} /> Real-time instant sync
+              <Icons8Zap className="w-3 h-3" /> Real-time instant sync
             </span>
           </div>
         </div>

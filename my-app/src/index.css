@@ -3,8 +3,44 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --canvas-bg: #09090b;
+    --surface-panel: #111114;
+    --surface-card: #18181b;
+    --surface-subtle: #202024;
+    --surface-hover: #27272a;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-focus: rgba(168, 85, 247, 0.5);
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    color-scheme: dark;
+  }
+
+  * {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
   body {
-    @apply bg-background text-primary antialiased;
+    background-color: #09090b;
+    color: #f4f4f5;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    caret-color: #a855f7;
+  }
+
+  /* Browser surface theming per Impeccable craft floor */
+  ::selection {
+    background-color: rgba(168, 85, 247, 0.35);
+    color: #ffffff;
+  }
+
+  /* Monospace numerals with tabular numbers for timestamps */
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
   }
 
   .video-js .vjs-tech {
@@ -25,25 +61,49 @@
     width: 100% !important;
   }
 
-  /* Hide default big play button since we have custom LiquidGlass controls */
+  /* Hide default big play button since we have custom controls */
   .video-js .vjs-big-play-button {
     display: none !important;
   }
 }
 
 @layer utilities {
+  /* Ultra-refined studio scrollbars */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #3f3f46;
-    border-radius: 4px;
+    background: #27272a;
+    border-radius: 9999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #52525b;
+    background: #3f3f46;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

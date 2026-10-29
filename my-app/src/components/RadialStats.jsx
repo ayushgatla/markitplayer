@@ -84,12 +84,12 @@ export default function RadialStats() {
           let strokeWidth = "2";
           
           if (isActive) {
-            fill = 'rgba(99, 102, 241, 0.2)';
-            stroke = 'rgba(99, 102, 241, 0.8)';
+            fill = 'rgba(168, 85, 247, 0.2)';
+            stroke = 'rgba(168, 85, 247, 0.8)';
             strokeWidth = "3";
           } else if (isHovered && !hasActive) {
-            fill = 'rgba(99, 102, 241, 0.15)';
-            stroke = 'rgba(99, 102, 241, 0.5)';
+            fill = 'rgba(168, 85, 247, 0.15)';
+            stroke = 'rgba(168, 85, 247, 0.5)';
           } else if (hasActive) {
             fill = 'rgba(24, 24, 27, 0.1)';
             stroke = 'rgba(255, 255, 255, 0.05)';
@@ -163,7 +163,7 @@ export default function RadialStats() {
               <div className={`text-2xl md:text-4xl font-bold mb-1 transition-colors duration-300 ${isActive || hoveredIndex === i ? 'text-white' : 'text-zinc-100'}`}>
                 {STATS[i].value}
               </div>
-              <div className={`text-[10px] md:text-xs transition-colors duration-300 ${isActive || hoveredIndex === i ? 'text-indigo-200' : 'text-zinc-500'}`}>
+              <div className={`text-[10px] md:text-xs transition-colors duration-300 ${isActive || hoveredIndex === i ? 'text-purple-200' : 'text-zinc-500'}`}>
                 {STATS[i].label}
               </div>
             </motion.div>

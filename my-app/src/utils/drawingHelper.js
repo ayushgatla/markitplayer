@@ -108,12 +108,12 @@ export function formatRangeTime(startTime, endTime) {
  * Curated color palette for Frame.io-style annotations
  */
 export const DRAWING_COLORS = [
-  { id: 'yellow', name: 'Neon Yellow', hex: '#FACC15' },
-  { id: 'red', name: 'Electric Red', hex: '#EF4444' },
-  { id: 'cyan', name: 'Bright Cyan', hex: '#38BDF8' },
-  { id: 'green', name: 'Emerald', hex: '#22C55E' },
-  { id: 'purple', name: 'Hot Pink', hex: '#EC4899' },
-  { id: 'white', name: 'Pure White', hex: '#FFFFFF' }
+  { id: 'purple-light', name: 'Light Purple', hex: '#C084FC' },
+  { id: 'purple', name: 'Studio Purple', hex: '#A855F7' },
+  { id: 'purple-dark', name: 'Deep Purple', hex: '#7E22CE' },
+  { id: 'white', name: 'Pure White', hex: '#FFFFFF' },
+  { id: 'grey', name: 'Studio Grey', hex: '#A1A1AA' },
+  { id: 'black', name: 'Deep Black', hex: '#09090B' }
 ];
 
 export const STROKE_WIDTHS = [

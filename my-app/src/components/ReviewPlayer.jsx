@@ -62,35 +62,58 @@ export const ReviewPlayer = ({
   const [activeRangePreview, setActiveRangePreview] = useState(null);
   const [strokeHistoryState, setStrokeHistoryState] = useState({ canUndo: false, canRedo: false, count: 0 });
 
-  const [sidebarWidth, setSidebarWidth] = useState(384);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try {
+      const saved = localStorage.getItem('review_player_sidebar_width');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= 260 && parsed <= 800) return parsed;
+      }
+    } catch {}
+    return 384;
+  });
+  const [isDragging, setIsDragging] = useState(false);
   const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('review_player_sidebar_width', sidebarWidth);
+    } catch {}
+  }, [sidebarWidth]);
 
   useEffect(() => {
     const handleGlobalMouseMove = (e) => {
       if (!isDraggingRef.current) return;
+      const minW = 260;
+      const maxW = Math.min(800, window.innerWidth - 300);
       let newWidth = window.innerWidth - e.clientX;
-      if (newWidth < 280) newWidth = 280;
-      if (newWidth > 800) newWidth = 800;
+      if (newWidth < minW) newWidth = minW;
+      if (newWidth > maxW) newWidth = maxW;
       setSidebarWidth(newWidth);
     };
     const handleGlobalMouseUp = () => {
       if (isDraggingRef.current) {
         isDraggingRef.current = false;
+        setIsDragging(false);
         document.body.style.cursor = '';
+        document.body.style.userSelect = '';
       }
     };
-    document.addEventListener('mousemove', handleGlobalMouseMove);
-    document.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
     return () => {
-      document.removeEventListener('mousemove', handleGlobalMouseMove);
-      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
     };
   }, []);
 
   const handleSidebarMouseDown = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     isDraggingRef.current = true;
+    setIsDragging(true);
     document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
   };
 
   useEffect(() => {
@@ -627,7 +650,7 @@ export const ReviewPlayer = ({
       className="flex flex-col lg:flex-row w-full h-full min-h-0 bg-black overflow-y-auto lg:overflow-hidden relative"
     >
       {/* Video Section Column - Fills width between left edge and comment bar */}
-      <div className="w-full lg:flex-1 flex flex-col min-h-0 lg:h-full relative z-10 flex-shrink-0 bg-black">
+      <div className="w-full h-[45vh] min-h-[250px] max-h-[500px] sm:h-[55vh] lg:h-full lg:max-h-none lg:flex-1 min-w-0 flex flex-col min-h-0 relative z-10 bg-black">
         {/* Full-width Video + Control Bar Console Area (Touching left and comment bar) */}
         <div className="flex-1 min-h-0 w-full flex flex-col items-center justify-center p-0 overflow-hidden bg-black">
           <div
@@ -662,7 +685,7 @@ export const ReviewPlayer = ({
                 {/* Google Drive / Streaming Error Recovery Overlay */}
                 {streamError && (
                   <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950/95 backdrop-blur-md p-6 text-center animate-in fade-in duration-300">
-                    <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-3 text-amber-400">
+                    <div className="w-14 h-14 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-3 text-purple-400">
                       <AlertTriangle className="w-7 h-7" />
                     </div>
                     <h3 className="text-lg font-bold text-white mb-2">Google Drive Stream Unavailable</h3>
@@ -747,7 +770,7 @@ export const ReviewPlayer = ({
                     <span>Annotation by {activeCommentObj?.author_name || activeCommentObj?.author || 'User'}</span>
                     {isRangeComment && (
                       <span className="text-[10px] font-mono text-white bg-white/10 px-1.5 py-0.2 rounded border border-white/20">
-                        ↔ {formatTime(activeCommentObj.timestamp)} - {formatTime(activeRange.endTime)}
+                        {formatTime(activeCommentObj.timestamp)} - {formatTime(activeRange.endTime)}
                       </span>
                     )}
                   </span>
@@ -791,19 +814,39 @@ export const ReviewPlayer = ({
       </div>
     </div>
 
+      {/* Fullscreen drag blocker overlay to prevent iframes/canvas from swallowing mouse events */}
+      {isDragging && (
+        <div className="fixed inset-0 z-[9999] cursor-col-resize select-none bg-transparent pointer-events-auto" />
+      )}
+
       {/* Comment & Chat Sidebar */}
-      <div className="sidebar-container w-full flex-shrink-0 lg:border-l border-white/10 bg-black/40 backdrop-blur-xl relative z-10">
+      <div 
+        className="sidebar-container w-full min-h-[480px] lg:min-h-0 flex flex-col lg:flex-none shrink-0 lg:border-l border-white/10 bg-black/40 backdrop-blur-xl relative z-10"
+        style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${sidebarWidth}px` : undefined }}
+      >
         <style>{`
           @media (min-width: 1024px) {
-            .sidebar-container { width: ${sidebarWidth}px !important; }
+            .sidebar-container { 
+              width: ${sidebarWidth}px !important; 
+              min-width: 260px !important;
+              max-width: 800px !important;
+              flex: none !important;
+            }
           }
         `}</style>
 
+        {/* Resizer Handle */}
         <div
-          className="hidden lg:block absolute top-0 left-0 w-2 h-full cursor-col-resize hover:bg-indigo-500/30 transition-colors z-[60] -ml-1"
+          className={`hidden lg:flex items-center justify-center absolute top-0 -left-2 w-4 h-full cursor-col-resize z-[70] group select-none ${
+            isDragging ? 'bg-purple-500/20' : 'hover:bg-purple-500/10'
+          }`}
           onMouseDown={handleSidebarMouseDown}
-          title="Drag to resize"
-        ></div>
+          title="Drag to resize sidebar"
+        >
+          <div className={`w-[2px] h-full transition-colors ${
+            isDragging ? 'bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 'bg-transparent group-hover:bg-purple-400/60'
+          }`} />
+        </div>
 
         <CommentSidebar
           comments={comments}

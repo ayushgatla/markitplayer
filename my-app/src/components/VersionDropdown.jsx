@@ -54,26 +54,26 @@ export const VersionDropdown = ({
 
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
-      {/* Minimal Trigger Button */}
+      {/* Studio Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2 py-0.5 rounded-none text-xs font-semibold bg-[#07050e] hover:bg-white/10 text-purple-300 hover:text-white border border-purple-950/50 transition-colors cursor-pointer"
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-white/[0.08] transition-colors cursor-pointer shadow-sm"
         title="Switch version"
       >
-        <span className="font-mono text-[11px]">{activeVersionObj?.title || `V${currentVersionNum}`}</span>
-        <ChevronDown size={11} className={`text-zinc-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <span className="font-mono text-[11px] text-zinc-100">{activeVersionObj?.title || `V${currentVersionNum}`}</span>
+        <ChevronDown size={12} className={`text-zinc-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Minimal Dropdown Menu */}
+      {/* Studio Dropdown Menu */}
       {isOpen && (
-        <div className="absolute left-0 mt-1.5 w-60 bg-[#0c0a14] border border-purple-950/60 rounded-none shadow-2xl z-[150] overflow-hidden py-1">
-          <div className="px-3 py-1.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-purple-950/40 flex items-center justify-between">
+        <div className="absolute left-0 mt-1.5 w-64 bg-[#141417] border border-white/[0.1] rounded-xl shadow-2xl z-[150] overflow-hidden py-1 backdrop-blur-md">
+          <div className="px-3 py-1.5 text-[10px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-white/[0.06] flex items-center justify-between">
             <span>Versions</span>
-            <span>{versions.length} total</span>
+            <span className="font-mono text-zinc-500">{versions.length} total</span>
           </div>
 
-          <div className="max-h-60 overflow-y-auto divide-y divide-purple-950/30">
+          <div className="max-h-60 overflow-y-auto divide-y divide-white/[0.04] custom-scrollbar">
             {versions
               .slice()
               .reverse()
@@ -84,7 +84,7 @@ export const VersionDropdown = ({
                     key={ver.version}
                     onClick={() => handleSelectVersion(ver.version)}
                     className={`flex items-center justify-between px-3 py-2 text-xs cursor-pointer transition-colors group ${
-                      isActive ? 'bg-purple-950/40 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                      isActive ? 'bg-purple-500/15 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -93,7 +93,7 @@ export const VersionDropdown = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-semibold truncate text-zinc-200">
+                          <span className={`truncate ${isActive ? 'font-semibold text-white' : 'text-zinc-300'}`}>
                             {ver.title || `Version ${ver.version}`}
                           </span>
                         </div>
@@ -114,7 +114,7 @@ export const VersionDropdown = ({
                             onDeleteVersion(ver.version);
                           }
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-red-400 transition-opacity ml-1"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-purple-400 hover:bg-purple-500/10 rounded transition-all ml-1"
                         title="Delete version"
                       >
                         <Trash2 size={12} />
@@ -126,16 +126,16 @@ export const VersionDropdown = ({
           </div>
 
           {!isClient && onOpenAddVersion && (
-            <div className="border-t border-purple-950/40 p-1">
+            <div className="border-t border-white/[0.06] p-1 bg-zinc-950/40">
               <button
                 type="button"
                 onClick={() => {
                   setIsOpen(false);
                   onOpenAddVersion('drive');
                 }}
-                className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs text-purple-300 hover:text-white hover:bg-white/5 rounded-none transition-colors font-semibold"
+                className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors font-medium cursor-pointer"
               >
-                <Plus size={13} />
+                <Plus size={13} className="text-zinc-400" />
                 <span>Add new version</span>
               </button>
             </div>

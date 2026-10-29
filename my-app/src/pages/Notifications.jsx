@@ -12,7 +12,8 @@ import {
   Search, 
   Video,
   Layers,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -119,22 +120,22 @@ export default function Notifications() {
   }, [notifications]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col font-sans selection:bg-purple-600 selection:text-white">
+    <div className="min-h-screen bg-[#09090b] text-white flex flex-col font-sans selection:bg-purple-600 selection:text-white">
       {/* Header */}
-      <header className="border-b border-purple-950/40 bg-[#0c0a14]/90 backdrop-blur-md sticky top-0 z-50 px-4 md:px-6 py-4">
+      <header className="border-b border-white/[0.08] bg-[#0e0e11]/90 backdrop-blur-md sticky top-0 z-50 px-4 md:px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => navigate('/dashboard')}
-              className="p-2 rounded-none bg-[#07050e] hover:bg-white/10 text-zinc-400 hover:text-white transition-colors border border-purple-950/50 flex items-center gap-2 text-xs font-semibold cursor-pointer"
+              className="p-2 px-3 rounded-lg bg-[#141417] hover:bg-[#1c1c21] text-zinc-300 hover:text-white transition-colors border border-white/[0.08] flex items-center gap-2 text-xs font-medium cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Back to Dashboard</span>
             </button>
-            <div className="h-5 w-px bg-purple-950/40 hidden sm:block"></div>
+            <div className="h-5 w-px bg-white/[0.08] hidden sm:block"></div>
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-none bg-purple-950/50 border border-purple-500/40 flex items-center justify-center">
-                <Bell className="w-4 h-4 text-purple-300" />
+              <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                <Bell className="w-4 h-4 text-purple-400" />
               </div>
               <div>
                 <h1 className="text-base md:text-lg font-bold tracking-tight text-white leading-tight">Client Activity & Messages</h1>
@@ -146,7 +147,7 @@ export default function Notifications() {
           <button 
             onClick={loadNotifications}
             disabled={loading}
-            className="p-2 px-3 rounded-none bg-[#07050e] hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-purple-950/50 cursor-pointer flex items-center gap-2 text-xs font-medium shadow-sm"
+            className="p-2 px-3 rounded-lg bg-[#141417] hover:bg-[#1c1c21] text-zinc-300 hover:text-white transition-colors border border-white/[0.08] cursor-pointer flex items-center gap-2 text-xs font-medium shadow-sm"
             title="Refresh Activity"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-purple-400' : ''}`} />
@@ -158,7 +159,7 @@ export default function Notifications() {
       {/* Main Content */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 md:px-6 py-8">
         {/* Controls Bar: Search & Filter Tabs */}
-        <div className="mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-[#0c0a14] p-3 md:p-4 rounded-none border border-purple-950/50 shadow-xl">
+        <div className="mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-[#0e0e11] p-3 md:p-4 rounded-xl border border-white/[0.08] shadow-sm">
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
@@ -167,14 +168,14 @@ export default function Notifications() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search messages, clients, or rooms..."
-              className="w-full bg-[#07050e] border border-purple-950/60 focus:border-purple-500/60 rounded-none pl-9 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition-colors"
+              className="w-full bg-[#141417] border border-white/[0.08] focus:border-purple-500/60 rounded-lg pl-9 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition-colors"
             />
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-xs"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 p-1"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -191,15 +192,15 @@ export default function Notifications() {
               <button
                 key={tab.id}
                 onClick={() => setActiveFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-none font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 text-xs cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-1.5 text-xs cursor-pointer ${
                   activeFilter === tab.id
-                    ? 'bg-white text-black shadow-sm'
-                    : 'bg-[#07050e] hover:bg-white/10 text-zinc-400 hover:text-zinc-200 border border-purple-950/50'
+                    ? 'bg-white text-zinc-950 font-semibold shadow-sm'
+                    : 'bg-[#141417] hover:bg-[#1c1c21] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
                 }`}
               >
                 <span>{tab.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-none font-mono ${
-                  activeFilter === tab.id ? 'bg-zinc-200 text-black font-bold' : 'bg-purple-950/40 text-purple-300'
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
+                  activeFilter === tab.id ? 'bg-zinc-200 text-zinc-950 font-bold' : 'bg-white/[0.06] text-zinc-400'
                 }`}>
                   {tab.count}
                 </span>
@@ -215,12 +216,12 @@ export default function Notifications() {
             <span className="text-xs font-medium text-zinc-400">Loading client messages...</span>
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="text-center py-16 bg-[#0c0a14] rounded-none border border-purple-950/50 p-8 shadow-xl">
+          <div className="text-center py-16 bg-[#0e0e11] rounded-2xl border border-white/[0.08] p-8 shadow-sm">
             <Bell className="w-10 h-10 text-zinc-600 mx-auto mb-3 opacity-40" />
-            <h3 className="text-sm font-bold text-zinc-300 mb-1">
+            <h3 className="text-sm font-semibold text-zinc-200 mb-1">
               {searchQuery || activeFilter !== 'all' ? 'No Matching Messages' : 'No Client Messages Yet'}
             </h3>
-            <p className="text-xs text-zinc-500 max-w-md mx-auto">
+            <p className="text-xs text-zinc-400 max-w-md mx-auto">
               {searchQuery || activeFilter !== 'all' 
                 ? 'Try clearing your search query or switching filter tabs.' 
                 : 'When clients leave feedback, drawings, or chat messages in your review rooms, they will appear here.'}
@@ -232,14 +233,21 @@ export default function Notifications() {
               <div 
                 key={notif.id}
                 onClick={() => navigate(`/room/${notif.room_id}`)}
-                className="p-4 md:p-5 rounded-none bg-[#0c0a14] hover:bg-[#120e20] transition-all cursor-pointer border border-purple-950/50 hover:border-purple-500/40 group shadow-xl flex flex-col md:flex-row md:items-start justify-between gap-4"
+                className="p-4 md:p-5 rounded-xl bg-[#0e0e11] hover:bg-[#131317] transition-all cursor-pointer border border-white/[0.08] hover:border-white/[0.16] group shadow-sm flex flex-col md:flex-row md:items-start justify-between gap-4"
               >
                 {/* Left: Avatar + Content Details */}
                 <div className="flex items-start gap-3.5 flex-1 min-w-0">
-                  {/* User Initials Avatar */}
-                  <div className="w-9 h-9 rounded-full bg-[#1c182c] border border-purple-900/60 flex items-center justify-center text-xs font-bold text-purple-200 shrink-0 uppercase shadow-md">
-                    {(notif.author_name || 'C').substring(0, 2)}
-                  </div>
+                  {notif.avatar_url || notif.author_avatar ? (
+                    <img
+                      src={notif.avatar_url || notif.author_avatar}
+                      alt={notif.author_name || 'Client'}
+                      className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0 shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-300 shrink-0 uppercase shadow-sm">
+                      {(notif.author_name || 'C').substring(0, 2)}
+                    </div>
+                  )}
 
                   <div className="space-y-2 flex-1 min-w-0">
                     {/* Header Row: Author, Time, Badges */}
@@ -248,39 +256,39 @@ export default function Notifications() {
                         {notif.author_name || 'Client'}
                       </span>
                       <span className="text-xs text-zinc-600">•</span>
-                      <span className="text-[11px] text-zinc-500 font-mono" title={dayjs(notif.created_at).format('YYYY-MM-DD HH:mm:ss')}>
+                      <span className="text-[11px] text-zinc-400 font-mono" title={dayjs(notif.created_at).format('YYYY-MM-DD HH:mm:ss')}>
                         {dayjs(notif.created_at).fromNow()}
                       </span>
 
                       {/* Metadata Badges */}
                       <div className="flex items-center gap-1.5 ml-auto md:ml-2 flex-wrap">
                         {notif.version && (
-                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono font-semibold">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 font-mono font-medium">
                             Version {notif.version}
                           </span>
                         )}
                         {notif.hasDrawing && (
-                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20 font-medium flex items-center gap-1">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/10 text-white border border-white/20 font-medium flex items-center gap-1">
                             <Pencil className="w-2.5 h-2.5 text-white" /> Drawing
                           </span>
                         )}
                         {notif.isRange && (
-                          <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono font-medium flex items-center gap-1">
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 font-mono font-medium flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" /> {notif.formattedTime}
                           </span>
                         )}
                         {!notif.isRange && !notif.isChat && notif.timestamp >= 0 && (
-                          <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono font-medium flex items-center gap-1">
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 font-mono font-medium flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" /> @ {notif.formattedTime}
                           </span>
                         )}
                         {notif.isChat && (
-                          <span className="text-[9px] px-2.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30 font-medium flex items-center gap-1">
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium flex items-center gap-1">
                             <MessageSquare className="w-2.5 h-2.5" /> Room Chat
                           </span>
                         )}
                         {notif.hasImage && (
-                          <span className="text-[9px] px-2 py-0.2 rounded-none bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium flex items-center gap-1">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/10 text-zinc-300 border border-white/20 font-medium flex items-center gap-1">
                             <ImageIcon className="w-2.5 h-2.5" /> Image Attached
                           </span>
                         )}
@@ -289,11 +297,11 @@ export default function Notifications() {
 
                     {/* Comment Body / Clean Preview */}
                     {notif.plainText ? (
-                      <p className="text-xs text-zinc-200 leading-relaxed font-normal bg-[#07050e] p-3 rounded-none border border-purple-950/50">
+                      <p className="text-xs text-zinc-200 leading-relaxed font-normal bg-[#141417] p-3 rounded-lg border border-white/[0.06]">
                         "{notif.plainText}"
                       </p>
                     ) : (
-                      <div className="text-xs text-zinc-400 bg-[#07050e] p-2.5 rounded-none border border-purple-950/50 italic flex items-center gap-2">
+                      <div className="text-xs text-zinc-400 bg-[#141417] p-2.5 rounded-lg border border-white/[0.06] italic flex items-center gap-2">
                         {notif.hasDrawing ? (
                           <>
                             <Pencil className="w-3.5 h-3.5 text-white shrink-0" />
@@ -301,7 +309,7 @@ export default function Notifications() {
                           </>
                         ) : notif.hasImage ? (
                           <>
-                            <ImageIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <ImageIcon className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                             <span>Image screenshot attached</span>
                           </>
                         ) : (
@@ -313,11 +321,11 @@ export default function Notifications() {
                     {/* Attached Image Preview if present */}
                     {notif.hasImage && notif.imageUrl && (
                       <div className="pt-1">
-                        <div className="relative inline-block max-w-xs rounded-none overflow-hidden border border-purple-950/50 bg-black/40 shadow-md group/img">
+                        <div className="relative inline-block max-w-xs rounded-lg overflow-hidden border border-white/[0.08] bg-black/40 shadow-sm group/img">
                           <img 
                             src={notif.imageUrl} 
                             alt="Attachment preview" 
-                            className="max-h-40 object-cover rounded-none transition-transform duration-200 group-hover/img:scale-105"
+                            className="max-h-40 object-cover rounded-lg transition-transform duration-200 group-hover/img:scale-105"
                             loading="lazy"
                           />
                         </div>
@@ -326,7 +334,7 @@ export default function Notifications() {
 
                     {/* Room Badge */}
                     <div className="pt-1 flex items-center gap-2">
-                      <div className="text-[10px] text-zinc-400 flex items-center gap-1.5 bg-[#07050e] px-2.5 py-1 rounded-none border border-purple-950/40 w-fit">
+                      <div className="text-[10px] text-zinc-400 flex items-center gap-1.5 bg-[#141417] px-2.5 py-1 rounded-md border border-white/[0.06] w-fit">
                         <Video className="w-3 h-3 text-purple-400" />
                         <span className="text-zinc-500">Session:</span>
                         <span className="font-semibold text-zinc-200 truncate max-w-xs">{notif.roomTitle}</span>
@@ -342,7 +350,7 @@ export default function Notifications() {
                       e.stopPropagation();
                       navigate(`/room/${notif.room_id}`);
                     }}
-                    className="px-3.5 py-2 rounded-none bg-white hover:bg-zinc-200 text-black text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    className="px-3.5 py-2 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
                   >
                     <span>Open Room</span>
                     <ExternalLink className="w-3.5 h-3.5" />

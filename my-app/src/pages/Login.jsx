@@ -137,7 +137,7 @@ export default function Login() {
         >
 
           <div className="bg-transparent border-t border-l border-white/20 border-b border-r border-black/40 p-8 w-full shadow-2xl backdrop-blur-sm relative rounded-[32px]">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none rounded-[32px]"></div>
+            <div className="absolute inset-0 border border-white/10 pointer-events-none rounded-[32px]"></div>
             <div className="relative z-10">
               <div className="flex flex-col items-center mb-8">
                 <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center mb-4">
@@ -152,13 +152,13 @@ export default function Login() {
               </div>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg mb-6">
+                <div className="bg-purple-500/10 border border-purple-500/30 text-purple-300 text-sm p-3 rounded-lg mb-6">
                   {error}
                 </div>
               )}
 
               {message && (
-                <div className="bg-green-500/10 border border-green-500/50 text-green-500 text-sm p-3 rounded-lg mb-6">
+                <div className="bg-purple-500/10 border border-purple-500/30 text-purple-300 text-sm p-3 rounded-lg mb-6">
                   {message}
                 </div>
               )}
@@ -170,7 +170,7 @@ export default function Login() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                    className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                     placeholder="Enter your email"
                     required
                   />
@@ -179,14 +179,14 @@ export default function Login() {
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wider">Password</label>
                     {!isSignUp && (
-                      <a href="#" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Forgot password?</a>
+                      <a href="#" className="text-xs text-purple-400 hover:text-purple-300 transition-colors">Forgot password?</a>
                     )}
                   </div>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                    className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                     placeholder="••••••••"
                     required
                   />
@@ -197,7 +197,7 @@ export default function Login() {
                       className="w-full h-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-xl overflow-hidden cursor-pointer"
                       onClick={loading ? undefined : handleEmailAuth}
                     >
-                      <div className="flex items-center justify-center w-full h-[52px] bg-indigo-500/20 border border-indigo-400/30 text-white font-medium hover:bg-indigo-500/30 transition-colors">
+                      <div className="flex items-center justify-center w-full h-[52px] bg-purple-600 border border-purple-400/30 text-white font-medium hover:bg-purple-500 transition-colors">
                         {loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'}
                       </div>
                     </div>
@@ -214,7 +214,7 @@ export default function Login() {
                       style={{ position: 'absolute', top: '50%', left: '50%' }}
                       onClick={loading ? undefined : handleEmailAuth}
                     >
-                      <div className="flex items-center justify-center w-full h-[52px] bg-indigo-500/20 border border-indigo-400/30 text-white font-medium hover:bg-indigo-500/30 transition-colors">
+                      <div className="flex items-center justify-center w-full h-[52px] bg-purple-600 border border-purple-400/30 text-white font-medium hover:bg-purple-500 transition-colors">
                         {loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'}
                       </div>
                     </LiquidGlass>
@@ -274,7 +274,7 @@ export default function Login() {
                 {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
                 <span
                   onClick={() => setIsSignUp(!isSignUp)}
-                  className="text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                  className="text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
                 >
                   {isSignUp ? 'Sign in' : 'Sign up'}
                 </span>
@@ -294,7 +294,7 @@ export default function Login() {
           style={{ position: 'absolute', top: '50%', left: '50%' }}
         >
           <div className="bg-transparent border-t border-l border-white/20 border-b border-r border-black/40 p-8 w-full shadow-2xl backdrop-blur-sm relative rounded-[32px]">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none rounded-[32px]"></div>
+            <div className="absolute inset-0 border border-white/10 pointer-events-none rounded-[32px]"></div>
             <div className="relative z-10">
               <div className="flex flex-col items-center mb-8">
                 <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center mb-4">
@@ -309,13 +309,13 @@ export default function Login() {
               </div>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg mb-6">
+                <div className="bg-purple-500/10 border border-purple-500/30 text-purple-300 text-sm p-3 rounded-lg mb-6">
                   {error}
                 </div>
               )}
 
               {message && (
-                <div className="bg-green-500/10 border border-green-500/50 text-green-500 text-sm p-3 rounded-lg mb-6">
+                <div className="bg-purple-500/10 border border-purple-500/30 text-purple-300 text-sm p-3 rounded-lg mb-6">
                   {message}
                 </div>
               )}
@@ -327,7 +327,7 @@ export default function Login() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                    className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                     placeholder="Enter your email"
                     required
                   />
@@ -336,14 +336,14 @@ export default function Login() {
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wider">Password</label>
                     {!isSignUp && (
-                      <a href="#" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Forgot password?</a>
+                      <a href="#" className="text-xs text-purple-400 hover:text-purple-300 transition-colors">Forgot password?</a>
                     )}
                   </div>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                    className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                     placeholder="••••••••"
                     required
                   />
@@ -361,7 +361,7 @@ export default function Login() {
                     style={{ position: 'absolute', top: '50%', left: '50%' }}
                     onClick={loading ? undefined : handleEmailAuth}
                   >
-                    <div className="flex items-center justify-center w-full h-[52px] bg-indigo-500/20 border border-indigo-400/30 text-white font-medium hover:bg-indigo-500/30 transition-colors">
+                    <div className="flex items-center justify-center w-full h-[52px] bg-purple-600 border border-purple-400/30 text-white font-medium hover:bg-purple-500 transition-colors">
                       {loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'}
                     </div>
                   </LiquidGlass>
@@ -403,7 +403,7 @@ export default function Login() {
                 {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
                 <span
                   onClick={() => setIsSignUp(!isSignUp)}
-                  className="text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                  className="text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
                 >
                   {isSignUp ? 'Sign in' : 'Sign up'}
                 </span>

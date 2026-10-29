@@ -36,9 +36,15 @@ export default class ErrorBoundary extends React.Component {
             <img src="/blasync_icon.svg" alt="Blasync" className="w-8 h-8 object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight mb-2">Something went wrong</h1>
-          <p className="text-zinc-400 text-sm max-w-md mb-8 leading-relaxed">
-            An unexpected error occurred while loading the application.
+          <p className="text-zinc-400 text-sm max-w-md mb-4 leading-relaxed">
+            {this.state.error?.message || "An unexpected error occurred while loading the application."}
           </p>
+          {this.state.error && (
+            <pre className="text-xs text-rose-400 max-w-xl text-left bg-black/80 p-4 rounded-xl mb-6 overflow-auto border border-rose-500/20 max-h-48 font-mono select-text">
+              {this.state.error.toString()}
+              {this.state.error.stack ? `\n\n${this.state.error.stack}` : ''}
+            </pre>
+          )}
           <div className="flex items-center gap-3">
             <button
               onClick={this.handleReload}

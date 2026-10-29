@@ -39,7 +39,7 @@ export const DrawingToolbar = ({
   ];
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 p-1.5 bg-black/75 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] animate-in fade-in slide-in-from-top-3 duration-200 select-none max-w-[95vw] overflow-x-auto custom-scrollbar">
+    <div className="absolute top-3 sm:top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 sm:gap-2 p-1 sm:p-1.5 bg-[#141417]/95 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.7)] animate-in fade-in slide-in-from-top-3 duration-200 select-none max-w-[calc(100vw-16px)] overflow-x-auto custom-scrollbar">
       
       {/* Tool Selector */}
       <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
@@ -54,7 +54,7 @@ export const DrawingToolbar = ({
               title={tool.label}
               className={`p-2 rounded-lg transition-all flex items-center justify-center relative ${
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 scale-105'
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30 scale-105'
                   : 'text-zinc-400 hover:text-white hover:bg-white/10'
               }`}
             >
@@ -88,7 +88,7 @@ export const DrawingToolbar = ({
 
         {/* Custom Color Picker */}
         <label
-          className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative overflow-hidden bg-gradient-to-tr from-indigo-500 via-pink-500 to-yellow-500"
+          className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative overflow-hidden bg-purple-500"
           title="Custom Color"
         >
           <input
@@ -157,7 +157,7 @@ export const DrawingToolbar = ({
           onClick={onClear}
           disabled={strokeCount === 0}
           title="Clear all drawings"
-          className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-400 rounded-lg transition-all"
+          className="p-2 text-zinc-400 hover:text-purple-400 hover:bg-purple-500/10 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-400 rounded-lg transition-all"
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -171,7 +171,7 @@ export const DrawingToolbar = ({
           type="button"
           onClick={onDone}
           title="Done & Attach to comment"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-emerald-600/30 transition-all hover:scale-105 active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-purple-600/30 transition-all hover:scale-105 active:scale-95"
         >
           <Check className="w-3.5 h-3.5" />
           <span>Done</span>

@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }) => {
         <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col items-center justify-center z-[9999] select-none">
           <div className="relative flex items-center justify-center">
             {/* Ambient Pulse Glow */}
-            <div className="absolute w-20 h-20 bg-indigo-500/20 rounded-full blur-xl animate-pulse"></div>
+            <div className="absolute w-20 h-20 bg-purple-500/20 rounded-full blur-xl animate-pulse"></div>
             
             {/* App Icon Container */}
             <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center shadow-2xl relative z-10 animate-pulse">
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }) => {
           </div>
           
           <div className="mt-4 flex items-center gap-2 text-zinc-500 text-xs font-medium tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping"></span>
             Loading Blasync...
           </div>
         </div>

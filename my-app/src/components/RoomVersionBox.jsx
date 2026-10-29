@@ -85,17 +85,17 @@ export const RoomVersionBox = ({
   return (
     <div
       ref={containerRef}
-      className="w-full bg-[#0c0a14] border-b border-purple-950/40 px-3 sm:px-6 py-2 flex items-center justify-between text-xs text-white z-30 relative shrink-0 select-none shadow-sm"
+      className="w-full bg-[#0e0e11] border-b border-white/[0.08] px-3 sm:px-6 py-2 flex items-center justify-between text-xs text-white z-30 relative shrink-0 select-none shadow-sm"
     >
       {/* Left: Versions Header & Horizontal Pills */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-x-auto scrollbar-none py-0.5">
         {/* Badge Indicator */}
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-[#151026] border border-purple-500/30 text-purple-300 rounded-none shrink-0">
-          <Layers size={13} className="text-purple-400" />
-          <span className="font-semibold tracking-wide text-[11px] uppercase">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 border border-white/[0.08] text-zinc-300 rounded-lg shrink-0">
+          <Layers size={13} className="text-zinc-400" />
+          <span className="font-medium tracking-wide text-[11px] uppercase">
             Versions
           </span>
-          <span className="text-[10px] bg-purple-900/60 text-purple-200 px-1.5 py-0.2 rounded-none font-mono">
+          <span className="text-[10px] bg-zinc-800 text-zinc-300 px-1.5 py-0.2 rounded-md font-mono">
             {versions.length}
           </span>
         </div>
@@ -110,20 +110,20 @@ export const RoomVersionBox = ({
                 key={ver.version}
                 type="button"
                 onClick={() => handleSelect(ver.version)}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-none text-xs transition-all cursor-pointer shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all cursor-pointer shrink-0 font-medium ${
                   isActive
-                    ? 'bg-gradient-to-r from-purple-700 to-indigo-600 text-white border border-purple-400/80 shadow-md shadow-purple-950/60 font-semibold ring-1 ring-purple-400/40'
-                    : 'bg-[#07050e] hover:bg-white/10 text-zinc-300 hover:text-white border border-purple-950/50'
+                    ? 'bg-purple-600 text-white border border-purple-400/30 shadow-sm'
+                    : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-white/[0.08]'
                 }`}
                 title={`Switch to ${ver.title || `V${ver.version}`}${commentsCount > 0 ? ` (${commentsCount} comments)` : ''}`}
               >
-                {isActive && <Check size={12} className="text-purple-200 font-bold" />}
+                {isActive && <Check size={12} className="text-white font-bold" />}
                 <span className="font-mono text-[11px] tracking-tight">
                   {ver.title || `V${ver.version}`}
                 </span>
                 {commentsCount > 0 && (
-                  <span className={`text-[9px] px-1.5 py-0.2 rounded-none font-mono ${
-                    isActive ? 'bg-purple-950/70 text-purple-200' : 'bg-white/10 text-zinc-400'
+                  <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-mono ${
+                    isActive ? 'bg-purple-950/80 text-purple-200' : 'bg-white/10 text-zinc-400'
                   }`}>
                     {commentsCount}
                   </span>
@@ -140,7 +140,7 @@ export const RoomVersionBox = ({
           <button
             type="button"
             onClick={() => onOpenAddVersion('drive')}
-            className="flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-zinc-200 text-black text-[11px] font-bold rounded-none transition-colors shadow-sm cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-zinc-200 text-zinc-900 text-[11px] font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
             title="Upload or link a new video version"
           >
             <Plus size={12} className="stroke-[2.5]" />
@@ -151,8 +151,8 @@ export const RoomVersionBox = ({
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className={`flex items-center gap-1 px-2 py-1 text-zinc-400 hover:text-white hover:bg-white/5 border border-purple-950/40 rounded-none transition-colors cursor-pointer text-[11px] ${
-            isExpanded ? 'bg-white/10 text-white border-purple-500/40' : ''
+          className={`flex items-center gap-1 px-2.5 py-1 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-white/[0.08] rounded-lg transition-colors cursor-pointer text-[11px] ${
+            isExpanded ? 'bg-zinc-800 text-white border-white/[0.15]' : ''
           }`}
           title={isExpanded ? 'Collapse version list' : 'View full version list and details'}
         >
@@ -163,12 +163,12 @@ export const RoomVersionBox = ({
 
       {/* Expanded Detailed Version Dropdown Panel */}
       {isExpanded && (
-        <div className="absolute top-full left-3 sm:left-6 mt-1 w-80 sm:w-96 bg-[#0c0a14]/98 backdrop-blur-xl border border-purple-950/80 rounded-none shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute top-full left-2 sm:left-6 mt-1.5 w-[calc(100vw-16px)] max-w-sm sm:max-w-md bg-[#141417]/98 backdrop-blur-xl border border-white/[0.1] rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
           {/* Header */}
-          <div className="px-3.5 py-2.5 bg-[#07050e] border-b border-purple-950/50 flex items-center justify-between">
+          <div className="px-3.5 py-2.5 bg-zinc-950/60 border-b border-white/[0.06] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Layers size={14} className="text-purple-400" />
-              <span className="text-xs font-bold text-white tracking-wide">
+              <Layers size={14} className="text-zinc-400" />
+              <span className="text-xs font-semibold text-white tracking-wide">
                 Room Video Versions
               </span>
             </div>
@@ -178,7 +178,7 @@ export const RoomVersionBox = ({
           </div>
 
           {/* Versions List */}
-          <div className="max-h-72 overflow-y-auto divide-y divide-purple-950/30 custom-scrollbar">
+          <div className="max-h-72 overflow-y-auto divide-y divide-white/[0.04] custom-scrollbar">
             {versions
               .slice()
               .reverse()
@@ -193,13 +193,13 @@ export const RoomVersionBox = ({
                     onClick={() => handleSelect(ver.version)}
                     className={`p-3 transition-colors cursor-pointer flex items-center justify-between gap-3 group ${
                       isActive
-                        ? 'bg-purple-950/30 border-l-2 border-purple-500'
-                        : 'hover:bg-white/5'
+                        ? 'bg-purple-500/10 border-l-2 border-purple-500'
+                        : 'hover:bg-white/[0.04]'
                     }`}
                   >
                     {/* Platform Icon & Main Info */}
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="w-8 h-8 rounded-none bg-[#140e24] border border-purple-950/60 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/[0.08] flex items-center justify-center shrink-0">
                         {platformInfo.isCustomIcon ? (
                           <img
                             src={platformInfo.icon}
@@ -207,17 +207,17 @@ export const RoomVersionBox = ({
                             className="w-4 h-4 object-contain"
                           />
                         ) : (
-                          <Film size={14} className="text-purple-400" />
+                          <Film size={14} className="text-zinc-400" />
                         )}
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`font-semibold text-xs truncate ${isActive ? 'text-purple-200' : 'text-zinc-200 group-hover:text-white'}`}>
+                          <span className={`font-medium text-xs truncate ${isActive ? 'text-white font-semibold' : 'text-zinc-300 group-hover:text-white'}`}>
                             {ver.title || `Version ${ver.version}`}
                           </span>
                           {isActive && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-none shrink-0 uppercase tracking-wider">
+                            <span className="text-[9px] font-semibold px-1.5 py-0.2 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-md shrink-0 uppercase tracking-wider">
                               Active
                             </span>
                           )}
@@ -233,7 +233,7 @@ export const RoomVersionBox = ({
                           {commentsCount > 0 && (
                             <>
                               <span>•</span>
-                              <span className="flex items-center gap-0.5 text-purple-300">
+                              <span className="flex items-center gap-0.5 text-zinc-300">
                                 <MessageSquare size={10} />
                                 {commentsCount}
                               </span>
@@ -252,7 +252,7 @@ export const RoomVersionBox = ({
                             e.stopPropagation();
                             handleSelect(ver.version);
                           }}
-                          className="px-2.5 py-1 text-[11px] font-semibold bg-[#1a142e] hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 rounded-none transition-colors"
+                          className="px-2.5 py-1 text-[11px] font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white border border-white/[0.08] rounded-lg transition-colors cursor-pointer"
                         >
                           Switch
                         </button>
@@ -262,7 +262,7 @@ export const RoomVersionBox = ({
                         <button
                           type="button"
                           onClick={(e) => handleDelete(e, ver)}
-                          className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-none transition-colors opacity-0 group-hover:opacity-100"
+                          className="p-1.5 text-zinc-500 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
                           title={`Delete ${ver.title || `V${ver.version}`}`}
                         >
                           <Trash2 size={13} />
@@ -276,14 +276,14 @@ export const RoomVersionBox = ({
 
           {/* Footer Quick Add Actions (Host only) */}
           {!isClient && onOpenAddVersion && (
-            <div className="p-2 bg-[#07050e] border-t border-purple-950/50 flex gap-2">
+            <div className="p-2 bg-zinc-950/60 border-t border-white/[0.06] flex gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setIsExpanded(false);
                   onOpenAddVersion('drive');
                 }}
-                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold bg-[#120d22] hover:bg-[#1c1534] border border-purple-950/60 text-purple-300 hover:text-white transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium bg-zinc-900 hover:bg-zinc-850 border border-white/[0.08] text-zinc-300 hover:text-white rounded-lg transition-colors cursor-pointer"
               >
                 <img src="/drive.png" alt="Drive" className="w-3.5 h-3.5 object-contain" />
                 <span>+ Google Drive</span>
@@ -294,7 +294,7 @@ export const RoomVersionBox = ({
                   setIsExpanded(false);
                   onOpenAddVersion('youtube');
                 }}
-                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold bg-[#120d22] hover:bg-[#1c1534] border border-purple-950/60 text-purple-300 hover:text-white transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium bg-zinc-900 hover:bg-zinc-850 border border-white/[0.08] text-zinc-300 hover:text-white rounded-lg transition-colors cursor-pointer"
               >
                 <img src="/youtube.png" alt="YouTube" className="w-3.5 h-3.5 object-contain" />
                 <span>+ YouTube</span>

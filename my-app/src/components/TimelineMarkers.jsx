@@ -20,10 +20,10 @@ export const TimelineMarkers = ({ duration, comments, onMarkerClick }) => {
               key={comment.id}
               className={`absolute top-1 w-3 h-3 rounded-full cursor-pointer pointer-events-auto transform -translate-x-1/2 hover:scale-125 transition-all shadow-[0_0_8px_rgba(0,0,0,0.8)] border-2 border-zinc-900 ${
                 comment.resolved 
-                  ? 'bg-green-500 hover:bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.8)]' 
+                  ? 'bg-zinc-400 hover:bg-zinc-300 shadow-[0_0_8px_rgba(255,255,255,0.4)]' 
                   : parsed.hasDrawing
                     ? 'bg-white hover:bg-zinc-200 shadow-[0_0_8px_rgba(255,255,255,0.8)]'
-                    : 'bg-indigo-500 hover:bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]'
+                    : 'bg-purple-500 hover:bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)]'
               }`}
               style={{ left: `${leftPercent}%` }}
               onClick={() => onMarkerClick(comment)}
@@ -47,7 +47,7 @@ export const TimelineMarkers = ({ duration, comments, onMarkerClick }) => {
                       </div>
                       <div className="flex items-center gap-1">
                         {hParsed.version && (
-                          <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-mono">
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-purple-500/20 text-purple-300 font-mono">
                             v{hParsed.version}
                           </span>
                         )}

@@ -470,7 +470,7 @@ export default function Landing() {
 
         </div>
         <div className="max-w-6xl mx-auto mt-8 pt-6 border-t border-white/5 text-center text-zinc-500 text-xs">
-          <p>© 2026 Blasync. All rights reserved.</p>
+          <p>2026 Blasync. All rights reserved.</p>
         </div>
       </footer>
     </div>

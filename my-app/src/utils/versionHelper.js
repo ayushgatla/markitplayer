@@ -84,7 +84,7 @@ export const getActiveVideoUrl = (rawVideoUrl, requestedVersion = null) => {
   }
 
   const active = data.versions.find(v => v.version === data.currentVersion) || data.versions[data.versions.length - 1];
-  return active ? active.url : '';
+  return (active && typeof active.url === 'string') ? active.url : '';
 };
 
 /**

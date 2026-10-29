@@ -58,7 +58,7 @@ export function FeedbackForm() {
       {/* Success Overlay */}
       {status === 'success' && (
         <div className="absolute inset-0 z-50 bg-zinc-950/90 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-300">
-          <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mb-6">
+          <div className="w-16 h-16 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center mb-6">
             <CheckCircle2 className="w-10 h-10" />
           </div>
           <h2 className="text-3xl font-bold mb-4">Thank you for your feedback!</h2>

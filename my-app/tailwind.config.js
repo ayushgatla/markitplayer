@@ -10,11 +10,11 @@ export default {
         xs: '480px',
       },
       colors: {
-        background: '#0a0a0a',
-        surface: '#111111',
-        surfaceHighlight: '#1f1f1f',
-        border: '#2a2a2a',
-        primary: '#ffffff',
+        background: '#09090b',
+        surface: '#111114',
+        surfaceHighlight: '#18181b',
+        border: 'rgba(255, 255, 255, 0.08)',
+        primary: '#f4f4f5',
         secondary: '#a1a1aa',
       },
       boxShadow: {
